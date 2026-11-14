@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public final class BoilerBlocks {
 
@@ -119,6 +120,20 @@ public final class BoilerBlocks {
         DYED_BODY_ITEMS.values().forEach(byColor -> byColor.values().forEach(item -> items.add(item.get())));
         EXTRA_BODY_ITEMS.values().forEach(byKind -> byKind.values().forEach(item -> items.add(item.get())));
         return items;
+    }
+
+    public static void forEachBodyItem(BiConsumer<Item, Boolean> out) {
+        for (DyeColor color : ColorOrder.ORDER) {
+            for (String kind : BODY_KINDS) {
+                out.accept(DYED_BODY_ITEMS.get(kind).get(color).get(),
+                        color == BODY_TAB_COLOR && kind.equals(BODY_TAB_KIND));
+            }
+        }
+        for (String color : ColorOrder.EXTRA) {
+            for (String kind : BODY_KINDS) {
+                out.accept(EXTRA_BODY_ITEMS.get(color).get(kind).get(), false);
+            }
+        }
     }
 
     private static Block[] barrelBlocks() {
