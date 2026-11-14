@@ -15,14 +15,15 @@ import net.minecraft.world.level.block.DirectionalBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.phys.BlockHitResult;
+import org.jetbrains.annotations.Nullable;
 
 public class DyedBoilerBarrelBlock extends BoilerBarrelBlock implements DyedBlock {
 
     private final String kind;
-    private final DyeColor dye;
+    @Nullable private final DyeColor dye;
 
-    public DyedBoilerBarrelBlock(Properties properties, String kind, DyeColor dye) {
-        super(properties, dye.getSerializedName(), false);
+    public DyedBoilerBarrelBlock(Properties properties, String kind, @Nullable DyeColor dye) {
+        super(properties, dye == null ? "industrial" : dye.getSerializedName(), false);
         this.kind = kind;
         this.dye = dye;
     }
@@ -32,6 +33,7 @@ public class DyedBoilerBarrelBlock extends BoilerBarrelBlock implements DyedBloc
     }
 
     @Override
+    @Nullable
     public DyeColor getColor() {
         return dye;
     }

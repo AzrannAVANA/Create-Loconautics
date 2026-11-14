@@ -18,7 +18,8 @@
         "brown": "loconautics:brown_ribbed_boiler_body",
         "green": "loconautics:green_ribbed_boiler_body",
         "red": "loconautics:red_ribbed_boiler_body",
-        "black": "loconautics:black_ribbed_boiler_body"
+        "black": "loconautics:black_ribbed_boiler_body",
+        "colorless": "loconautics:industrial_ribbed_boiler_body"
       }
     },
     {
@@ -39,7 +40,8 @@
         "brown": "loconautics:brown_paneled_boiler_body",
         "green": "loconautics:green_paneled_boiler_body",
         "red": "loconautics:red_paneled_boiler_body",
-        "black": "loconautics:black_paneled_boiler_body"
+        "black": "loconautics:black_paneled_boiler_body",
+        "colorless": "loconautics:industrial_paneled_boiler_body"
       }
     },
     {
@@ -60,7 +62,8 @@
         "brown": "loconautics:brown_plated_boiler_body",
         "green": "loconautics:green_plated_boiler_body",
         "red": "loconautics:red_plated_boiler_body",
-        "black": "loconautics:black_plated_boiler_body"
+        "black": "loconautics:black_plated_boiler_body",
+        "colorless": "loconautics:industrial_plated_boiler_body"
       }
     },
     {
@@ -81,7 +84,8 @@
         "brown": "loconautics:brown_framed_boiler_body",
         "green": "loconautics:green_framed_boiler_body",
         "red": "loconautics:red_framed_boiler_body",
-        "black": "loconautics:black_framed_boiler_body"
+        "black": "loconautics:black_framed_boiler_body",
+        "colorless": "loconautics:industrial_framed_boiler_body"
       }
     },
     {
@@ -102,7 +106,8 @@
         "brown": "loconautics:brown_slatted_boiler_body",
         "green": "loconautics:green_slatted_boiler_body",
         "red": "loconautics:red_slatted_boiler_body",
-        "black": "loconautics:black_slatted_boiler_body"
+        "black": "loconautics:black_slatted_boiler_body",
+        "colorless": "loconautics:industrial_slatted_boiler_body"
       }
     }
   ]

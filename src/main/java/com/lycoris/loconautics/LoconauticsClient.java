@@ -147,7 +147,6 @@ public final class LoconauticsClient {
 
     private void onCommonSetup(net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent event) {
         com.lycoris.loconautics.content.boiler.barrel.BoilerCTType.register();
-        registerBarrelCT(com.lycoris.loconautics.content.boiler.BoilerBlocks.BOILER_BODY.get(), "boiler_body");
         registerCeriseneCT();
         com.lycoris.loconautics.content.industrial.IndustrialClientSetup.register();
         for (net.minecraft.world.level.block.Block block : net.minecraft.core.registries.BuiltInRegistries.BLOCK) {
@@ -176,17 +175,6 @@ public final class LoconauticsClient {
                 model -> new com.simibubi.create.foundation.block.connected.CTModel(
                         model,
                         new com.simibubi.create.foundation.block.connected.SimpleCTBehaviour(shift)));
-    }
-
-    private static void registerBarrelCT(net.minecraft.world.level.block.Block block, String folder) {
-        String base = "block/boiler/barrel/" + folder + "/barrel_side";
-        var shift = com.lycoris.loconautics.content.boiler.barrel.BoilerCTShiftEntry.get(
-                LoconauticsConstants.id(base), LoconauticsConstants.id(base + "_ct"));
-        com.simibubi.create.CreateClient.MODEL_SWAPPER.getCustomBlockModels().register(
-                net.createmod.catnip.registry.RegisteredObjectsHelper.getKeyOrThrow(block),
-                model -> new com.simibubi.create.foundation.block.connected.CTModel(
-                        model,
-                        new com.lycoris.loconautics.content.boiler.barrel.BarrelCTBehaviour(shift)));
     }
 
     private void onClientSetup(FMLClientSetupEvent event) {

@@ -1,7 +1,11 @@
 {
   "replace": false,
   "values": [
-    "loconautics:boiler_body",
+    "loconautics:industrial_ribbed_boiler_body",
+    "loconautics:industrial_paneled_boiler_body",
+    "loconautics:industrial_plated_boiler_body",
+    "loconautics:industrial_framed_boiler_body",
+    "loconautics:industrial_slatted_boiler_body",
     "loconautics:red_ribbed_boiler_body",
     "loconautics:red_paneled_boiler_body",
     "loconautics:red_plated_boiler_body",

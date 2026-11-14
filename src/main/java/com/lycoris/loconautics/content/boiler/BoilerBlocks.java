@@ -1,7 +1,6 @@
 package com.lycoris.loconautics.content.boiler;
 
 import com.lycoris.loconautics.LoconauticsConstants;
-import com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelBlock;
 import com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelItem;
 import com.lycoris.loconautics.content.boiler.barrel.DyedBoilerBarrelBlock;
 import com.lycoris.loconautics.content.boiler.firebox.FireboxBlock;
@@ -72,14 +71,6 @@ public final class BoilerBlocks {
                     .of(BoilerBlocks::createFireboxBE, FIREBOX.get())
                     .build(null));
 
-    public static final DeferredHolder<Block, BoilerBarrelBlock> BOILER_BODY =
-            LoconauticsRegistries.BLOCKS.register("boiler_body", () ->
-                    new BoilerBarrelBlock(barrel(), "colorless", false));
-
-    public static final DeferredHolder<Item, BlockItem> BOILER_BODY_ITEM =
-            LoconauticsRegistries.ITEMS.register("boiler_body", () ->
-                    new com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelItem(BOILER_BODY.get(), new Item.Properties().stacksTo(64)));
-
     public static final DyeColor BODY_TAB_COLOR = DyeColor.RED;
 
     public static final String BODY_TAB_KIND = "ribbed";
@@ -94,6 +85,12 @@ public final class BoilerBlocks {
     public static final Map<String, Map<DyeColor, DeferredHolder<Item, BlockItem>>> DYED_BODY_ITEMS =
             registerDyedBodyItems();
 
+    public static final Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>> INDUSTRIAL_BODIES =
+            registerIndustrialBodies();
+
+    public static final Map<String, DeferredHolder<Item, BlockItem>> INDUSTRIAL_BODY_ITEMS =
+            registerIndustrialBodyItems();
+
     public static final DeferredHolder<BlockEntityType<?>,
             BlockEntityType<com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelBlockEntity>>
             BOILER_BARREL_BE = BLOCK_ENTITIES.register("boiler_barrel", () ->
@@ -103,6 +100,10 @@ public final class BoilerBlocks {
 
     public static String bodyName(DyeColor color, String kind) {
         return color.getSerializedName() + "_" + kind + "_boiler_body";
+    }
+
+    public static String industrialName(String kind) {
+        return "industrial_" + kind + "_boiler_body";
     }
 
     public static Block dyedBody(String kind, DyeColor color) {
@@ -116,14 +117,33 @@ public final class BoilerBlocks {
     public static List<Item> dyedBodyItems() {
         List<Item> items = new ArrayList<>();
         DYED_BODY_ITEMS.values().forEach(byColor -> byColor.values().forEach(item -> items.add(item.get())));
+        INDUSTRIAL_BODY_ITEMS.values().forEach(item -> items.add(item.get()));
         return items;
     }
 
     private static Block[] barrelBlocks() {
         List<Block> blocks = new ArrayList<>();
-        blocks.add(BOILER_BODY.get());
         DYED_BODIES.values().forEach(byColor -> byColor.values().forEach(block -> blocks.add(block.get())));
+        INDUSTRIAL_BODIES.values().forEach(block -> blocks.add(block.get()));
         return blocks.toArray(Block[]::new);
+    }
+
+    private static Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>> registerIndustrialBodies() {
+        Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>> all = new LinkedHashMap<>();
+        for (String kind : BODY_KINDS) {
+            all.put(kind, LoconauticsRegistries.BLOCKS.register(industrialName(kind), () ->
+                    new DyedBoilerBarrelBlock(barrel(), kind, null)));
+        }
+        return Collections.unmodifiableMap(all);
+    }
+
+    private static Map<String, DeferredHolder<Item, BlockItem>> registerIndustrialBodyItems() {
+        Map<String, DeferredHolder<Item, BlockItem>> all = new LinkedHashMap<>();
+        for (String kind : BODY_KINDS) {
+            all.put(kind, LoconauticsRegistries.ITEMS.register(industrialName(kind), () ->
+                    new BoilerBarrelItem(INDUSTRIAL_BODIES.get(kind).get(), new Item.Properties().stacksTo(64))));
+        }
+        return Collections.unmodifiableMap(all);
     }
 
     private static Map<String, Map<DyeColor, DeferredHolder<Block, DyedBoilerBarrelBlock>>> registerDyedBodies() {

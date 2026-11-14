@@ -603,7 +603,6 @@ public final class LoconauticsRegistries {
                         output.accept(CREATIVE_TRAIN_RELOCATOR.get());
 
                         output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.FIREBOX_ITEM.get());
-                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.BOILER_BODY_ITEM.get());
                         com.lycoris.loconautics.content.boiler.BoilerBlocks.DYED_BODY_ITEMS
                                 .forEach((kind, byColor) -> byColor.forEach((color, item) ->
                                         output.accept(new net.minecraft.world.item.ItemStack(item.get()),
@@ -611,6 +610,9 @@ public final class LoconauticsRegistries {
                                                         && kind.equals(com.lycoris.loconautics.content.boiler.BoilerBlocks.BODY_TAB_KIND)
                                                         ? net.minecraft.world.item.CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS
                                                         : net.minecraft.world.item.CreativeModeTab.TabVisibility.SEARCH_TAB_ONLY)));
+                        com.lycoris.loconautics.content.boiler.BoilerBlocks.INDUSTRIAL_BODY_ITEMS.values()
+                                .forEach(item -> output.accept(new net.minecraft.world.item.ItemStack(item.get()),
+                                        net.minecraft.world.item.CreativeModeTab.TabVisibility.SEARCH_TAB_ONLY));
                         output.accept(SMOKESTACK_ITEM.get());
                         output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.STEAM_TAKEOFF_ITEM.get());
                         output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.SMART_SAFETY_VALVE_ITEM.get());
