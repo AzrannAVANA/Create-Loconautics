@@ -18,7 +18,8 @@ public class HosePonderPlugin implements PonderPlugin {
     public void registerScenes(PonderSceneRegistrationHelper<ResourceLocation> helper) {
         helper.forComponents(LoconauticsRegistries.HOSE.getId())
                 .addStoryBoard("hose/winch", HoseScenes::connect)
-                .addStoryBoard("hose/pump", HoseScenes::fluid);
+                .addStoryBoard("hose/pump", HoseScenes::fluid)
+                .addStoryBoard("hose/relay", HoseScenes::ropeConnector);
 
         helper.forComponents(LoconauticsRegistries.HOSE_WINCH.getId())
                 .addStoryBoard("hose/winch", HoseScenes::connect)
@@ -32,7 +33,8 @@ public class HosePonderPlugin implements PonderPlugin {
                 .addStoryBoard("hose/socket", HoseScenes::socket);
 
         helper.forComponents(LoconauticsRegistries.HOSE_CONNECTOR.getId())
-                .addStoryBoard("hose/connector", HoseScenes::connector);
+                .addStoryBoard("hose/connector", HoseScenes::connector)
+                .addStoryBoard("hose/relay", HoseScenes::ropeConnector);
 
         helper.forComponents(LoconauticsConstants.id("fluid_hatch_gray"))
                 .addStoryBoard("hose/socket", HoseScenes::socket)
@@ -41,5 +43,8 @@ public class HosePonderPlugin implements PonderPlugin {
 
         helper.forComponents(BoilerBlocks.EXTRA_BODIES.get("industrial").get("ribbed").getId())
                 .addStoryBoard("hose/boiler", HoseScenes::boiler);
+
+        helper.forComponents(ResourceLocation.fromNamespaceAndPath("simulated", "rope_connector"))
+                .addStoryBoard("hose/relay", HoseScenes::ropeConnector);
     }
 }

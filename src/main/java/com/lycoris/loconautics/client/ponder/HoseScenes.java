@@ -58,6 +58,10 @@ public class HoseScenes {
     private static final BlockPos SOCKET = new BlockPos(2, 2, 1);
     private static final BlockPos DOCKED = new BlockPos(2, 3, 1);
     private static final BlockPos CONNECTOR = new BlockPos(2, 2, 1);
+    private static final BlockPos RELAY_MOUNT = new BlockPos(2, 1, 2);
+    private static final BlockPos RELAY = new BlockPos(2, 2, 2);
+    private static final BlockPos RELAY_TANK = new BlockPos(2, 1, 0);
+    private static final BlockPos RELAY_CONNECTOR = new BlockPos(2, 2, 0);
 
     private static final BlockPos SOCKET_MOUNT = new BlockPos(2, 1, 2);
     private static final BlockPos SOCKET_ALONE = new BlockPos(2, 2, 2);
@@ -75,6 +79,8 @@ public class HoseScenes {
 
     private static final Vec3 END_LOOSE_SIDE = new Vec3(3.5, 1.5, 0.5);
     private static final Vec3 END_DOCKED = new Vec3(2.5, 2.6875, 1.5);
+    private static final Vec3 END_RELAY = new Vec3(2.5, 2.3125, 2.5);
+    private static final Vec3 END_RELAY_FAR = new Vec3(2.5, 2.6875, 0.5);
 
     private static final int HOSE_LEAD_TICKS = 1;
     private static final float SLOW_RPM = 8.0f;
@@ -504,6 +510,97 @@ public class HoseScenes {
         scene.idle(80);
     }
 
+    public static void ropeConnector(SceneBuilder builder, SceneBuildingUtil util) {
+        CreateSceneBuilder scene = open(builder, "hose_rope_connector", "Extending Hoses using Rope Connectors", PUMP_SHAFT_BASE);
+
+        scene.world().showSection(util.select().fromTo(RELAY_MOUNT, RELAY), Direction.DOWN);
+        scene.idle(10);
+        scene.overlay().showText(60)
+                .text("Rope Connectors can hold a Hose as well as a Rope")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(RELAY));
+        scene.idle(70);
+
+        scene.world().showSection(util.select().position(WINCH_MOUNT), Direction.DOWN);
+        scene.idle(5);
+        hosed(scene, WINCH);
+        scene.world().showSection(util.select().position(WINCH), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(PUMP), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(SOURCE), Direction.DOWN);
+        scene.world().modifyBlockEntity(SOURCE, FluidTankBlockEntity.class, be -> be.getTankInventory()
+                .fill(new FluidStack(Fluids.WATER, 24000), FluidAction.EXECUTE));
+        scene.idle(10);
+        scene.overlay().showControls(util.vector().topOf(WINCH), Pointing.DOWN, 30)
+                .rightClick()
+                .withItem(hoseItem());
+        scene.idle(25);
+        scene.overlay().showControls(util.vector().topOf(RELAY), Pointing.DOWN, 30)
+                .rightClick()
+                .withItem(hoseItem());
+        scene.idle(25);
+        hose(scene, WINCH, END_RELAY, 0.0f);
+        HosePreviewStrands.attach(scene, RELAY);
+        scene.overlay().showText(60)
+                .text("A winch can reel its Hose in to a Rope Connector...")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(RELAY));
+        scene.idle(70);
+
+        scene.world().showSection(util.select().position(RELAY_TANK), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(RELAY_CONNECTOR), Direction.DOWN);
+        scene.idle(10);
+        scene.overlay().showControls(util.vector().topOf(RELAY), Pointing.DOWN, 30)
+                .rightClick()
+                .withItem(hoseItem());
+        scene.idle(25);
+        scene.overlay().showControls(util.vector().topOf(RELAY_CONNECTOR), Pointing.DOWN, 30)
+                .rightClick()
+                .withItem(hoseItem());
+        scene.idle(25);
+        HosePreviewStrands.attach(scene, RELAY_CONNECTOR);
+        HosePreviewStrands.draw(scene, RELAY_CONNECTOR, sagging(END_RELAY, END_RELAY_FAR));
+        scene.overlay().showText(60)
+                .text("...and a second Hose carries on to a Hose Connector")
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(RELAY_CONNECTOR));
+        scene.idle(70);
+
+        scene.world().showSection(util.select().position(PUMP_COG), Direction.DOWN);
+        scene.idle(5);
+        scene.world().restoreBlocks(util.select().position(PUMP_SHAFT_BASE));
+        scene.world().showSection(util.select().fromTo(PUMP_SHAFT_NEAR, PUMP_SHAFT_FAR), Direction.DOWN);
+        scene.idle(15);
+        pumpSpeed(scene, pumpOf(util), driveOf(util), 64.0f);
+        scene.world().propagatePipeChange(PUMP);
+        scene.effects().rotationSpeedIndicator(PUMP_COG);
+        scene.world().modifyBlockEntity(RELAY_TANK, FluidTankBlockEntity.class, be -> be.getTankInventory()
+                .fill(new FluidStack(Fluids.WATER, 8000), FluidAction.EXECUTE));
+        scene.overlay().showText(60)
+                .text("Fluid follows the chain of hoses to the last connector or nozzle")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(RELAY_CONNECTOR));
+        scene.idle(70);
+
+        scene.overlay().showText(60)
+                .text("Each connector holds at most 2 hoses, one in and one out")
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(RELAY));
+        scene.idle(70);
+
+        scene.overlay().showText(60)
+                .text("Plain Steel Cables never carry Fluids")
+                .colored(PonderPalette.RED)
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(RELAY));
+        scene.idle(70);
+    }
+
     public static void socket(SceneBuilder builder, SceneBuildingUtil util) {
         CreateSceneBuilder scene = open(builder, "nozzle_socket", "Docking Nozzles in Nozzle Sockets");
 
@@ -689,6 +786,19 @@ public class HoseScenes {
             hose(scene, winch, from.lerp(to, Math.min(1.0, (double) (i + HOSE_LEAD_TICKS) / ticks)), speed);
             scene.idle(1);
         }
+    }
+
+    // the hose between two connectors has no winch to draw it, so the far connector draws these points
+    private static java.util.List<Vec3> sagging(Vec3 from, Vec3 to) {
+        Vec3 span = to.subtract(from);
+        int segments = Math.max(2, (int) Math.ceil(span.length()));
+        java.util.List<Vec3> points = new java.util.ArrayList<>();
+        for (int i = 0; i <= segments; i++) {
+            double t = (double) i / segments;
+            double sag = -0.4 * Math.sin(Math.PI * t) * Math.min(1.0, span.length() / 3.0);
+            points.add(new Vec3(from.x + span.x * t, from.y + span.y * t + sag, from.z + span.z * t));
+        }
+        return points;
     }
 
     // draws the real hose the winch renders from its synced rope points, a gentle sag between the two ends
