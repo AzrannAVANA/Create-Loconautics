@@ -24,6 +24,7 @@ public class HoseConnectorBlockEntity extends SmartBlockEntity implements HoseLi
     private final IFluidHandler linkHandler = new LinkHandler();
     private final PressureProbe pressureProbe = new PressureProbe();
     private final HoseSourceProbe sourceProbe = new HoseSourceProbe();
+    @Nullable private List<Vec3> previewStrand;
 
     public HoseConnectorBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -32,6 +33,15 @@ public class HoseConnectorBlockEntity extends SmartBlockEntity implements HoseLi
     @Override
     public void addBehaviours(List<BlockEntityBehaviour> behaviours) {
         behaviours.add(new SteelCableHolderBehaviour(this, strandCapacity()));
+    }
+
+    @Nullable
+    public List<Vec3> previewStrand() {
+        return previewStrand;
+    }
+
+    public void setPreviewStrand(@Nullable List<Vec3> points) {
+        previewStrand = points;
     }
 
     public Direction plateSide() {

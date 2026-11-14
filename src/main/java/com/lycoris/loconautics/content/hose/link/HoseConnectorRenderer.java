@@ -20,6 +20,10 @@ public class HoseConnectorRenderer implements BlockEntityRenderer<HoseConnectorB
     @Override
     public void render(HoseConnectorBlockEntity be, float partialTicks, PoseStack ps,
                        MultiBufferSource buffer, int light, int overlay) {
+        if (be.previewStrand() != null && be.getLevel() != null) {
+            com.lycoris.loconautics.client.HoseStrandDraw.draw(ps, buffer, be.getLevel(), be.getBlockPos(),
+                    be.getBlockState(), be.previewStrand());
+        }
         SteelCableHolderBehaviour holder = be.getBehaviour(SteelCableHolderBehaviour.TYPE);
         if (holder == null || holder.attachedStrandIds().isEmpty()) {
             return;

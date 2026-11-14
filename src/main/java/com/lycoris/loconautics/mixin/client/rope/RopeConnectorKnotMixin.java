@@ -38,7 +38,8 @@ public abstract class RopeConnectorKnotMixin {
         boolean hose = false;
         boolean cable = false;
         for (UUID id : holder.attachedStrandIds()) {
-            if (StrandKind.HOSE_LINK.clientStrands().get(id) != null) {
+            if (StrandKind.HOSE_LINK.clientStrands().get(id) != null
+                    || com.lycoris.loconautics.client.ponder.HosePreviewStrands.isPreview(id)) {
                 hose = true;
             } else {
                 cable = true;
