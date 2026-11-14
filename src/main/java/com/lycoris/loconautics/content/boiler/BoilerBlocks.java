@@ -85,11 +85,11 @@ public final class BoilerBlocks {
     public static final Map<String, Map<DyeColor, DeferredHolder<Item, BlockItem>>> DYED_BODY_ITEMS =
             registerDyedBodyItems();
 
-    public static final Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>> INDUSTRIAL_BODIES =
-            registerIndustrialBodies();
+    public static final Map<String, Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>>> EXTRA_BODIES =
+            registerExtraBodies();
 
-    public static final Map<String, DeferredHolder<Item, BlockItem>> INDUSTRIAL_BODY_ITEMS =
-            registerIndustrialBodyItems();
+    public static final Map<String, Map<String, DeferredHolder<Item, BlockItem>>> EXTRA_BODY_ITEMS =
+            registerExtraBodyItems();
 
     public static final DeferredHolder<BlockEntityType<?>,
             BlockEntityType<com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelBlockEntity>>
@@ -102,8 +102,8 @@ public final class BoilerBlocks {
         return color.getSerializedName() + "_" + kind + "_boiler_body";
     }
 
-    public static String industrialName(String kind) {
-        return "industrial_" + kind + "_boiler_body";
+    public static String extraName(String color, String kind) {
+        return color + "_" + kind + "_boiler_body";
     }
 
     public static Block dyedBody(String kind, DyeColor color) {
@@ -117,31 +117,40 @@ public final class BoilerBlocks {
     public static List<Item> dyedBodyItems() {
         List<Item> items = new ArrayList<>();
         DYED_BODY_ITEMS.values().forEach(byColor -> byColor.values().forEach(item -> items.add(item.get())));
-        INDUSTRIAL_BODY_ITEMS.values().forEach(item -> items.add(item.get()));
+        EXTRA_BODY_ITEMS.values().forEach(byKind -> byKind.values().forEach(item -> items.add(item.get())));
         return items;
     }
 
     private static Block[] barrelBlocks() {
         List<Block> blocks = new ArrayList<>();
         DYED_BODIES.values().forEach(byColor -> byColor.values().forEach(block -> blocks.add(block.get())));
-        INDUSTRIAL_BODIES.values().forEach(block -> blocks.add(block.get()));
+        EXTRA_BODIES.values().forEach(byKind -> byKind.values().forEach(block -> blocks.add(block.get())));
         return blocks.toArray(Block[]::new);
     }
 
-    private static Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>> registerIndustrialBodies() {
-        Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>> all = new LinkedHashMap<>();
-        for (String kind : BODY_KINDS) {
-            all.put(kind, LoconauticsRegistries.BLOCKS.register(industrialName(kind), () ->
-                    new DyedBoilerBarrelBlock(barrel(), kind, null)));
+    private static Map<String, Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>>> registerExtraBodies() {
+        Map<String, Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>>> all = new LinkedHashMap<>();
+        for (String color : ColorOrder.EXTRA) {
+            Map<String, DeferredHolder<Block, DyedBoilerBarrelBlock>> byKind = new LinkedHashMap<>();
+            for (String kind : BODY_KINDS) {
+                byKind.put(kind, LoconauticsRegistries.BLOCKS.register(extraName(color, kind), () ->
+                        new DyedBoilerBarrelBlock(barrel(), kind, color)));
+            }
+            all.put(color, Collections.unmodifiableMap(byKind));
         }
         return Collections.unmodifiableMap(all);
     }
 
-    private static Map<String, DeferredHolder<Item, BlockItem>> registerIndustrialBodyItems() {
-        Map<String, DeferredHolder<Item, BlockItem>> all = new LinkedHashMap<>();
-        for (String kind : BODY_KINDS) {
-            all.put(kind, LoconauticsRegistries.ITEMS.register(industrialName(kind), () ->
-                    new BoilerBarrelItem(INDUSTRIAL_BODIES.get(kind).get(), new Item.Properties().stacksTo(64))));
+    private static Map<String, Map<String, DeferredHolder<Item, BlockItem>>> registerExtraBodyItems() {
+        Map<String, Map<String, DeferredHolder<Item, BlockItem>>> all = new LinkedHashMap<>();
+        for (String color : ColorOrder.EXTRA) {
+            Map<String, DeferredHolder<Item, BlockItem>> byKind = new LinkedHashMap<>();
+            for (String kind : BODY_KINDS) {
+                byKind.put(kind, LoconauticsRegistries.ITEMS.register(extraName(color, kind), () ->
+                        new BoilerBarrelItem(EXTRA_BODIES.get(color).get(kind).get(),
+                                new Item.Properties().stacksTo(64))));
+            }
+            all.put(color, Collections.unmodifiableMap(byKind));
         }
         return Collections.unmodifiableMap(all);
     }

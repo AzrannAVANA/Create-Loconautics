@@ -62,7 +62,7 @@ public class BoilerPonderPlugin implements PonderPlugin {
         List<ResourceLocation> ids = new ArrayList<>();
         ids.add(com.lycoris.loconautics.registry.LoconauticsRegistries.SMOKESTACK.getId());
         BoilerBlocks.DYED_BODIES.values().forEach(byColor -> byColor.values().forEach(block -> ids.add(block.getId())));
-        BoilerBlocks.INDUSTRIAL_BODIES.values().forEach(block -> ids.add(block.getId()));
+        BoilerBlocks.EXTRA_BODIES.values().forEach(byKind -> byKind.values().forEach(block -> ids.add(block.getId())));
         return ids;
     }
 }

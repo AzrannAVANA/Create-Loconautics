@@ -212,181 +212,301 @@
     {
       "path": "assets/loconautics/blockstates/{color}_ribbed_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/item/{color}_ribbed_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "data/loconautics/loot_table/blocks/{color}_ribbed_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/ribbed/front.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/ribbed/middle.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/ribbed/back.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/blockstates/{color}_paneled_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/item/{color}_paneled_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "data/loconautics/loot_table/blocks/{color}_paneled_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/paneled/front.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/paneled/middle.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/paneled/back.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/blockstates/{color}_plated_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/item/{color}_plated_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "data/loconautics/loot_table/blocks/{color}_plated_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/plated/front.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/plated/middle.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/plated/back.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/blockstates/{color}_framed_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/item/{color}_framed_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "data/loconautics/loot_table/blocks/{color}_framed_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/framed/front.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/framed/middle.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/framed/back.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/blockstates/{color}_slatted_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/item/{color}_slatted_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "data/loconautics/loot_table/blocks/{color}_slatted_boiler_body.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/slatted/front.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/slatted/middle.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     },
     {
       "path": "assets/loconautics/models/block/boiler/barrel/{color}/slatted/back.json",
       "colors": [
-        "industrial"
+        "industrial",
+        "andesite",
+        "brass",
+        "copper",
+        "zinc"
       ]
     }
   ],

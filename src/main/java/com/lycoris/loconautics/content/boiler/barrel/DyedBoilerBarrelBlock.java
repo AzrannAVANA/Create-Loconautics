@@ -20,11 +20,21 @@ import org.jetbrains.annotations.Nullable;
 public class DyedBoilerBarrelBlock extends BoilerBarrelBlock implements DyedBlock {
 
     private final String kind;
+    private final String colorName;
     @Nullable private final DyeColor dye;
 
-    public DyedBoilerBarrelBlock(Properties properties, String kind, @Nullable DyeColor dye) {
-        super(properties, dye == null ? "industrial" : dye.getSerializedName(), false);
+    public DyedBoilerBarrelBlock(Properties properties, String kind, DyeColor dye) {
+        this(properties, kind, dye.getSerializedName(), dye);
+    }
+
+    public DyedBoilerBarrelBlock(Properties properties, String kind, String colorName) {
+        this(properties, kind, colorName, null);
+    }
+
+    private DyedBoilerBarrelBlock(Properties properties, String kind, String colorName, @Nullable DyeColor dye) {
+        super(properties, colorName, false);
         this.kind = kind;
+        this.colorName = colorName;
         this.dye = dye;
     }
 
@@ -53,7 +63,7 @@ public class DyedBoilerBarrelBlock extends BoilerBarrelBlock implements DyedBloc
 
     @Override
     protected MapCodec<? extends DirectionalBlock> codec() {
-        return simpleCodec(properties -> new DyedBoilerBarrelBlock(properties, kind, dye));
+        return simpleCodec(properties -> new DyedBoilerBarrelBlock(properties, kind, colorName, dye));
     }
 
     @Override

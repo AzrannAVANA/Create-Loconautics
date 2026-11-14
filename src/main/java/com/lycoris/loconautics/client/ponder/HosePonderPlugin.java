@@ -36,7 +36,7 @@ public class HosePonderPlugin implements PonderPlugin {
                 .addStoryBoard("hose/boiler", HoseScenes::boiler)
                 .addStoryBoard("hose/dock", HoseScenes::nozzle);
 
-        helper.forComponents(BoilerBlocks.INDUSTRIAL_BODIES.get("ribbed").getId())
+        helper.forComponents(BoilerBlocks.EXTRA_BODIES.get("industrial").get("ribbed").getId())
                 .addStoryBoard("hose/boiler", HoseScenes::boiler);
     }
 }

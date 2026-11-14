@@ -21,6 +21,8 @@ public record LoadedVariantFamily(List<Type> types) {
 
     public static int colorIndex(String name) {
         if (name.equals("colorless")) return BlockVariantRegistry.COLORLESS_INDEX;
+        int extra = ColorOrder.extraIndex(name);
+        if (extra >= 0) return extra;
         DyeColor dye = DyeColor.byName(name, null);
         return dye == null ? -1 : ColorOrder.indexOf(dye);
     }
