@@ -17,6 +17,7 @@
 - The winch hose flow animation runs toward the winch when pulling fluid in.
 - Creative tab section banners no longer vanish when Bits n Bobs is installed.
 - Schematics keep the copied block on buffers, knuckles and headstocks.
+- Hoses between two trains stretch without pulling either car.
 
 ### Added
 - Boiler bodies come in five red styles.

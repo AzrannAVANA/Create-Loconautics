@@ -21,6 +21,7 @@ import com.lycoris.loconautics.content.hose.nozzle.HoseNozzleBlockEntity;
 import com.lycoris.loconautics.content.hose.rope.HoseRope;
 import com.lycoris.loconautics.content.hose.rope.HoseRopeManager;
 import com.lycoris.loconautics.trainphysics.TrainConsist;
+import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.simibubi.create.content.kinetics.base.KineticEffectHandler;
 import com.simibubi.create.content.kinetics.base.GeneratingKineticBlockEntity;
 import com.simibubi.create.foundation.blockEntity.behaviour.BlockEntityBehaviour;
@@ -50,6 +51,7 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
 
     private static final float COIL_DEGREES_PER_RPM_TICK = 0.3f;
     private static final double TAUT_STRETCH = 1.02;
+    private static final double TRAIN_SLACK = 0.75;
     private static final int FLOW_LINGER_TICKS = 3;
     public static final float FREE_SPIN_CAPACITY = 256.0f;
     private static final double FREE_SPIN_SLACK = 0.001;
@@ -536,6 +538,15 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
         if (reelSpeed < 0.0 && rope.getStretchRatio() > TAUT_STRETCH && sharesBody(winchSubLevelId(), strand.nozzleSubLevelId)) {
             reelSpeed = 0.0;
         }
+        boolean trainToTrain = linksTwoTrains(winchSubLevelId(), strand.nozzleSubLevelId);
+        rope.setForceFree(trainToTrain);
+        if (trainToTrain) {
+            double desired = rope.getExtension() + (rope.getPoints().size() - 2);
+            double need = rope.getCurrentExtension() + TRAIN_SLACK - desired;
+            if (need > 0.0) {
+                reelSpeed = Math.max(reelSpeed, Math.min(FREE_SPIN_MAX_PAYOUT, need));
+            }
+        }
         int pointsBefore = rope.getPoints().size();
         rope.reel(reelSpeed, winchWorld());
         if (!freeSpinning && getSpeed() != 0.0f) {
@@ -555,6 +566,12 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
                 rope.justSynced();
             }
         }
+    }
+
+    private static boolean linksTwoTrains(@Nullable UUID winchSub, @Nullable UUID nozzleSub) {
+        return winchSub != null && nozzleSub != null && !winchSub.equals(nozzleSub)
+                && SableTrainRegistry.bySubLevel(winchSub) != null
+                && SableTrainRegistry.bySubLevel(nozzleSub) != null;
     }
 
     private boolean sharesBody(@Nullable UUID winchSub, @Nullable UUID nozzleSub) {
