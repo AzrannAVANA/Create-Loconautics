@@ -11,7 +11,7 @@
       "item": "minecraft:iron_trapdoor"
     },
     "B": {
-      "item": "loconautics:industrial_pipe"
+      "item": "create:fluid_pipe"
       },
     "C": {
         "item": "loconautics:industrial_iron_sheet"
