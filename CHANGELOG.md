@@ -10,6 +10,7 @@
 - The scroll picker opens when you tap its key fast.
 - Copycat headstocks show the full texture border at every height.
 - Hose connectors on a pipe now fill the tanks at the end of that pipe.
+- Stickers on one train car no longer crash the game.
 
 ### Added
 - Boiler bodies come in five red styles.
