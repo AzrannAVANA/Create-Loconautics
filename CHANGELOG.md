@@ -39,6 +39,7 @@
 - Knuckles and screw links craft 2 at a time.
 - Industrial recipes take Create fluid pipes.
 - Nozzle sockets craft 2 at a time.
+- The casing and bogey picker key is V by default, not C.
 
 ### Removed
 - The red dye recipes for the analog controller, dashboard and conductors hat.
