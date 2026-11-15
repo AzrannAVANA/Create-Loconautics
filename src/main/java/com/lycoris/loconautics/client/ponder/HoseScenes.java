@@ -79,6 +79,17 @@ public class HoseScenes {
 
     private static final Vec3 END_LOOSE_SIDE = new Vec3(3.5, 1.5, 0.5);
     private static final Vec3 END_DOCKED = new Vec3(2.5, 2.6875, 1.5);
+
+    private static final BlockPos LINK_TANK = new BlockPos(2, 1, 4);
+    private static final BlockPos LINK_PUMP = new BlockPos(2, 2, 4);
+    private static final BlockPos LINK_A = new BlockPos(2, 3, 4);
+    private static final BlockPos LINK_COG = new BlockPos(3, 2, 4);
+    private static final BlockPos LINK_SHAFT = new BlockPos(3, 1, 4);
+    private static final BlockPos LINK_B_TANK = new BlockPos(2, 1, 0);
+    private static final BlockPos LINK_B = new BlockPos(2, 2, 0);
+    private static final Vec3 END_LINK_A = new Vec3(2.5, 3.6875, 4.5);
+    private static final Vec3 END_LINK_B = new Vec3(2.5, 2.6875, 0.5);
+
     private static final int RUN_WINCH_X = 8;
     private static final int RUN_STEP = 3;
     private static final int RUN_RELAYS = 9;
@@ -436,7 +447,7 @@ public class HoseScenes {
     }
 
     public static void connector(SceneBuilder builder, SceneBuildingUtil util) {
-        CreateSceneBuilder scene = open(builder, "hose_connector", "Linking Fluids using Hose Connectors");
+        CreateSceneBuilder scene = open(builder, "hose_connector", "Linking Hose Connectors to Winches");
 
         scene.world().showSection(util.select().position(TOWER_TANK), Direction.DOWN);
         scene.idle(5);
@@ -684,6 +695,143 @@ public class HoseScenes {
         scene.idle(80);
     }
 
+    public static void connectorSpeed(SceneBuilder builder, SceneBuildingUtil util) {
+        CreateSceneBuilder scene = open(builder, "hose_connector_speed", "Pumping Fluids through Hose Connectors");
+
+        scene.world().showSection(util.select().position(TOWER_TANK), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(CONNECTOR), Direction.DOWN);
+        scene.world().showSection(util.select().position(WINCH_MOUNT), Direction.DOWN);
+        scene.idle(5);
+        hosed(scene, WINCH);
+        scene.world().showSection(util.select().position(WINCH), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(PUMP), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(SOURCE), Direction.DOWN);
+        scene.world().modifyBlockEntity(SOURCE, FluidTankBlockEntity.class, be -> be.getTankInventory()
+                .fill(new FluidStack(Fluids.WATER, 24000), FluidAction.EXECUTE));
+        scene.idle(10);
+        hose(scene, WINCH, END_DOCKED, 0.0f);
+        HosePreviewStrands.attach(scene, CONNECTOR);
+        scene.world().showSection(util.select().position(PUMP_COG), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().fromTo(PUMP_SHAFT_NEAR, PUMP_SHAFT_FAR), Direction.DOWN);
+        scene.idle(10);
+        scene.overlay().showText(60)
+                .text("Hose Connectors only move Fluids as far as the pump can push")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(CONNECTOR));
+        scene.idle(70);
+
+        pumpSpeed(scene, pumpOf(util), driveOf(util), SLOW_RPM);
+        scene.world().propagatePipeChange(PUMP);
+        scene.effects().rotationSpeedIndicator(PUMP_COG);
+        scene.overlay().showText(60)
+                .text("At low speed the Fluid stops short of the connector")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(CONNECTOR));
+        scene.idle(70);
+
+        pumpSpeed(scene, pumpOf(util), driveOf(util), 64.0f);
+        scene.world().propagatePipeChange(PUMP);
+        scene.effects().rotationSpeedIndicator(PUMP_COG);
+        scene.world().modifyBlockEntity(TOWER_TANK, FluidTankBlockEntity.class, be -> be.getTankInventory()
+                .fill(new FluidStack(Fluids.WATER, 8000), FluidAction.EXECUTE));
+        scene.overlay().showText(60)
+                .text("At high speed it reaches the end of the Hose")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(CONNECTOR));
+        scene.idle(70);
+
+        pumpSpeed(scene, pumpOf(util), driveOf(util), -SLOW_RPM);
+        scene.world().propagatePipeChange(PUMP);
+        scene.effects().rotationDirectionIndicator(PUMP_COG);
+        scene.overlay().showText(60)
+                .text("A reversed pump needs that same speed to pull Fluids back")
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(CONNECTOR));
+        scene.idle(70);
+    }
+
+    public static void connectorLink(SceneBuilder builder, SceneBuildingUtil util) {
+        CreateSceneBuilder scene = open(builder, "hose_connector_link", "Linking Fluids using Hose Connectors");
+
+        scene.world().showSection(util.select().position(LINK_TANK), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(LINK_PUMP), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(LINK_A), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(LINK_B_TANK), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(LINK_B), Direction.DOWN);
+        scene.idle(10);
+        scene.overlay().showText(60)
+                .text("A Hose can join two Hose Connectors directly, no Winch needed")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(LINK_A));
+        scene.idle(70);
+
+        scene.overlay().showControls(util.vector().topOf(LINK_A), Pointing.DOWN, 30)
+                .rightClick()
+                .withItem(hoseItem());
+        scene.idle(25);
+        scene.overlay().showControls(util.vector().topOf(LINK_B), Pointing.DOWN, 30)
+                .rightClick()
+                .withItem(hoseItem());
+        scene.idle(25);
+        HosePreviewStrands.attach(scene, LINK_A);
+        HosePreviewStrands.attach(scene, LINK_B);
+        HosePreviewStrands.draw(scene, LINK_B, sagging(END_LINK_A, END_LINK_B));
+        scene.overlay().showText(60)
+                .text("Right click one connector with a Hose, then the other")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(LINK_B));
+        scene.idle(70);
+
+        scene.world().showSection(util.select().position(LINK_COG), Direction.DOWN);
+        scene.idle(5);
+        scene.world().showSection(util.select().position(LINK_SHAFT), Direction.DOWN);
+        scene.idle(15);
+        pumpSpeed(scene, util.select().position(LINK_PUMP),
+                util.select().position(LINK_COG).add(util.select().position(LINK_SHAFT)), 64.0f);
+        scene.world().propagatePipeChange(LINK_PUMP);
+        scene.effects().rotationSpeedIndicator(LINK_COG);
+        scene.world().modifyBlockEntity(LINK_TANK, FluidTankBlockEntity.class, be -> be.getTankInventory()
+                .fill(new FluidStack(Fluids.WATER, 8000), FluidAction.EXECUTE));
+        scene.overlay().showText(60)
+                .text("A Pump behind one connector pushes Fluids through the Hose...")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(LINK_A));
+        scene.idle(70);
+
+        scene.world().modifyBlockEntity(LINK_B_TANK, FluidTankBlockEntity.class, be -> be.getTankInventory()
+                .fill(new FluidStack(Fluids.WATER, 8000), FluidAction.EXECUTE));
+        scene.overlay().showText(60)
+                .text("...into whatever holds Fluids behind the other connector")
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(LINK_B));
+        scene.idle(70);
+
+        scene.overlay().showText(60)
+                .text("Each Hose Connector holds a single Hose and cannot relay to another")
+                .colored(PonderPalette.RED)
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(LINK_A));
+        scene.idle(70);
+    }
+
+    private static void merge(CreateSceneBuilder scene, ElementLink<WorldSectionElement> strip, Selection selection) {
+        scene.world().showSectionAndMerge(selection, Direction.DOWN, strip);
+    }
+
     public static void socket(SceneBuilder builder, SceneBuildingUtil util) {
         CreateSceneBuilder scene = open(builder, "nozzle_socket", "Docking Nozzles in Nozzle Sockets");
 
@@ -872,10 +1020,6 @@ public class HoseScenes {
     }
 
     // the hose between two connectors has no winch to draw it, so the far connector draws these points
-    private static void merge(CreateSceneBuilder scene, ElementLink<WorldSectionElement> strip, Selection selection) {
-        scene.world().showSectionAndMerge(selection, Direction.DOWN, strip);
-    }
-
     private static java.util.List<Vec3> sagging(Vec3 from, Vec3 to) {
         Vec3 span = to.subtract(from);
         int segments = Math.max(2, (int) Math.ceil(span.length()));

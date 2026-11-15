@@ -52,6 +52,7 @@
 - Added a scene for linking fluids with connectors.
 - Added a scene for extending hoses with rope connectors.
 - Changed the rope connector scene to show a long run of connectors.
+- Added a scene for how far a pump pushes Fluids.
 #### Nozzle Socket
 - Added a scene for docking nozzles.
 - Changed the docking scene to show sockets with and without a tank.
