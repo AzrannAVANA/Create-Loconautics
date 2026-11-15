@@ -14,6 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
@@ -170,5 +171,36 @@ public final class CopycatBlockLogic {
             return;
         }
         Block.popResource(level, pos, store.consumed());
+    }
+
+    @Nullable
+    private static Direction facingOf(BlockState state) {
+        if (state.hasProperty(BlockStateProperties.FACING)) {
+            return state.getValue(BlockStateProperties.FACING);
+        }
+        if (state.hasProperty(BlockStateProperties.HORIZONTAL_FACING)) {
+            return state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+        }
+        return null;
+    }
+
+    public static boolean connectsTo(BlockGetter level, BlockPos from, BlockPos to, BlockState state) {
+        Direction facing = facingOf(state);
+        BlockState other = level.getBlockState(to);
+        if (facing == null || !(level.getBlockEntity(to) instanceof CopycatMaterialHolder)
+                || facingOf(other) != facing
+                || other.getValue(CopycatPlacement.PLACEMENT) != state.getValue(CopycatPlacement.PLACEMENT)) {
+            return false;
+        }
+        BlockPos diff = to.subtract(from);
+        return facing.getAxis().choose(diff.getX(), diff.getY(), diff.getZ()) == 0;
+    }
+
+    public static BlockState appearance(BlockState state, BlockGetter level, BlockPos pos, @Nullable BlockPos queryPos) {
+        if (queryPos == null || !connectsTo(level, queryPos, pos, state)
+                || !(level.getBlockEntity(pos) instanceof CopycatMaterialHolder holder)) {
+            return state;
+        }
+        return holder.copycat().material();
     }
 }
