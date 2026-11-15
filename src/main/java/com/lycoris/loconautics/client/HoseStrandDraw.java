@@ -34,21 +34,8 @@ public final class HoseStrandDraw {
                 continue;
             }
             int light = LevelRenderer.getLightColor(level, BlockPos.containing(p0.x, p0.y, p0.z));
-            if (i > 0) {
-                ps.pushPose();
-                ps.translate(p0.x - owner.getX(), p0.y - owner.getY(), p0.z - owner.getZ());
-                ps.mulPose(orient);
-                ps.translate(-0.5, -0.5, -0.5);
-                knot.light(light).renderInto(ps, vb);
-                ps.popPose();
-            }
-            ps.pushPose();
-            ps.translate(p0.x - owner.getX(), p0.y - owner.getY(), p0.z - owner.getZ());
-            ps.mulPose(orient);
-            ps.scale(1.0f, (float) length, 1.0f);
-            ps.translate(-0.5, 0.0, -0.5);
-            middle.light(light).renderInto(ps, vb);
-            ps.popPose();
+            HoseDraw.segment(ps, vb, middle, i > 0 ? knot : null, orient, p0.x - owner.getX(),
+                    p0.y - owner.getY(), p0.z - owner.getZ(), length, 1.0f, light);
         }
     }
 }

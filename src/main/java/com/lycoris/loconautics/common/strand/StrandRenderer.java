@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.common.strand;
 
+import com.lycoris.loconautics.client.HoseDraw;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.simibubi.create.AllBlocks;
@@ -112,21 +113,14 @@ public final class StrandRenderer {
             }
             if (endKnotOn != null) {
                 if (knotAtStart && !cutAt(entry.getValue(), first.position())) {
-                    org.joml.Vector3f startBack = com.lycoris.loconautics.content.hose.HoseNozzleKnot
-                            .backOff(first.orientation());
-                    renderKnot(level, ps, vb, endKnot, new RenderPoint(first.orientation(),
-                            new Vector3d(first.position()).add(startBack.x, startBack.y, startBack.z)), camera,
-                            com.lycoris.loconautics.content.hose.HoseNozzleKnot.INFLATE);
+                    Vector3d p = first.position();
+                    HoseDraw.nozzleKnotAtStart(ps, vb, endKnot, first.orientation(), p.x - camera.x,
+                            p.y - camera.y, p.z - camera.z, lightAt(level, p));
                 }
                 if (knotAtEnd && !cutAt(entry.getValue(), last.position())) {
-                    Quaternionf nozzleOrient = com.lycoris.loconautics.content.hose.HoseNozzleKnot
-                            .atNozzle(last.orientation());
-                    org.joml.Vector3f back = com.lycoris.loconautics.content.hose.HoseNozzleKnot
-                            .backOff(nozzleOrient);
-                    RenderPoint flipped = new RenderPoint(nozzleOrient,
-                            new Vector3d(last.position()).add(back.x, back.y, back.z));
-                    renderKnot(level, ps, vb, endKnot, flipped, camera,
-                            com.lycoris.loconautics.content.hose.HoseNozzleKnot.INFLATE);
+                    Vector3d p = last.position();
+                    HoseDraw.nozzleKnotAtEnd(ps, vb, endKnot, last.orientation(), p.x - camera.x,
+                            p.y - camera.y, p.z - camera.z, lightAt(level, p));
                 }
             }
             if (entry.getKey().equals(outlined)) {
@@ -170,13 +164,12 @@ public final class StrandRenderer {
     private static void renderKnot(Level level, PoseStack ps, VertexConsumer vb, SuperByteBuffer knot,
                                    RenderPoint at, Vec3 camera, float scale) {
         Vector3d p = at.position();
-        ps.pushPose();
-        ps.translate(p.x - camera.x, p.y - camera.y, p.z - camera.z);
-        ps.mulPose(at.orientation());
-        ps.scale(scale, scale, scale);
-        ps.translate(-0.5, -0.5, -0.5);
-        knot.light(LevelRenderer.getLightColor(level, BlockPos.containing(p.x, p.y, p.z))).renderInto(ps, vb);
-        ps.popPose();
+        HoseDraw.knot(ps, vb, knot, at.orientation(), p.x - camera.x, p.y - camera.y, p.z - camera.z, scale,
+                lightAt(level, p));
+    }
+
+    private static int lightAt(Level level, Vector3d p) {
+        return LevelRenderer.getLightColor(level, BlockPos.containing(p.x, p.y, p.z));
     }
 
     private static void renderSegment(Level level, PoseStack ps, VertexConsumer vb, SuperByteBuffer middle,
@@ -186,20 +179,8 @@ public final class StrandRenderer {
             return;
         }
         Vector3d p = from.position();
-        int light = LevelRenderer.getLightColor(level, BlockPos.containing(p.x, p.y, p.z));
-
-        ps.pushPose();
-        ps.translate(p.x - camera.x, p.y - camera.y, p.z - camera.z);
-        ps.mulPose(from.orientation());
-        ps.translate(-0.5, -0.5, -0.5);
-        if (drawKnot) {
-            knot.light(light).renderInto(ps, vb);
-        }
-        ps.translate(0.5, 0.5, 0.5);
-        ps.scale(girth, (float) length, girth);
-        ps.translate(-0.5, 0.0, -0.5);
-        middle.light(light).renderInto(ps, vb);
-        ps.popPose();
+        HoseDraw.segment(ps, vb, middle, drawKnot ? knot : null, from.orientation(), p.x - camera.x,
+                p.y - camera.y, p.z - camera.z, length, girth, lightAt(level, p));
     }
 
     private static List<RenderPoint> buildRenderPoints(Level level, float partialTick, ClientStrands.Strand strand,
