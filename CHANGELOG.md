@@ -9,6 +9,7 @@
 - Hose Connectors no longer hold two Hoses.
 - The scroll picker opens when you tap its key fast.
 - Copycat headstocks show the full texture border at every height.
+- Hose connectors on a pipe now fill the tanks at the end of that pipe.
 
 ### Added
 - Boiler bodies come in five red styles.

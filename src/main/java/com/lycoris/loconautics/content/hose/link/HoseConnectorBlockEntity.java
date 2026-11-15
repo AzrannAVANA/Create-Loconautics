@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.content.hose.link;
 
 import com.lycoris.loconautics.content.hose.flow.HoseFlowSink;
+import com.lycoris.loconautics.content.hose.flow.HosePipeSink;
 import com.lycoris.loconautics.content.hose.flow.HosePressure;
 import com.lycoris.loconautics.content.hose.flow.HoseSourceProbe;
 import com.lycoris.loconautics.content.hose.flow.PressureProbe;
@@ -62,6 +63,9 @@ public class HoseConnectorBlockEntity extends SmartBlockEntity
             return null;
         }
         Direction plate = plateSide();
+        if (HosePipeSink.isPipe(level, getBlockPos().relative(plate))) {
+            return new HosePipeSink(level, getBlockPos(), plate);
+        }
         return level.getCapability(Capabilities.FluidHandler.BLOCK, getBlockPos().relative(plate),
                 plate.getOpposite());
     }
