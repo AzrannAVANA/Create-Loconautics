@@ -32,6 +32,7 @@
 - Boiler bodies list by color then kind in creative search.
 - Knuckles and screw links craft 2 at a time.
 - Industrial recipes take Create fluid pipes.
+- Nozzle sockets craft 2 at a time.
 
 ### Removed
 - The red dye recipes for the analog controller, dashboard and conductors hat.
