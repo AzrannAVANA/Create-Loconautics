@@ -48,6 +48,7 @@
 - The casing and bogey picker key is V by default, not C.
 - Copycat headstocks, knuckles and buffers take the sound of their block.
 - The copycat headstock joins the knuckle in the coupler scroll menu.
+- The mod needs Sable 2.0.5 or newer to load.
 
 ### Removed
 - The red dye recipes for the analog controller, dashboard and conductors hat.
