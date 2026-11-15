@@ -50,7 +50,7 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.DoubleValue WORKING_TEMPERATURE_C;
 
     public static ModConfigSpec.IntValue WARMUP_TICKS;
-    public static ModConfigSpec.DoubleValue SU_PER_BODY_BLOCK;
+    public static ModConfigSpec.DoubleValue SU_PER_LEVEL;
 
     public static ModConfigSpec.IntValue BOILER_MAX_LENGTH;
     public static ModConfigSpec.IntValue BOILER_MAX_LEVEL;
@@ -293,8 +293,9 @@ public final class LoconauticsConfig {
         WARMUP_TICKS = BUILDER
                 .defineInRange("warmupTicks", 1800, 20, 72000);
 
-        SU_PER_BODY_BLOCK = BUILDER
-                .defineInRange("suPerBodyBlock", 83.0, 0.0, 100000.0);
+        SU_PER_LEVEL = BUILDER
+                .comment("Stress units a boiler gives for each level at full pressure.")
+                .defineInRange("suPerLevel", 16384.0, 0.0, 1000000.0);
 
         BOILER_MAX_LENGTH = BUILDER
                 .comment("Most body blocks a boiler may span along its length before it stops working.",

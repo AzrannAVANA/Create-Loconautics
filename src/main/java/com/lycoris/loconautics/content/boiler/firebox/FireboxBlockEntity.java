@@ -8,6 +8,7 @@ import com.lycoris.loconautics.content.bearingaxle.BearingAxleBlockEntity;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
 import com.lycoris.loconautics.content.boiler.BoilerBlastEffects;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
+import com.lycoris.loconautics.content.boiler.BoilerLevel;
 import com.lycoris.loconautics.content.boiler.BoilerMultiblockValidator;
 import com.lycoris.loconautics.content.boiler.BoilerState;
 import com.lycoris.loconautics.content.boiler.BoilerStructure;
@@ -730,9 +731,14 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public float maxPossibleSu() {
         if (structure == null) return 0f;
-        return structure.boilerCapacity()
-                * (float) (double) LoconauticsConfig.SU_PER_BODY_BLOCK.get()
-                * (float) TAKEOFF_MAX_RPM;
+        return suPerRpm() * (float) TAKEOFF_MAX_RPM;
+    }
+
+    // create counts stress capacity per rpm, so the pool at full pressure is spread over the top rpm
+    public float suPerRpm() {
+        if (structure == null) return 0f;
+        return BoilerLevel.poolSu(structure.level(), (float) (double) LoconauticsConfig.SU_PER_LEVEL.get(), 1f)
+                / (float) TAKEOFF_MAX_RPM;
     }
 
     public int getWaterCapacity() {
@@ -759,9 +765,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public float suOutput() {
         if (structure == null) return 0f;
-        return quantize4(structure.boilerCapacity()
-                * (float) (double) LoconauticsConfig.SU_PER_BODY_BLOCK.get()
-                * shaftRpm());
+        return quantize4(suPerRpm() * shaftRpm());
     }
 
     private void tickWasteGas(boolean burning) {
@@ -849,7 +853,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private void pushTakeoff() {
         if (structure == null || structure.takeoffPos() == null) return;
         if (level.getBlockEntity(structure.takeoffPos()) instanceof SteamTakeoffBlockEntity takeoff) {
-            takeoff.supply(shaftRpm(), structure.boilerCapacity());
+            takeoff.supply(shaftRpm(), suPerRpm());
         }
     }
 

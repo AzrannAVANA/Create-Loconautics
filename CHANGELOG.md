@@ -5,6 +5,9 @@
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
 
+### Changed
+- Steam takeoff power follows the boiler level, 16384 SU per level.
+
 ## Ver 0.1.3BETA
 
 ### Bug Fixes
