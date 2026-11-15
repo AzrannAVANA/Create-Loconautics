@@ -15,6 +15,7 @@
 - Hose knots at nozzles and connectors now match the winch hose.
 - Rope connector hoses no longer show a second knot stacked at the end.
 - The winch hose flow animation runs toward the winch when pulling fluid in.
+- Creative tab section banners no longer vanish when Bits n Bobs is installed.
 
 ### Added
 - Boiler bodies come in five red styles.
