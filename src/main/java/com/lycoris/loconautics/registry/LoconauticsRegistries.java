@@ -575,9 +575,9 @@ public final class LoconauticsRegistries {
                         output.accept(SCREW_LINK_ITEM.get());
 
                         output.accept(HOSE_WINCH_ITEM.get());
+                        output.accept(HOSE.get());
                         output.accept(HOSE_NOZZLE_ITEM.get());
                         output.accept(HOSE_CONNECTOR_ITEM.get());
-                        output.accept(HOSE.get());
                         output.accept(FLUID_HATCH_ITEM.get());
 
                         com.lycoris.loconautics.content.conductorshat.ConductorsHats.HATS

@@ -97,7 +97,7 @@ public final class StrandRenderer {
                 Vector3d mid = new Vector3d((from.position().x + to.x) * 0.5, (from.position().y + to.y) * 0.5,
                         (from.position().z + to.z) * 0.5);
                 if (!cutAt(entry.getValue(), mid)) {
-                    boolean drawKnot = i > 1 && !(knotAtStart && i == 2);
+                    boolean drawKnot = i > 1;
                     renderSegment(level, ps, vb, middle, knot, from, length, camera, drawKnot, girth);
                 }
                 cum += length;
@@ -112,7 +112,11 @@ public final class StrandRenderer {
             }
             if (endKnotOn != null) {
                 if (knotAtStart && !cutAt(entry.getValue(), first.position())) {
-                    renderKnot(level, ps, vb, endKnot, first, camera, 1.0f);
+                    org.joml.Vector3f startBack = com.lycoris.loconautics.content.hose.HoseNozzleKnot
+                            .backOff(first.orientation());
+                    renderKnot(level, ps, vb, endKnot, new RenderPoint(first.orientation(),
+                            new Vector3d(first.position()).add(startBack.x, startBack.y, startBack.z)), camera,
+                            com.lycoris.loconautics.content.hose.HoseNozzleKnot.INFLATE);
                 }
                 if (knotAtEnd && !cutAt(entry.getValue(), last.position())) {
                     Quaternionf nozzleOrient = com.lycoris.loconautics.content.hose.HoseNozzleKnot

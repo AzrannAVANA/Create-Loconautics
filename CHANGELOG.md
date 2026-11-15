@@ -12,6 +12,7 @@
 - Hose connectors on a pipe now fill the tanks at the end of that pipe.
 - Stickers on one train car no longer crash the game.
 - The game no longer crashes on load with Dye Depot installed.
+- Hose knots at nozzles and connectors now match the winch hose.
 
 ### Added
 - Boiler bodies come in five red styles.
