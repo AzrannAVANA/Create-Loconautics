@@ -30,6 +30,8 @@
 - Item icons for the knuckle, buffer and nozzle sit centered.
 - The boiler body is now the Industrial color on every kind.
 - Boiler bodies list by color then kind in creative search.
+- Knuckles and screw links craft 2 at a time.
+- Industrial recipes take Create fluid pipes.
 
 ### Removed
 - The red dye recipes for the analog controller, dashboard and conductors hat.
