@@ -114,6 +114,111 @@
       ]
     },
     {
+      "path": "data/loconautics/recipe/{color}_ribbed_boiler_body_with_dye.json",
+      "parent": "black",
+      "colors": [
+        "white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red"
+      ]
+    },
+    {
+      "path": "data/loconautics/recipe/{color}_paneled_boiler_body_with_dye.json",
+      "parent": "black",
+      "colors": [
+        "white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red"
+      ]
+    },
+    {
+      "path": "data/loconautics/recipe/{color}_plated_boiler_body_with_dye.json",
+      "parent": "black",
+      "colors": [
+        "white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red"
+      ]
+    },
+    {
+      "path": "data/loconautics/recipe/{color}_framed_boiler_body_with_dye.json",
+      "parent": "black",
+      "colors": [
+        "white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red"
+      ]
+    },
+    {
+      "path": "data/loconautics/recipe/{color}_slatted_boiler_body_with_dye.json",
+      "parent": "black",
+      "colors": [
+        "white",
+        "orange",
+        "magenta",
+        "light_blue",
+        "yellow",
+        "lime",
+        "pink",
+        "gray",
+        "light_gray",
+        "cyan",
+        "purple",
+        "blue",
+        "brown",
+        "green",
+        "red"
+      ]
+    },
+    {
       "path": "data/loconautics/recipe/{color}_conductors_goggles.json"
     },
     {
@@ -538,6 +643,36 @@
         "loconautics:{color}_paneled_boiler_body",
         "loconautics:{color}_plated_boiler_body",
         "loconautics:{color}_framed_boiler_body",
+        "loconautics:{color}_slatted_boiler_body"
+      ]
+    },
+    {
+      "path": "data/loconautics/tags/item/ribbed_boiler_bodies.json",
+      "values": [
+        "loconautics:{color}_ribbed_boiler_body"
+      ]
+    },
+    {
+      "path": "data/loconautics/tags/item/paneled_boiler_bodies.json",
+      "values": [
+        "loconautics:{color}_paneled_boiler_body"
+      ]
+    },
+    {
+      "path": "data/loconautics/tags/item/plated_boiler_bodies.json",
+      "values": [
+        "loconautics:{color}_plated_boiler_body"
+      ]
+    },
+    {
+      "path": "data/loconautics/tags/item/framed_boiler_bodies.json",
+      "values": [
+        "loconautics:{color}_framed_boiler_body"
+      ]
+    },
+    {
+      "path": "data/loconautics/tags/item/slatted_boiler_bodies.json",
+      "values": [
         "loconautics:{color}_slatted_boiler_body"
       ]
     }
