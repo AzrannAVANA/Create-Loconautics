@@ -15,6 +15,7 @@
 - Boiler bodies craft from tubes, iron sheets and a fluid tank.
 - Boiler bodies recolor with any dye or a metal ingot.
 - Nozzle handlebars fold in partway while a Hose holds the nozzle.
+- Held blocks with a scroll picker show their key above the name.
 
 ### Changed
 - Hose nozzles have a new model, and hoses end in a new knot there.

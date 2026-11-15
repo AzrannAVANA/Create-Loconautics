@@ -39,6 +39,7 @@ English is the main language. The other languages are community work, and more h
 | Language | Translated |
 | --- | --- |
 | English (en_us) | 100% |
+| Chinese, Simplified (zh_cn) | 100% |
 | German (de_de) | 88% |
 | Spanish (es_es) | 88% |
 | Galician (gl_es) | 87% |
