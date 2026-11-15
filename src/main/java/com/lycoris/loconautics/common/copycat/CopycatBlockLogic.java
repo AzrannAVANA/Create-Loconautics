@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.common.copycat;
 
+import com.simibubi.create.AllBlocks;
 import com.simibubi.create.AllTags.AllBlockTags;
 import com.simibubi.create.content.decoration.copycat.CopycatBlock;
 import com.simibubi.create.content.decoration.copycat.CopycatModel;
@@ -27,6 +28,8 @@ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.neoforged.neoforge.client.model.data.ModelData;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.HitResult;
 import org.jetbrains.annotations.Nullable;
 
 public final class CopycatBlockLogic {
@@ -202,5 +205,27 @@ public final class CopycatBlockLogic {
             return state;
         }
         return holder.copycat().material();
+    }
+
+    public static BlockState materialAt(BlockGetter level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof CopycatMaterialHolder holder
+                ? holder.copycat().material()
+                : Blocks.AIR.defaultBlockState();
+    }
+
+    public static ItemStack cloneStack(ItemStack own, HitResult target, LevelReader level, BlockPos pos,
+                                       @Nullable Player player) {
+        BlockState material = materialAt(level, pos);
+        if (AllBlocks.COPYCAT_BASE.has(material) || player != null && player.isShiftKeyDown()) {
+            return own;
+        }
+        return material.getCloneItemStack(target, level, pos, player);
+    }
+
+    public static void clearConsumedInCreative(Level level, BlockPos pos, Player player) {
+        CopycatMaterialStore store = storeAt(level, pos);
+        if (store != null && player.isCreative()) {
+            store.setConsumed(ItemStack.EMPTY);
+        }
     }
 }

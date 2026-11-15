@@ -19,6 +19,7 @@
 - Nozzle handlebars fold in partway while a Hose holds the nozzle.
 - Held blocks with a scroll picker show their key above the name.
 - Copycat headstocks, knuckles and buffers connect textures with each other.
+- Sneak pick block on a copycat headstock, knuckle or buffer gives the copycat itself.
 
 ### Changed
 - Hose nozzles have a new model, and hoses end in a new knot there.
@@ -42,6 +43,7 @@
 - Industrial recipes take Create fluid pipes.
 - Nozzle sockets craft 2 at a time.
 - The casing and bogey picker key is V by default, not C.
+- Copycat headstocks, knuckles and buffers take the sound of their block.
 
 ### Removed
 - The red dye recipes for the analog controller, dashboard and conductors hat.
