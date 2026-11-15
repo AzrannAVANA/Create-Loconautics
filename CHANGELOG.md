@@ -11,6 +11,8 @@
 - Boiler bodies come in five red styles.
 - Buffer colors and the knuckle or screw link pick from the scroll menu.
 - Boiler bodies come in four metal colors from Create.
+- Boiler bodies craft from tubes, iron sheets and a fluid tank.
+- Boiler bodies recolor with any dye or a metal ingot.
 
 ### Changed
 - Hose nozzles have a new model, and hoses end in a new knot there.
