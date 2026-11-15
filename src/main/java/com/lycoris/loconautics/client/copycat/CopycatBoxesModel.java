@@ -22,11 +22,21 @@ public class CopycatBoxesModel extends CopycatModel {
 
     private final List<AABB> boxes;
     private final int depthAxis;
+    private final AABB shape;
 
     public CopycatBoxesModel(BakedModel originalModel, List<AABB> boxes, ModelState modelState) {
         super(originalModel);
         this.boxes = boxes.stream().map(box -> rotate(box, modelState.getRotation().getMatrix())).toList();
         this.depthAxis = thinnestAxis(this.boxes);
+        this.shape = bounds(this.boxes);
+    }
+
+    private static AABB bounds(List<AABB> boxes) {
+        AABB total = boxes.get(0);
+        for (AABB box : boxes) {
+            total = total.minmax(box);
+        }
+        return total;
     }
 
     private static int thinnestAxis(List<AABB> boxes) {
@@ -64,7 +74,7 @@ public class CopycatBoxesModel extends CopycatModel {
         List<BakedQuad> template = getModelOf(material).getQuads(material, side, rand, wrappedData, renderType);
         List<BakedQuad> quads = new ArrayList<>(template.size() * boxes.size());
         for (AABB box : boxes) {
-            CopycatQuads.cropQuads(quads, template, box, depthAxis);
+            CopycatQuads.cropQuads(quads, template, box, depthAxis, shape);
         }
         return quads;
     }
