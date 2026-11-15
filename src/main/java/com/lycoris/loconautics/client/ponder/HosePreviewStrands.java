@@ -1,10 +1,11 @@
 package com.lycoris.loconautics.client.ponder;
 
-import com.lycoris.loconautics.content.hose.link.HoseConnectorBlockEntity;
+import com.lycoris.loconautics.common.PreviewStrandHolder;
 import com.lycoris.loconautics.content.steelcable.SteelCableHolderBehaviour;
 import com.simibubi.create.foundation.blockEntity.SmartBlockEntity;
 import com.simibubi.create.foundation.ponder.CreateSceneBuilder;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
@@ -31,6 +32,10 @@ public final class HosePreviewStrands {
     }
 
     public static void draw(CreateSceneBuilder scene, BlockPos connector, List<Vec3> points) {
-        scene.world().modifyBlockEntity(connector, HoseConnectorBlockEntity.class, be -> be.setPreviewStrand(points));
+        scene.world().modifyBlockEntity(connector, BlockEntity.class, be -> {
+            if (be instanceof PreviewStrandHolder holder) {
+                holder.setPreviewStrand(points);
+            }
+        });
     }
 }

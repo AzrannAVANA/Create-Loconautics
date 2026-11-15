@@ -79,6 +79,12 @@ public class HoseScenes {
 
     private static final Vec3 END_LOOSE_SIDE = new Vec3(3.5, 1.5, 0.5);
     private static final Vec3 END_DOCKED = new Vec3(2.5, 2.6875, 1.5);
+    private static final int RUN_WINCH_X = 8;
+    private static final int RUN_STEP = 3;
+    private static final int RUN_RELAYS = 9;
+    private static final int RUN_END_X = RUN_WINCH_X + RUN_STEP * (RUN_RELAYS + 1);
+    private static final int RUN_SHIFT = -6;
+
     private static final Vec3 END_RELAY = new Vec3(2.5, 2.3125, 2.5);
     private static final Vec3 END_RELAY_FAR = new Vec3(2.5, 2.6875, 0.5);
 
@@ -588,17 +594,94 @@ public class HoseScenes {
         scene.idle(70);
 
         scene.overlay().showText(60)
-                .text("Each connector holds at most 2 hoses, one in and one out")
+                .text("Each Rope Connector holds at most 2 Hoses, one in and one out")
                 .placeNearTarget()
                 .pointAt(util.vector().topOf(RELAY));
         scene.idle(70);
 
-        scene.overlay().showText(60)
-                .text("Plain Steel Cables never carry Fluids")
-                .colored(PonderPalette.RED)
+        scene.world().hideSection(util.select().everywhere(), Direction.UP);
+        scene.idle(30);
+        scene.rotateCameraY(-90);
+        scene.idle(30);
+
+        BlockPos runWinch = new BlockPos(RUN_WINCH_X, 2, 2);
+        Selection runPump = util.select().position(RUN_WINCH_X, 3, 2);
+        Selection runDrive = util.select().position(RUN_WINCH_X, 3, 1)
+                .add(util.select().fromTo(RUN_WINCH_X, 1, 1, RUN_WINCH_X, 2, 1));
+        ElementLink<WorldSectionElement> strip = scene.world().showIndependentSection(
+                util.select().fromTo(RUN_WINCH_X - 2, 0, 0, RUN_END_X + 2, 0, 4), Direction.DOWN);
+        scene.world().moveSection(strip, new Vec3(RUN_SHIFT, 0.0, 0.0), 0);
+        scene.idle(20);
+
+        merge(scene, strip, util.select().position(RUN_WINCH_X, 1, 2));
+        scene.idle(4);
+        hosed(scene, runWinch);
+        merge(scene, strip, util.select().position(runWinch));
+        scene.idle(4);
+        merge(scene, strip, runPump);
+        scene.idle(4);
+        merge(scene, strip, util.select().position(RUN_WINCH_X, 4, 2));
+        scene.idle(4);
+        merge(scene, strip, runDrive);
+        scene.idle(15);
+
+        double runStartX = RUN_WINCH_X + RUN_SHIFT + 0.5;
+        scene.overlay().showLine(PonderPalette.GREEN, new Vec3(runStartX, 3.0, 2.5),
+                new Vec3(runStartX + 28.0, 3.0, 2.5), 90);
+        scene.overlay().showText(80)
+                .text("A single Hose stretches up to 28 Blocks by default")
+                .attachKeyFrame()
                 .placeNearTarget()
-                .pointAt(util.vector().topOf(RELAY));
-        scene.idle(70);
+                .pointAt(util.vector().topOf(new BlockPos(RUN_WINCH_X + RUN_SHIFT, 2, 2)));
+        scene.idle(90);
+
+        Vec3 previous = null;
+        for (int k = 1; k <= RUN_RELAYS; k++) {
+            int x = RUN_WINCH_X + RUN_STEP * k;
+            BlockPos relay = new BlockPos(x, 2, 2);
+            merge(scene, strip, util.select().position(x, 1, 2));
+            scene.idle(k <= 2 ? 6 : 3);
+            merge(scene, strip, util.select().position(relay));
+            scene.idle(k <= 2 ? 6 : 3);
+            Vec3 attach = new Vec3(x + 0.5, 2.3125, 2.5);
+            HosePreviewStrands.attach(scene, relay);
+            if (k == 1) {
+                hose(scene, runWinch, attach, 0.0f);
+            } else {
+                HosePreviewStrands.draw(scene, relay, sagging(previous, attach));
+            }
+            previous = attach;
+            scene.idle(k == 1 ? 10 : 2);
+        }
+
+        scene.idle(10);
+        scene.world().moveSection(strip, new Vec3(-RUN_STEP * RUN_RELAYS, 0.0, 0.0), 110);
+        scene.idle(120);
+        scene.overlay().showText(70)
+                .text("A chain can pass through up to 16 Hoses")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(new BlockPos(RUN_END_X + RUN_SHIFT - RUN_STEP * RUN_RELAYS - RUN_STEP, 2, 2)));
+        scene.idle(80);
+        merge(scene, strip, util.select().position(RUN_END_X, 1, 2));
+        scene.idle(8);
+        merge(scene, strip, util.select().position(RUN_END_X, 2, 2));
+        scene.idle(8);
+        HosePreviewStrands.attach(scene, new BlockPos(RUN_END_X, 2, 2));
+        HosePreviewStrands.draw(scene, new BlockPos(RUN_END_X, 2, 2),
+                sagging(previous, new Vec3(RUN_END_X + 0.5, 2.6875, 2.5)));
+        scene.idle(20);
+
+        pumpSpeed(scene, runPump, runDrive, 64.0f);
+        scene.world().propagatePipeChange(new BlockPos(RUN_WINCH_X, 3, 2));
+        scene.world().modifyBlockEntity(new BlockPos(RUN_END_X, 1, 2), FluidTankBlockEntity.class,
+                be -> be.getTankInventory().fill(new FluidStack(Fluids.WATER, 8000), FluidAction.EXECUTE));
+        scene.overlay().showText(70)
+                .text("Fluid reaches the last Tank no matter how many Rope Connectors it crosses")
+                .attachKeyFrame()
+                .placeNearTarget()
+                .pointAt(util.vector().topOf(new BlockPos(RUN_END_X + RUN_SHIFT - RUN_STEP * RUN_RELAYS, 1, 2)));
+        scene.idle(80);
     }
 
     public static void socket(SceneBuilder builder, SceneBuildingUtil util) {
@@ -789,6 +872,10 @@ public class HoseScenes {
     }
 
     // the hose between two connectors has no winch to draw it, so the far connector draws these points
+    private static void merge(CreateSceneBuilder scene, ElementLink<WorldSectionElement> strip, Selection selection) {
+        scene.world().showSectionAndMerge(selection, Direction.DOWN, strip);
+    }
+
     private static java.util.List<Vec3> sagging(Vec3 from, Vec3 to) {
         Vec3 span = to.subtract(from);
         int segments = Math.max(2, (int) Math.ceil(span.length()));

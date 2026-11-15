@@ -174,7 +174,7 @@ public class HoseWinchRenderer implements BlockEntityRenderer<HoseWinchBlockEnti
                     1.0f);
         }
 
-        if (holdingHoseItem()) {
+        if (holdingHoseItem() && !(level instanceof net.createmod.ponder.api.level.PonderLevel)) {
             RopeRendering.renderHitbox(ps, buffer, points, ownerPos, (float) HoseRope.COLLISION_RADIUS);
         } else if (be.clientStrandId() != null && be.clientStrandId().equals(SteelCableHover.hoveredWinchHose)) {
             RopeRendering.renderHitbox(ps, buffer, points, ownerPos, StrandRenderer.OUTLINE_RADIUS);

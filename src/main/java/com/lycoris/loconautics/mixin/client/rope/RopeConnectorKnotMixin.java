@@ -31,6 +31,11 @@ public abstract class RopeConnectorKnotMixin {
     @Inject(method = "renderSafe", at = @At("RETURN"))
     private void loconautics$renderSteelCableKnot(RopeConnectorBlockEntity be, float partialTicks, PoseStack ms,
                                                   MultiBufferSource buffer, int light, int overlay, CallbackInfo ci) {
+        if (((Object) be) instanceof com.lycoris.loconautics.common.PreviewStrandHolder preview
+                && preview.previewStrand() != null && be.getLevel() != null) {
+            com.lycoris.loconautics.client.HoseStrandDraw.draw(ms, buffer, be.getLevel(), be.getBlockPos(),
+                    be.getBlockState(), preview.previewStrand());
+        }
         SteelCableHolderBehaviour holder = be.getBehaviour(SteelCableHolderBehaviour.TYPE);
         if (holder == null || holder.attachedStrandIds().isEmpty()) {
             return;

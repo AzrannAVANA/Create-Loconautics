@@ -19,7 +19,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-public class HoseConnectorBlockEntity extends SmartBlockEntity implements HoseLinkEndpoint {
+public class HoseConnectorBlockEntity extends SmartBlockEntity
+        implements HoseLinkEndpoint, com.lycoris.loconautics.common.PreviewStrandHolder {
 
     private final IFluidHandler linkHandler = new LinkHandler();
     private final PressureProbe pressureProbe = new PressureProbe();
@@ -35,11 +36,13 @@ public class HoseConnectorBlockEntity extends SmartBlockEntity implements HoseLi
         behaviours.add(new SteelCableHolderBehaviour(this, strandCapacity()));
     }
 
+    @Override
     @Nullable
     public List<Vec3> previewStrand() {
         return previewStrand;
     }
 
+    @Override
     public void setPreviewStrand(@Nullable List<Vec3> points) {
         previewStrand = points;
     }
