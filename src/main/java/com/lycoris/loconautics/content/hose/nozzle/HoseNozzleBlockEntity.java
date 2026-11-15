@@ -92,6 +92,9 @@ public class HoseNozzleBlockEntity extends SmartBlockEntity
     private long redockReadyTick;
 
     private static final float HANDLEBAR_FOLD_STEP = 0.125f;
+    private static final float HANDLEBAR_GRAB_FOLD = 0.4f;
+    private boolean lastSyncedGrabbed;
+    private boolean clientGrabbed;
     private float handlebarFold;
     private float lastHandlebarFold;
 
@@ -185,6 +188,7 @@ public class HoseNozzleBlockEntity extends SmartBlockEntity
     public void tick() {
         super.tick();
         if (level instanceof ServerLevel) {
+            tickGrabSync();
             tickLinkSpray(level.getGameTime());
             tickSuction(level.getGameTime());
         } else if (level != null && level.isClientSide) {
@@ -199,8 +203,17 @@ public class HoseNozzleBlockEntity extends SmartBlockEntity
 
     private void tickHandlebars() {
         lastHandlebarFold = handlebarFold;
-        float target = getBlockState().getValue(HoseNozzleBlock.POWERED) ? 1.0f : 0.0f;
+        float target = getBlockState().getValue(HoseNozzleBlock.POWERED) ? 1.0f
+                : clientGrabbed ? HANDLEBAR_GRAB_FOLD : 0.0f;
         handlebarFold = Mth.clamp(target, handlebarFold - HANDLEBAR_FOLD_STEP, handlebarFold + HANDLEBAR_FOLD_STEP);
+    }
+
+    private void tickGrabSync() {
+        boolean grabbed = !grabbers.isEmpty();
+        if (grabbed != lastSyncedGrabbed) {
+            lastSyncedGrabbed = grabbed;
+            sendData();
+        }
     }
 
     public float getHandlebarFold(float partialTicks) {
@@ -792,6 +805,7 @@ public class HoseNozzleBlockEntity extends SmartBlockEntity
         tag.put("SuctionTank", suctionTank.writeToNBT(registries, new net.minecraft.nbt.CompoundTag()));
         if (clientPacket) {
             tag.putFloat("SprayThrow", sprayThrow);
+            tag.putBoolean("Grabbed", lastSyncedGrabbed);
             tag.put("SprayFluid", sprayFluid.saveOptional(registries));
             tag.put("SuckFluid", lastSyncedSuckFluid.saveOptional(registries));
             tag.putFloat("SuckStrength", lastSyncedSuckStrength);
@@ -805,6 +819,7 @@ public class HoseNozzleBlockEntity extends SmartBlockEntity
         suctionTank.readFromNBT(registries, tag.getCompound("SuctionTank"));
         if (clientPacket) {
             clientSprayThrow = tag.getFloat("SprayThrow");
+            clientGrabbed = tag.getBoolean("Grabbed");
             clientSprayFluid = tag.contains("SprayFluid")
                     ? FluidStack.parseOptional(registries, tag.getCompound("SprayFluid")) : FluidStack.EMPTY;
             clientSuckFluid = tag.contains("SuckFluid")
