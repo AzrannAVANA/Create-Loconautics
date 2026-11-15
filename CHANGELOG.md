@@ -6,6 +6,7 @@
 - Nozzle sockets no longer break when water flows over them.
 - Panel parts keep their links when a panel is copied with a schematic.
 - The diagonal ribs on boiler bodies no longer show mirrored.
+- Hose Connectors no longer hold two Hoses.
 
 ### Added
 - Boiler bodies come in five red styles.
