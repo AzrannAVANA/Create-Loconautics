@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.common.generated;
 
+import com.lycoris.loconautics.foundation.ColorOrder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -119,7 +120,7 @@ public final class ColorVariantPack implements PackResources {
 
     private static List<String> otherColors(String parent) {
         List<String> out = new ArrayList<>();
-        for (DyeColor dye : DyeColor.values()) {
+        for (DyeColor dye : ColorOrder.ORDER) {
             if (!dye.getSerializedName().equals(parent)) {
                 out.add(dye.getSerializedName());
             }

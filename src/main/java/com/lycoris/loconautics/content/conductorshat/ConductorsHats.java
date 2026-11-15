@@ -24,7 +24,7 @@ public final class ConductorsHats {
     }
 
     public static DyeColor colorFor(long seed) {
-        return DyeColor.byId(RandomSource.create(seed).nextInt(DyeColor.values().length));
+        return DyeColor.byId(RandomSource.create(seed).nextInt(ColorOrder.ORDER.size()));
     }
 
     public static void init() {}
