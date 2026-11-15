@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.common.strand;
 
 import com.lycoris.loconautics.client.HoseDraw;
+import com.lycoris.loconautics.content.hose.link.HoseConnectorBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.simibubi.create.AllBlocks;
@@ -105,19 +106,22 @@ public final class StrandRenderer {
             }
             RenderPoint first = render.get(0);
             RenderPoint last = render.get(render.size() - 1);
-            if (!knotAtStart && !cutAt(entry.getValue(), first.position())) {
-                renderKnot(level, ps, vb, knot, first, camera, 1.0f);
-            }
-            if (!knotAtEnd && !cutAt(entry.getValue(), last.position())) {
-                renderKnot(level, ps, vb, knot, last, camera, 1.0f);
-            }
-            if (endKnotOn != null) {
-                if (knotAtStart && !cutAt(entry.getValue(), first.position())) {
+            if (endKnotOn == null) {
+                if (!cutAt(entry.getValue(), first.position())) {
+                    renderKnot(level, ps, vb, knot, first, camera, 1.0f);
+                }
+                if (!cutAt(entry.getValue(), last.position())) {
+                    renderKnot(level, ps, vb, knot, last, camera, 1.0f);
+                }
+            } else {
+                boolean startKnot = knotAtStart || holderAt(level, entry.getValue().start()) instanceof HoseConnectorBlockEntity;
+                boolean endKnotHere = knotAtEnd || holderAt(level, entry.getValue().end()) instanceof HoseConnectorBlockEntity;
+                if (startKnot && !cutAt(entry.getValue(), first.position())) {
                     Vector3d p = first.position();
                     HoseDraw.nozzleKnotAtStart(ps, vb, endKnot, first.orientation(), p.x - camera.x,
                             p.y - camera.y, p.z - camera.z, lightAt(level, p));
                 }
-                if (knotAtEnd && !cutAt(entry.getValue(), last.position())) {
+                if (endKnotHere && !cutAt(entry.getValue(), last.position())) {
                     Vector3d p = last.position();
                     HoseDraw.nozzleKnotAtEnd(ps, vb, endKnot, last.orientation(), p.x - camera.x,
                             p.y - camera.y, p.z - camera.z, lightAt(level, p));
