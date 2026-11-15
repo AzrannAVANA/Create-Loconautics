@@ -7,6 +7,7 @@
 - Panel parts keep their links when a panel is copied with a schematic.
 - The diagonal ribs on boiler bodies no longer show mirrored.
 - Hose Connectors no longer hold two Hoses.
+- The scroll picker opens when you tap its key fast.
 
 ### Added
 - Boiler bodies come in five red styles.
