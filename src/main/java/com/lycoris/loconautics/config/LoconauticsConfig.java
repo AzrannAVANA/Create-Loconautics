@@ -53,6 +53,8 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.DoubleValue SU_PER_BODY_BLOCK;
 
     public static ModConfigSpec.IntValue BOILER_MAX_LENGTH;
+    public static ModConfigSpec.IntValue BOILER_MAX_LEVEL;
+    public static ModConfigSpec.IntValue FIRE_LEVELS_NORMAL;
     public static ModConfigSpec.IntValue BODY_WATER_CAPACITY;
     public static ModConfigSpec.IntValue INJECTOR_TANK_CAPACITY;
 
@@ -297,7 +299,15 @@ public final class LoconauticsConfig {
         BOILER_MAX_LENGTH = BUILDER
                 .comment("Most body blocks a boiler may span along its length before it stops working.",
                         "Longer boilers burn more fuel and draw more water.")
-                .defineInRange("maxLength", 8, 1, 256);
+                .defineInRange("maxLength", 12, 1, 256);
+
+        BOILER_MAX_LEVEL = BUILDER
+                .comment("Highest level a boiler can reach. The level is the lowest of its size and its fire.")
+                .defineInRange("maxLevel", 12, 1, 64);
+
+        FIRE_LEVELS_NORMAL = BUILDER
+                .comment("Levels each firebox adds to the fire limit with normal fuel.")
+                .defineInRange("fireLevelsNormal", 3, 1, 16);
 
         BODY_WATER_CAPACITY = BUILDER
                 .defineInRange("bodyWaterCapacity", 8000, 1, 1000000);

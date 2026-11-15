@@ -1,5 +1,10 @@
 # Loconautics Changelog
 
+## Ver 0.1.4BETA
+
+### Added
+- Boilers show a level in the goggles, set by their size and fire.
+
 ## Ver 0.1.3BETA
 
 ### Bug Fixes

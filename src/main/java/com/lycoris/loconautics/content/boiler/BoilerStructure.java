@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.content.boiler;
 
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import net.minecraft.core.BlockPos;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,6 +22,21 @@ public record BoilerStructure(
     public static final float OPTIMAL_BODY_PER_FIREBOX = 3f;
 
     public static final int MIN_BODY_BLOCKS = 1;
+
+    // a firebox counts as a quarter of a body for size and water
+    public static final float FIREBOX_BODY_SHARE = 0.25f;
+
+    public int sizeLevels() {
+        return BoilerLevel.sizeLevels(boilerCapacity);
+    }
+
+    public int fireLevels() {
+        return BoilerLevel.fireLevels(fireboxHeat, LoconauticsConfig.FIRE_LEVELS_NORMAL.get());
+    }
+
+    public int level() {
+        return BoilerLevel.level(sizeLevels(), fireLevels(), LoconauticsConfig.BOILER_MAX_LEVEL.get());
+    }
 
     public float optimalHeat() {
         return boilerCapacity / OPTIMAL_BODY_PER_FIREBOX;

@@ -1247,6 +1247,15 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             return true;
         }
 
+        if (structure != null) {
+            LoconauticsLang.translate("gui.goggles.boiler_level").style(ChatFormatting.GRAY).forGoggles(tooltip);
+            LoconauticsLang.builder().text(String.valueOf(structure.level()))
+                    .style(structure.level() > 0 ? ChatFormatting.GOLD : ChatFormatting.DARK_GRAY)
+                    .text(" ").add(LoconauticsLang.translate("gui.goggles.boiler_level_limits",
+                            structure.sizeLevels(), structure.fireLevels()).style(ChatFormatting.DARK_GRAY))
+                    .forGoggles(tooltip, 1);
+        }
+
         LoconauticsLang.translate("gui.goggles.boiler_state").style(ChatFormatting.GRAY).forGoggles(tooltip);
         LoconauticsLang.translate("gui.goggles.boiler_state_" + boilerState.name().toLowerCase(Locale.ROOT))
                 .style(stateColor()).forGoggles(tooltip, 1);
