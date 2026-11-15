@@ -68,6 +68,9 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
 
     private FluidStack flowFluid = FluidStack.EMPTY;
     private int flowTicks;
+    private boolean flowReversed;
+    private boolean lastSyncedReversed;
+    private boolean clientReversed;
     private int flowRate = 1;
     private boolean pressureReaches;
     private boolean suctionReaches;
@@ -242,7 +245,9 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
     private void syncFluidState() {
         if (Math.abs(throwStrength - lastSyncedThrow) > 0.02f
                 || Math.abs(reach - lastSyncedReach) > 0.1f
+                || flowReversed != lastSyncedReversed
                 || !FluidStack.isSameFluidSameComponents(flowFluid, lastSyncedFluid)) {
+            lastSyncedReversed = flowReversed;
             lastSyncedThrow = throwStrength;
             lastSyncedReach = reach;
             lastSyncedFluid = flowFluid.copy();
@@ -261,7 +266,8 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
         syncFluidState();
     }
 
-    private void noteFlow(FluidStack moved) {
+    private void noteFlow(FluidStack moved, boolean reversed) {
+        flowReversed = reversed;
         flowFluid = moved.copyWithAmount(1);
         flowTicks = FLOW_LINGER_TICKS;
     }
@@ -330,7 +336,7 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
                 logFillRefused(nozzle != null ? "nozzle took 0, spray=" + sprayStrength : "no sink", resource);
             }
             if (moved > 0 && action.execute()) {
-                noteFlow(resource);
+                noteFlow(resource, false);
             }
             return moved;
         }
@@ -343,7 +349,7 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
             }
             FluidStack out = sink.drain(resource, action);
             if (!out.isEmpty() && action.execute()) {
-                noteFlow(out);
+                noteFlow(out, true);
             }
             return out;
         }
@@ -356,7 +362,7 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
             }
             FluidStack out = sink.drain(Math.min(maxDrain, flowRate), action);
             if (!out.isEmpty() && action.execute()) {
-                noteFlow(out);
+                noteFlow(out, true);
             }
             return out;
         }
@@ -634,6 +640,7 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
         if (clientPacket) {
             tag.putFloat("Throw", throwStrength);
             tag.putFloat("Reach", reach);
+            tag.putBoolean("Reversed", flowReversed);
             tag.put("FlowFluid", flowFluid.saveOptional(registries));
             HoseStrand strand = getAttachedStrand();
             tag.putBoolean("HasStrand", strand != null);
@@ -661,6 +668,7 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
         if (clientPacket) {
             clientThrow = tag.getFloat("Throw");
             clientReach = tag.getFloat("Reach");
+            clientReversed = tag.getBoolean("Reversed");
             clientFluid = tag.contains("FlowFluid")
                     ? FluidStack.parseOptional(registries, tag.getCompound("FlowFluid")) : FluidStack.EMPTY;
             clientHasStrand = tag.getBoolean("HasStrand");
@@ -696,6 +704,10 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
 
     public boolean clientHasFluid() {
         return !clientFluid.isEmpty();
+    }
+
+    public boolean clientReversed() {
+        return clientReversed;
     }
 
     public float clientReach() {

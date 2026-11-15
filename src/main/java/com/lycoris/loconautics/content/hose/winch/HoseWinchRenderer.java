@@ -240,7 +240,8 @@ public class HoseWinchRenderer implements BlockEntityRenderer<HoseWinchBlockEnti
         }
         boolean reachesNozzle = be.clientReach() >= be.clientLength() - 0.001f;
         if (reachesNozzle) {
-            double phase = be.wavePhase(partialTicks) - cumDist * HoseSwell.PHASE_STEP * Math.PI * 2.0;
+            double spread = cumDist * HoseSwell.PHASE_STEP * Math.PI * 2.0;
+            double phase = be.clientReversed() ? be.wavePhase(partialTicks) + spread : be.wavePhase(partialTicks) - spread;
             return HoseSwell.scale(HoseSwell.wavePx(phase));
         }
         return HoseSwell.scale(HoseSwell.frontPx(be.clientFill(partialTicks), cumDist));
