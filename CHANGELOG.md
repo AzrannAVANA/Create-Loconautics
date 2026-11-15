@@ -44,6 +44,7 @@
 - Nozzle sockets craft 2 at a time.
 - The casing and bogey picker key is V by default, not C.
 - Copycat headstocks, knuckles and buffers take the sound of their block.
+- The copycat headstock joins the knuckle in the coupler scroll menu.
 
 ### Removed
 - The red dye recipes for the analog controller, dashboard and conductors hat.
