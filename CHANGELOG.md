@@ -14,12 +14,12 @@
 - Boiler bodies come in five red styles.
 - Buffer colors and the knuckle or screw link pick from the scroll menu.
 - Boiler bodies come in four metal colors from Create.
-- Boiler bodies craft from tubes, iron sheets and a fluid tank.
-- Boiler bodies recolor with any dye or a metal ingot.
+- Tubes, iron sheets and a fluid tank craft a boiler body.
+- Any dye or a metal ingot recolors a boiler body.
 - Nozzle handlebars fold in partway while a Hose holds the nozzle.
 - Held blocks with a scroll picker show their key above the name.
 - Copycat headstocks, knuckles and buffers connect textures with each other.
-- Sneak pick block on a copycat headstock, knuckle or buffer gives the copycat itself.
+- Pick block on a copycat gives the copycat, sneaking gives its block.
 
 ### Changed
 - Hose nozzles have a new model, and hoses end in a new knot there.

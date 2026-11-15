@@ -216,7 +216,7 @@ public final class CopycatBlockLogic {
     public static ItemStack cloneStack(ItemStack own, HitResult target, LevelReader level, BlockPos pos,
                                        @Nullable Player player) {
         BlockState material = materialAt(level, pos);
-        if (AllBlocks.COPYCAT_BASE.has(material) || player != null && player.isShiftKeyDown()) {
+        if (AllBlocks.COPYCAT_BASE.has(material) || player == null || !player.isShiftKeyDown()) {
             return own;
         }
         return material.getCloneItemStack(target, level, pos, player);
