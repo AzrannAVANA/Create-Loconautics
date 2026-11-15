@@ -539,17 +539,17 @@ public final class LoconauticsRegistries {
                         output.accept(BEARING_AXLE_ITEM.get());
                         output.accept(TRANSMISSION_ITEM.get());
 
-                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.LOCOMOTIVE_GAUGE_ITEM.get());
-                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.VALVE_ITEM.get());
-                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.GAUGE_BUTTON_ITEM.get());
-                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.GAUGE_LEVER_ITEM.get());
-                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.GAUGE_SWITCH_ITEM.get());
-
                         com.lycoris.loconautics.content.dashboard.DashboardBlocks.DASHBOARD_ITEMS
                                 .forEach((color, item) -> output.accept(new net.minecraft.world.item.ItemStack(item.get()),
                                         color == com.lycoris.loconautics.content.dashboard.DashboardBlocks.TAB_COLOR
                                                 ? net.minecraft.world.item.CreativeModeTab.TabVisibility.PARENT_AND_SEARCH_TABS
                                                 : net.minecraft.world.item.CreativeModeTab.TabVisibility.SEARCH_TAB_ONLY));
+
+                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.LOCOMOTIVE_GAUGE_ITEM.get());
+                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.VALVE_ITEM.get());
+                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.GAUGE_BUTTON_ITEM.get());
+                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.GAUGE_LEVER_ITEM.get());
+                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.GAUGE_SWITCH_ITEM.get());
 
                         output.accept(com.simibubi.create.AllBlocks.TRACK_STATION.asStack());
                         output.accept(com.simibubi.create.AllBlocks.TRACK_SIGNAL.asStack());
