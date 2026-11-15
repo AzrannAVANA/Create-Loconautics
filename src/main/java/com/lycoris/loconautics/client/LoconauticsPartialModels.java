@@ -165,7 +165,7 @@ public class LoconauticsPartialModels {
 
     public static final PartialModel HOSE_STRAND =
             PartialModel.of(LoconauticsConstants.id("block/hose/strand"));
-    public static final PartialModel HOSE_KNOT =
+    public static final PartialModel HOSE_STRAND_KNOT =
             PartialModel.of(LoconauticsConstants.id("block/hose/knot"));
     public static final PartialModel HOSE_NOZZLE_HANDLEBAR_LEFT =
             PartialModel.of(LoconauticsConstants.id("block/hose/nozzle_handlebar_left"));

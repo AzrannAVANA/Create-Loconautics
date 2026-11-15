@@ -38,7 +38,7 @@ public class HoseConnectorRenderer implements BlockEntityRenderer<HoseConnectorB
         }
         Direction open = be.plateSide().getOpposite();
         SuperByteBuffer knot = CachedBuffers.partialFacing(
-                LoconauticsPartialModels.HOSE_KNOT, be.getBlockState(), Direction.NORTH);
+                LoconauticsPartialModels.HOSE_STRAND_KNOT, be.getBlockState(), Direction.NORTH);
         Quaternionf along = open == Direction.DOWN ? new Quaternionf().rotationX((float) Math.PI)
                 : StrandRenderer.rotationTo(new Vector3d(0.0, 1.0, 0.0),
                         new Vector3d(open.getStepX(), open.getStepY(), open.getStepZ()));

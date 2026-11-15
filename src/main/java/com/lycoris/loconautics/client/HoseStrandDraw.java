@@ -24,7 +24,7 @@ public final class HoseStrandDraw {
     public static void draw(PoseStack ps, MultiBufferSource buffer, Level level, BlockPos owner, BlockState state,
                             List<Vec3> points) {
         VertexConsumer vb = buffer.getBuffer(RenderType.solid());
-        SuperByteBuffer knot = CachedBuffers.partialFacing(LoconauticsPartialModels.HOSE_KNOT, state, Direction.NORTH);
+        SuperByteBuffer knot = CachedBuffers.partialFacing(LoconauticsPartialModels.HOSE_STRAND_KNOT, state, Direction.NORTH);
         SuperByteBuffer middle = CachedBuffers.partialFacing(LoconauticsPartialModels.HOSE_STRAND, state, Direction.NORTH);
         Quaternionf orient = new Quaternionf();
         for (int i = 0; i < points.size() - 1; i++) {

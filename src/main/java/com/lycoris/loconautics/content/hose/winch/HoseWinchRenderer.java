@@ -133,7 +133,7 @@ public class HoseWinchRenderer implements BlockEntityRenderer<HoseWinchBlockEnti
         VertexConsumer vb = buffer.getBuffer(RenderType.solid());
 
         SuperByteBuffer knot = CachedBuffers.partialFacing(
-                LoconauticsPartialModels.HOSE_KNOT, be.getBlockState(), Direction.NORTH);
+                LoconauticsPartialModels.HOSE_STRAND_KNOT, be.getBlockState(), Direction.NORTH);
 
         boolean nozzleKnot = liveNozzle != null && LoconauticsPartialModels.HOSE_NOZZLE_KNOT.get() != null;
         Quaternionf orient = new Quaternionf();
