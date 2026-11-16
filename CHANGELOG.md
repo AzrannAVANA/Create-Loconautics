@@ -15,6 +15,7 @@
 - Bigger boilers take longer to warm up.
 - Fireboxes have the round boiler hitbox and stack by clicking an end.
 - Fireboxes use the round boiler shape with the inside showing.
+- Boiler bodies join a firebox at its back.
 
 ## Ver 0.1.3BETA
 

@@ -3,6 +3,7 @@ package com.lycoris.loconautics.content.boiler.barrel;
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
 import com.lycoris.loconautics.content.boiler.BoilerPlacement;
 import com.lycoris.loconautics.content.boiler.BoilerShapes;
+import com.lycoris.loconautics.content.boiler.firebox.FireboxBlock;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -31,6 +32,7 @@ import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -116,15 +118,23 @@ public class BoilerBarrelBlock extends DirectionalBlock
         return 1.0f;
     }
 
-    private boolean sameFamily(LevelAccessor level, BlockPos pos, Direction.Axis axis) {
+    private boolean sameFamily(LevelAccessor level, BlockPos pos, Direction.Axis axis, Direction end) {
         BlockState s = level.getBlockState(pos);
         return s.getBlock() instanceof BoilerBarrelBlock other
                 && other.big == this.big
-                && s.getValue(FACING).getAxis() == axis;
+                && s.getValue(FACING).getAxis() == axis
+                || fireboxBack(s, end);
     }
 
-    private boolean autoJoins(LevelAccessor level, BlockPos pos, Direction.Axis axis) {
-        return sameFamily(level, pos, axis) && level.getBlockState(pos).getBlock() == this;
+    // a firebox joins a barrel at its back, the door faces away from the barrel
+    private boolean fireboxBack(BlockState neighbor, Direction end) {
+        return !big && neighbor.getBlock() instanceof FireboxBlock
+                && neighbor.getValue(BlockStateProperties.HORIZONTAL_FACING) == end;
+    }
+
+    private boolean autoJoins(LevelAccessor level, BlockPos pos, Direction.Axis axis, Direction end) {
+        BlockState s = level.getBlockState(pos);
+        return fireboxBack(s, end) || sameFamily(level, pos, axis, end) && s.getBlock() == this;
     }
 
     static Direction positiveOf(Direction.Axis axis) {
@@ -175,7 +185,7 @@ public class BoilerBarrelBlock extends DirectionalBlock
         BlockState state = defaultBlockState().setValue(FACING, facing)
                 .setValue(smokeEndFor(axis, look), true);
         for (Direction end : new Direction[]{positiveOf(axis), positiveOf(axis).getOpposite()}) {
-            boolean join = autoJoins(context.getLevel(), context.getClickedPos().relative(end), axis);
+            boolean join = autoJoins(context.getLevel(), context.getClickedPos().relative(end), axis, end);
             state = state.setValue(connectedFor(axis, end), join);
         }
         return state;
@@ -190,10 +200,10 @@ public class BoilerBarrelBlock extends DirectionalBlock
         }
         BooleanProperty connected = connectedFor(axis, direction);
         BooleanProperty wrenched = wrenchedFor(axis, direction);
-        if (!sameFamily(level, neighborPos, axis)) {
+        if (!sameFamily(level, neighborPos, axis, direction)) {
             return state.setValue(connected, false).setValue(wrenched, false);
         }
-        return state.setValue(connected, autoJoins(level, neighborPos, axis) != state.getValue(wrenched));
+        return state.setValue(connected, autoJoins(level, neighborPos, axis, direction) != state.getValue(wrenched));
     }
 
     @Override
@@ -229,7 +239,7 @@ public class BoilerBarrelBlock extends DirectionalBlock
 
         Direction end = aimedEnd(state, context);
         BlockPos neighborPos = pos.relative(end);
-        if (!sameFamily(level, neighborPos, axis)) {
+        if (!sameFamily(level, neighborPos, axis, end)) {
             return InteractionResult.PASS;
         }
         if (!level.isClientSide()) {
@@ -248,7 +258,7 @@ public class BoilerBarrelBlock extends DirectionalBlock
     }
 
     private void toggleSeam(Level level, BlockPos pos, BlockPos neighborPos, Direction.Axis axis, Direction end, boolean connect) {
-        boolean wrenched = connect != autoJoins(level, neighborPos, axis);
+        boolean wrenched = connect != autoJoins(level, neighborPos, axis, end);
         BlockState here = level.getBlockState(pos);
         BlockState there = level.getBlockState(neighborPos);
         Direction back = end.getOpposite();
@@ -256,6 +266,7 @@ public class BoilerBarrelBlock extends DirectionalBlock
         level.setBlock(pos, here
                 .setValue(connectedFor(axis, end), connect)
                 .setValue(wrenchedFor(axis, end), wrenched), Block.UPDATE_CLIENTS);
+        if (!(there.getBlock() instanceof BoilerBarrelBlock)) return;
         level.setBlock(neighborPos, there
                 .setValue(connectedFor(axis, back), connect)
                 .setValue(wrenchedFor(axis, back), wrenched), Block.UPDATE_CLIENTS);
