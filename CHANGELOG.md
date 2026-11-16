@@ -14,6 +14,7 @@
 - Fireboxes join in a straight line of three, a fourth starts its own.
 - Bigger boilers take longer to warm up.
 - Fireboxes have the round boiler hitbox and stack by clicking an end.
+- Fireboxes use the round boiler shape with the inside showing.
 
 ## Ver 0.1.3BETA
 
