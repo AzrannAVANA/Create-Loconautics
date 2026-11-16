@@ -8,6 +8,7 @@
 - Redstone signal sets the boiler burn, 0 is full and 15 banks the fire.
 - Boiler goggles show the power in use out of the total.
 - Sneak on a working boiler to blow the train whistle.
+- Steam whistles can sit on boiler bodies, firebox bodies and Steam n Rails boilers.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.

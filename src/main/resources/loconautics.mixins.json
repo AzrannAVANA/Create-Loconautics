@@ -7,6 +7,7 @@
     "create.bogey.BogeyShaftedStateMixin",
     "create.bogey.BogeyShaftPropagatorMixin",
     "create.bogey.BogeyGroundShapeMixin",
+    "create.whistle.WhistleSurviveMixin",
     "create.signal.SignalTurntableHoldMixin",
     "create.signal.SignalBoundaryHoldMixin",
     "create.track.TravellingPointPointsMixin",
