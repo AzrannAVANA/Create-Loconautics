@@ -18,6 +18,7 @@
 - Fireboxes have the round boiler hitbox and stack by clicking an end.
 - Fireboxes use the round boiler shape with the inside showing.
 - Boiler bodies join a firebox at its back.
+- Boiler parts like the smokestack and valve work on any side.
 
 ## Ver 0.1.3BETA
 

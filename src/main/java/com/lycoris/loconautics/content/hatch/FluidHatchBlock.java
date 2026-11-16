@@ -87,7 +87,8 @@ public class FluidHatchBlock extends Block implements IBE<FluidHatchBlockEntity>
     }
 
     private static boolean onBarrel(BlockGetter level, BlockPos pos, Direction face) {
-        return level.getBlockState(pos.relative(face)).is(BoilerTags.BOILER_BODY);
+        BlockState neighbor = level.getBlockState(pos.relative(face));
+        return neighbor.is(BoilerTags.BOILER_BODY) || neighbor.is(BoilerTags.BOILER_FIREBOX);
     }
 
     @Override
