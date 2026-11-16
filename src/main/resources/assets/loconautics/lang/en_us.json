@@ -898,6 +898,8 @@
   "loconautics.configuration.boiler.takeoffMinRpm": "Takeoff Min RPM",
   "loconautics.configuration.boiler.temperatureJitterC": "Temperature Jitter (C)",
   "loconautics.configuration.boiler.warmupTicks": "Warmup Ticks",
+  "loconautics.configuration.boiler.warmupPerSizeLevelTicks": "Warmup Per Size Level Ticks",
+  "loconautics.configuration.boiler.warmupPerSizeLevelTicks.tooltip": "Extra warmup ticks for each size level above 3.",
   "loconautics.configuration.boiler.waterJitterMb": "Water Jitter (mB)",
   "loconautics.configuration.boiler.waterPerBodyPerTick": "Water Per Body Per Tick",
   "loconautics.configuration.boiler.waterRecycleFraction": "Water Recycle Fraction",

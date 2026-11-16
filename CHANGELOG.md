@@ -12,6 +12,7 @@
 - Boilers need flint and steel or a fire charge to light.
 - Boiler failures only put the fire out, nothing explodes.
 - Fireboxes join in a straight line of three, a fourth starts its own.
+- Bigger boilers take longer to warm up.
 
 ## Ver 0.1.3BETA
 

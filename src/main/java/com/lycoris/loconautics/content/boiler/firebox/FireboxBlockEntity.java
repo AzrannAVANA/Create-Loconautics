@@ -586,9 +586,15 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return true;
     }
 
+    private int warmupTarget() {
+        int sizeLevels = structure == null ? 0 : structure.sizeLevels();
+        return BoilerLevel.warmupTicks(sizeLevels, LoconauticsConfig.WARMUP_TICKS.get(),
+                LoconauticsConfig.WARMUP_PER_SIZE_LEVEL_TICKS.get());
+    }
+
     private void tickStateMachine(boolean burning, boolean watered) {
         BoilerState prev = boilerState;
-        int warmupTarget = LoconauticsConfig.WARMUP_TICKS.get();
+        int warmupTarget = warmupTarget();
         boolean fed = burning && watered;
 
         switch (boilerState) {
@@ -688,7 +694,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     public float temperatureFraction() {
-        int target = LoconauticsConfig.WARMUP_TICKS.get();
+        int target = warmupTarget();
         return target <= 0 ? 0f : warmupTicks / (float) target;
     }
 

@@ -48,6 +48,7 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.DoubleValue WORKING_TEMPERATURE_C;
 
     public static ModConfigSpec.IntValue WARMUP_TICKS;
+    public static ModConfigSpec.IntValue WARMUP_PER_SIZE_LEVEL_TICKS;
     public static ModConfigSpec.DoubleValue SU_PER_LEVEL;
     public static ModConfigSpec.DoubleValue BANKED_BURN_FRACTION;
 
@@ -290,6 +291,10 @@ public final class LoconauticsConfig {
 
         WARMUP_TICKS = BUILDER
                 .defineInRange("warmupTicks", 1800, 20, 72000);
+
+        WARMUP_PER_SIZE_LEVEL_TICKS = BUILDER
+                .comment("Extra warmup ticks for each size level above 3.")
+                .defineInRange("warmupPerSizeLevelTicks", 333, 0, 72000);
 
         SU_PER_LEVEL = BUILDER
                 .comment("Stress units a boiler gives for each level at full pressure.")
