@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.content.boiler.firebox;
 
 
+import com.lycoris.loconautics.common.ignition.Igniters;
 import com.lycoris.loconautics.common.ShiftPlacement;
 import com.lycoris.loconautics.client.connected.ConnectedBlock;
 import com.lycoris.loconautics.client.connected.ConnectionBounds;
@@ -227,6 +228,12 @@ public class FireboxBlock extends BaseEntityBlock
                 controller.dropFuel();
             }
             return ItemInteractionResult.SUCCESS;
+        }
+        if (Igniters.is(stack)) {
+            if (level.isClientSide) return ItemInteractionResult.SUCCESS;
+            return controller.ignite(player, stack)
+                    ? ItemInteractionResult.SUCCESS
+                    : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
         if (!FireboxBlockEntity.isFuel(stack)) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;

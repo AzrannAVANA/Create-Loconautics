@@ -52,6 +52,7 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -138,6 +139,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private int dryTicks;
     private int wasteGas;
     private boolean lockedOut;
+    private boolean ignited;
 
     private FailureCause lastFailure;
 
@@ -448,6 +450,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private void forceCold() {
         steamPressure = Math.max(0f, steamPressure - idleBleed());
         lastBurning = false;
+        ignited = false;
         ventWasteGas();
         tickDisplay();
         if (boilerState == BoilerState.COLD && warmupTicks == 0) return;
@@ -466,6 +469,10 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     private boolean consumeFuel() {
+        if (!ignited) {
+            lastBurning = false;
+            return false;
+        }
         lastBurnRate = burnRate();
         lastBurning = true;
 
@@ -478,6 +485,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         int slot = firstFuelSlot();
         if (slot < 0) {
             lastBurning = false;
+            ignited = false;
+            setChanged();
             return false;
         }
 
@@ -1027,6 +1036,23 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         sendData();
     }
 
+    public boolean ignite(Player player, ItemStack igniter) {
+        if (structure == null || lockedOut || ignited) return false;
+        if (burnTimeRemaining <= 0f && firstFuelSlot() < 0) return false;
+        ignited = true;
+        if (!player.isCreative()) {
+            if (igniter.isDamageableItem()) {
+                igniter.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+            } else {
+                igniter.shrink(1);
+            }
+        }
+        level.playSound(null, worldPosition, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1f, 1f);
+        setChanged();
+        sendData();
+        return true;
+    }
+
     public boolean insertFuel(Player player, ItemStack held) {
         if (!isFuel(held)) return false;
         ItemStack leftover = ItemHandlerHelper.insertItem(inventory, held.copy(), false);
@@ -1186,6 +1212,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         warmupTicks = other.warmupTicks;
         burnTimeRemaining = other.burnTimeRemaining;
         burningGrade = other.burningGrade;
+        ignited = other.ignited;
         dryTicks = other.dryTicks;
         lockedOut = other.lockedOut;
         lastFailure = other.lastFailure;
@@ -1205,6 +1232,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         warmupTicks = 0;
         burnTimeRemaining = 0f;
         burningGrade = FuelGrade.NORMAL;
+        ignited = false;
         dryTicks = 0;
         lockedOut = false;
         lastFailure = null;
@@ -1402,6 +1430,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putInt("WarmupTicks", warmupTicks);
         tag.putFloat("BurnTimeRemaining", burnTimeRemaining);
         tag.putString("BurningGrade", burningGrade.name());
+        tag.putBoolean("Ignited", ignited);
         tag.putInt("DryTicks", dryTicks);
         tag.putInt("WasteGas", wasteGas);
         tag.putBoolean("LockedOut", lockedOut);
@@ -1461,6 +1490,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             burningGrade = FuelGrade.NORMAL;
         }
         dryTicks = tag.getInt("DryTicks");
+        ignited = tag.contains("Ignited") ? tag.getBoolean("Ignited") : burnTimeRemaining > 0f;
         wasteGas = tag.getInt("WasteGas");
         lockedOut = tag.getBoolean("LockedOut");
         lastFailure = readFailure(tag.getString("LastFailure"));

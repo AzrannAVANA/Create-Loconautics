@@ -8,6 +8,7 @@
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
+- Boilers need flint and steel or a fire charge to light.
 
 ## Ver 0.1.3BETA
 
