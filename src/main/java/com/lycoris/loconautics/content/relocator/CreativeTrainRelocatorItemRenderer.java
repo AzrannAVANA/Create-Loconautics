@@ -60,10 +60,6 @@ public class CreativeTrainRelocatorItemRenderer extends CustomRenderedItemModelR
 
         renderer.render(model.getOriginalModel(), light);
 
-        LoconauticsPartialModels.traceMissing("relocator drawhandle", LoconauticsPartialModels.RELOCATOR_DRAWHANDLE);
-        LoconauticsPartialModels.traceMissing("relocator lower jaw", LoconauticsPartialModels.RELOCATOR_LOWER_JAW);
-        LoconauticsPartialModels.traceMissing("relocator greater jaw", LoconauticsPartialModels.RELOCATOR_GREATER_JAW);
-        LoconauticsPartialModels.traceMissing("relocator omnicoob", LoconauticsPartialModels.RELOCATOR_OMNICOOB);
         renderJawGroup(ms, renderer, light, state, LoconauticsPartialModels.RELOCATOR_DRAWHANDLE.get());
         renderJawGroup(ms, renderer, light, state, LoconauticsPartialModels.RELOCATOR_LOWER_JAW.get());
         renderGreaterJaw(ms, renderer, light, state);
