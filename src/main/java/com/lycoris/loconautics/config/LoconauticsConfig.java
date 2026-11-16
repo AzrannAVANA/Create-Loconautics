@@ -54,7 +54,11 @@ public final class LoconauticsConfig {
 
     public static ModConfigSpec.IntValue BOILER_MAX_LENGTH;
     public static ModConfigSpec.IntValue BOILER_MAX_LEVEL;
+    public static ModConfigSpec.IntValue FIRE_LEVELS_POOR;
     public static ModConfigSpec.IntValue FIRE_LEVELS_NORMAL;
+    public static ModConfigSpec.IntValue FIRE_LEVELS_PREMIUM;
+    public static ModConfigSpec.IntValue POOR_FUEL_BURN_LIMIT;
+    public static ModConfigSpec.IntValue PREMIUM_FUEL_BURN_LIMIT;
     public static ModConfigSpec.IntValue BODY_WATER_CAPACITY;
     public static ModConfigSpec.IntValue INJECTOR_TANK_CAPACITY;
 
@@ -306,9 +310,25 @@ public final class LoconauticsConfig {
                 .comment("Highest level a boiler can reach. The level is the lowest of its size and its fire.")
                 .defineInRange("maxLevel", 12, 1, 64);
 
+        FIRE_LEVELS_POOR = BUILDER
+                .comment("Levels each firebox adds to the fire limit with poor fuel like wood.")
+                .defineInRange("fireLevelsPoor", 2, 1, 16);
+
         FIRE_LEVELS_NORMAL = BUILDER
-                .comment("Levels each firebox adds to the fire limit with normal fuel.")
+                .comment("Levels each firebox adds to the fire limit with normal fuel like coal.")
                 .defineInRange("fireLevelsNormal", 3, 1, 16);
+
+        FIRE_LEVELS_PREMIUM = BUILDER
+                .comment("Levels each firebox adds to the fire limit with premium fuel like coal blocks.")
+                .defineInRange("fireLevelsPremium", 4, 1, 16);
+
+        POOR_FUEL_BURN_LIMIT = BUILDER
+                .comment("Fuel that burns this many ticks or less counts as poor, unless a fuel tag says otherwise.")
+                .defineInRange("poorFuelBurnLimit", 400, 1, 1000000);
+
+        PREMIUM_FUEL_BURN_LIMIT = BUILDER
+                .comment("Fuel that burns longer than this many ticks counts as premium, unless a fuel tag says otherwise.")
+                .defineInRange("premiumFuelBurnLimit", 3200, 1, 1000000);
 
         BODY_WATER_CAPACITY = BUILDER
                 .defineInRange("bodyWaterCapacity", 8000, 1, 1000000);

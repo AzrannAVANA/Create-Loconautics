@@ -30,12 +30,12 @@ public record BoilerStructure(
         return BoilerLevel.sizeLevels(boilerCapacity);
     }
 
-    public int fireLevels() {
-        return BoilerLevel.fireLevels(fireboxHeat, LoconauticsConfig.FIRE_LEVELS_NORMAL.get());
+    public int fireLevels(FuelGrade grade) {
+        return BoilerLevel.fireLevels(fireboxHeat, grade.levelsPerFirebox());
     }
 
-    public int level() {
-        return BoilerLevel.level(sizeLevels(), fireLevels(), LoconauticsConfig.BOILER_MAX_LEVEL.get());
+    public int level(FuelGrade grade) {
+        return BoilerLevel.level(sizeLevels(), fireLevels(grade), LoconauticsConfig.BOILER_MAX_LEVEL.get());
     }
 
     public float optimalHeat() {

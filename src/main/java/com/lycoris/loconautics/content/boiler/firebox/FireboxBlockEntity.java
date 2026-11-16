@@ -9,6 +9,8 @@ import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
 import com.lycoris.loconautics.content.boiler.BoilerBlastEffects;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
 import com.lycoris.loconautics.content.boiler.BoilerLevel;
+import com.lycoris.loconautics.content.boiler.FuelGrade;
+import com.lycoris.loconautics.content.boiler.FuelGrades;
 import com.lycoris.loconautics.content.boiler.BoilerMultiblockValidator;
 import com.lycoris.loconautics.content.boiler.BoilerState;
 import com.lycoris.loconautics.content.boiler.BoilerStructure;
@@ -129,6 +131,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private BoilerState boilerState = BoilerState.COLD;
     private int warmupTicks;
     private float burnTimeRemaining;
+    private FuelGrade burningGrade = FuelGrade.NORMAL;
     private int rescanCooldown;
     private int inflowCooldown;
 
@@ -481,6 +484,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         int burnTime = inventory.getStackInSlot(slot).getBurnTime(RecipeType.SMELTING);
         if (burnTime <= 0) burnTime = 1600;
         burnTimeRemaining = burnTime - lastBurnRate;
+        burningGrade = FuelGrades.of(inventory.getStackInSlot(slot));
         inventory.extractItem(slot, 1, false);
         setChanged();
         return true;
@@ -734,10 +738,16 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return suPerRpm() * (float) TAKEOFF_MAX_RPM;
     }
 
+    // the grade of what burns now decides the fire limit, with no fire it is the grade of the next fuel in the slot
+    private FuelGrade fireGrade() {
+        if (burnTimeRemaining > 0f || firstFuel().isEmpty()) return burningGrade;
+        return FuelGrades.of(firstFuel());
+    }
+
     // create counts stress capacity per rpm, so the pool at full pressure is spread over the top rpm
     public float suPerRpm() {
         if (structure == null) return 0f;
-        return BoilerLevel.poolSu(structure.level(), (float) (double) LoconauticsConfig.SU_PER_LEVEL.get(), 1f)
+        return BoilerLevel.poolSu(structure.level(fireGrade()), (float) (double) LoconauticsConfig.SU_PER_LEVEL.get(), 1f)
                 / (float) TAKEOFF_MAX_RPM;
     }
 
@@ -1175,6 +1185,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         boilerState = other.boilerState;
         warmupTicks = other.warmupTicks;
         burnTimeRemaining = other.burnTimeRemaining;
+        burningGrade = other.burningGrade;
         dryTicks = other.dryTicks;
         lockedOut = other.lockedOut;
         lastFailure = other.lastFailure;
@@ -1193,6 +1204,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         boilerState = BoilerState.COLD;
         warmupTicks = 0;
         burnTimeRemaining = 0f;
+        burningGrade = FuelGrade.NORMAL;
         dryTicks = 0;
         lockedOut = false;
         lastFailure = null;
@@ -1253,10 +1265,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
         if (structure != null) {
             LoconauticsLang.translate("gui.goggles.boiler_level").style(ChatFormatting.GRAY).forGoggles(tooltip);
-            LoconauticsLang.builder().text(String.valueOf(structure.level()))
-                    .style(structure.level() > 0 ? ChatFormatting.GOLD : ChatFormatting.DARK_GRAY)
+            int boilerLevel = structure.level(fireGrade());
+            LoconauticsLang.builder().text(String.valueOf(boilerLevel))
+                    .style(boilerLevel > 0 ? ChatFormatting.GOLD : ChatFormatting.DARK_GRAY)
                     .text(" ").add(LoconauticsLang.translate("gui.goggles.boiler_level_limits",
-                            structure.sizeLevels(), structure.fireLevels()).style(ChatFormatting.DARK_GRAY))
+                            structure.sizeLevels(), structure.fireLevels(fireGrade())).style(ChatFormatting.DARK_GRAY))
                     .forGoggles(tooltip, 1);
         }
 
@@ -1388,6 +1401,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putString("BoilerState", boilerState.name());
         tag.putInt("WarmupTicks", warmupTicks);
         tag.putFloat("BurnTimeRemaining", burnTimeRemaining);
+        tag.putString("BurningGrade", burningGrade.name());
         tag.putInt("DryTicks", dryTicks);
         tag.putInt("WasteGas", wasteGas);
         tag.putBoolean("LockedOut", lockedOut);
@@ -1441,6 +1455,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
         warmupTicks = tag.getInt("WarmupTicks");
         burnTimeRemaining = tag.getFloat("BurnTimeRemaining");
+        try {
+            burningGrade = FuelGrade.valueOf(tag.getString("BurningGrade"));
+        } catch (IllegalArgumentException e) {
+            burningGrade = FuelGrade.NORMAL;
+        }
         dryTicks = tag.getInt("DryTicks");
         wasteGas = tag.getInt("WasteGas");
         lockedOut = tag.getBoolean("LockedOut");

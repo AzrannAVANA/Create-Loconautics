@@ -4,6 +4,7 @@
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
+- Fuel quality sets the boiler fire limit, wood is weakest and coal blocks strongest.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
