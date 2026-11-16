@@ -21,6 +21,7 @@
 - Boiler bodies join a firebox at its back.
 - Boiler parts like the smokestack and valve work on any side.
 - The firebox is now the Firebox Body and shows its shell as an item.
+- Smokestacks sit raised on a boiler, firebox body or Steam n Rails boiler.
 
 ## Ver 0.1.3BETA
 
