@@ -132,6 +132,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private static final int WHISTLE_RESEND_TICKS = 5;
     private static final double WHISTLE_REACH = 1.6;
     private static final double WHISTLE_HEIGHT = 2.2;
+    private static final float WHISTLE_MIN_PRESSURE = 0.3f;
 
     private static final double BOILING_C = 100.0;
     private static final float COLD_FIRE_EFFICIENCY = 0.15f;
@@ -340,7 +341,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     // someone sneaking on a working boiler blows the nearest whistle of its train
     private void tickWhistle() {
         if (!(level instanceof ServerLevel server)) return;
-        ServerPlayer rider = ignited && steamPressure > 0f ? sneakingRider(server) : null;
+        ServerPlayer rider = canWhistle() ? sneakingRider(server) : null;
         if (rider == null) {
             if (whistleHeld != null) {
                 TrainHorn.blow(server, whistleHeld, false);
@@ -352,7 +353,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (whistleHeld == null) return;
         if (--whistleCooldown > 0) return;
         whistleCooldown = WHISTLE_RESEND_TICKS;
-        TrainHorn.sound(rider, whistleHeld, true, pressureFraction());
+        TrainHorn.sound(rider, whistleHeld, true, whistleStrength());
     }
 
     // a redstone powered whistle on a boiler with pressure blows, create only knows its own tanks
@@ -360,8 +361,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (!(level instanceof ServerLevel server)) return;
         if (--poweredWhistleCooldown > 0) return;
         poweredWhistleCooldown = WHISTLE_RESEND_TICKS;
-        Set<BlockPos> sounding = ignited && steamPressure > 0f ? poweredWhistlesOnBoiler() : Set.of();
-        float strength = pressureFraction();
+        Set<BlockPos> sounding = canWhistle() ? poweredWhistlesOnBoiler() : Set.of();
+        float strength = whistleStrength();
         for (BlockPos pos : sounding) TrainHorn.blow(server, pos, true, strength);
         for (BlockPos pos : poweredWhistles) {
             if (!sounding.contains(pos)) TrainHorn.blow(server, pos, false);
@@ -467,6 +468,14 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     public float valveOpening() {
         SafetyValveBlockEntity valve = safetyValve();
         return valve == null ? 0f : valve.opening();
+    }
+
+    private boolean canWhistle() {
+        return ignited && pressureFraction() >= WHISTLE_MIN_PRESSURE;
+    }
+
+    private float whistleStrength() {
+        return Math.min(1f, (pressureFraction() - WHISTLE_MIN_PRESSURE) / (1f - WHISTLE_MIN_PRESSURE));
     }
 
     private float pressureFraction() {
