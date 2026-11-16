@@ -4,6 +4,7 @@ package com.lycoris.loconautics.content.boiler.firebox;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.strand.StrandTemplates;
 import com.lycoris.loconautics.common.signal.SignalSpeed;
+import com.lycoris.loconautics.content.analogcontroller.TrainHorn;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.controls.panel.PanelDriveBus;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleBlockEntity;
@@ -127,6 +128,10 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private final Map<BlockPos, Integer> trackedBarrels = new HashMap<>();
 
+    private static final int WHISTLE_RESEND_TICKS = 5;
+    private static final double WHISTLE_REACH = 1.6;
+    private static final double WHISTLE_HEIGHT = 2.2;
+
     private static final double BOILING_C = 100.0;
     private static final float COLD_FIRE_EFFICIENCY = 0.15f;
 
@@ -140,6 +145,9 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private int dryTicks;
     private int wasteGas;
     private boolean ignited;
+    @Nullable
+    private BlockPos whistleHeld;
+    private int whistleCooldown;
 
     private FailureCause lastFailure;
 
@@ -304,6 +312,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
 
         readSubLevelSpeed();
+        tickWhistle();
 
         if (structure == null) {
             forceCold();
@@ -322,6 +331,45 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (tickFailure(watered)) return;
         updateLit(burning);
         tickDisplay();
+    }
+
+    // someone sneaking on a working boiler blows the nearest whistle of its train
+    private void tickWhistle() {
+        if (!(level instanceof ServerLevel server)) return;
+        ServerPlayer rider = ignited && steamPressure > 0f ? sneakingRider(server) : null;
+        if (rider == null) {
+            if (whistleHeld != null) {
+                TrainHorn.blow(server, whistleHeld, false);
+                whistleHeld = null;
+            }
+            return;
+        }
+        if (whistleHeld == null) whistleHeld = TrainHorn.nearestWhistle(server, worldPosition);
+        if (whistleHeld == null) return;
+        if (--whistleCooldown > 0) return;
+        whistleCooldown = WHISTLE_RESEND_TICKS;
+        TrainHorn.sound(rider, whistleHeld, true);
+    }
+
+    @Nullable
+    private ServerPlayer sneakingRider(ServerLevel server) {
+        if (structure == null) return null;
+        List<BlockPos> blocks = new ArrayList<>(structure.boilerPositions());
+        blocks.addAll(structure.fireboxPositions());
+        for (ServerPlayer player : server.players()) {
+            if (!player.isShiftKeyDown() || player.isSpectator()) continue;
+            Vec3 feet = player.position();
+            for (BlockPos pos : blocks) {
+                Vec3 top = Sable.HELPER.projectOutOfSubLevel(level, Vec3.atCenterOf(pos));
+                double dx = feet.x - top.x;
+                double dz = feet.z - top.z;
+                double above = feet.y - top.y;
+                if (dx * dx + dz * dz <= WHISTLE_REACH * WHISTLE_REACH && above >= 0.0 && above <= WHISTLE_HEIGHT) {
+                    return player;
+                }
+            }
+        }
+        return null;
     }
 
     private void rescan() {

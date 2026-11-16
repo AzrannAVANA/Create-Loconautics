@@ -7,6 +7,7 @@
 - Fuel quality sets the boiler fire limit, wood is weakest and coal blocks strongest.
 - Redstone signal sets the boiler burn, 0 is full and 15 banks the fire.
 - Boiler goggles show the power in use out of the total.
+- Sneak on a working boiler to blow the train whistle.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
