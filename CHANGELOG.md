@@ -13,6 +13,7 @@
 - Sneak on a working boiler to blow the train whistle.
 - Steam whistles can sit on boiler bodies, firebox bodies and Steam n Rails boilers.
 - Whistles sit on the round boiler, extensions included.
+- Whistles on a boiler blow with redstone once it has pressure.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.

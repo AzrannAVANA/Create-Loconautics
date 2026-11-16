@@ -33,6 +33,7 @@ import com.lycoris.loconautics.foundation.smoke.SmokeStyle;
 import com.lycoris.loconautics.trainphysics.fx.ParticleWorldLock;
 import com.lycoris.loconautics.trainphysics.portal.PortalCutsClient;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
+import com.simibubi.create.content.decoration.steamWhistle.WhistleBlock;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
@@ -148,6 +149,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     @Nullable
     private BlockPos whistleHeld;
     private int whistleCooldown;
+    private final Set<BlockPos> poweredWhistles = new HashSet<>();
+    private int poweredWhistleCooldown;
 
     private FailureCause lastFailure;
 
@@ -313,6 +316,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
         readSubLevelSpeed();
         tickWhistle();
+        tickPoweredWhistles();
 
         if (structure == null) {
             forceCold();
@@ -348,7 +352,38 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (whistleHeld == null) return;
         if (--whistleCooldown > 0) return;
         whistleCooldown = WHISTLE_RESEND_TICKS;
-        TrainHorn.sound(rider, whistleHeld, true);
+        TrainHorn.sound(rider, whistleHeld, true, pressureFraction());
+    }
+
+    // a redstone powered whistle on a boiler with pressure blows, create only knows its own tanks
+    private void tickPoweredWhistles() {
+        if (!(level instanceof ServerLevel server)) return;
+        if (--poweredWhistleCooldown > 0) return;
+        poweredWhistleCooldown = WHISTLE_RESEND_TICKS;
+        Set<BlockPos> sounding = ignited && steamPressure > 0f ? poweredWhistlesOnBoiler() : Set.of();
+        float strength = pressureFraction();
+        for (BlockPos pos : sounding) TrainHorn.blow(server, pos, true, strength);
+        for (BlockPos pos : poweredWhistles) {
+            if (!sounding.contains(pos)) TrainHorn.blow(server, pos, false);
+        }
+        poweredWhistles.clear();
+        poweredWhistles.addAll(sounding);
+    }
+
+    private Set<BlockPos> poweredWhistlesOnBoiler() {
+        Set<BlockPos> found = new HashSet<>();
+        if (structure == null) return found;
+        List<BlockPos> hosts = new ArrayList<>(structure.boilerPositions());
+        hosts.addAll(structure.fireboxPositions());
+        for (BlockPos host : hosts) {
+            for (Direction dir : Direction.values()) {
+                BlockPos pos = host.relative(dir);
+                BlockState state = level.getBlockState(pos);
+                if (!(state.getBlock() instanceof WhistleBlock) || !state.getValue(WhistleBlock.POWERED)) continue;
+                if (WhistleBlock.getAttachedDirection(state) == dir.getOpposite()) found.add(pos);
+            }
+        }
+        return found;
     }
 
     @Nullable
@@ -432,6 +467,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     public float valveOpening() {
         SafetyValveBlockEntity valve = safetyValve();
         return valve == null ? 0f : valve.opening();
+    }
+
+    private float pressureFraction() {
+        float burst = (float) (double) LoconauticsConfig.BURST_PRESSURE.get();
+        return burst <= 0f ? 1f : Math.min(1f, steamPressure / burst);
     }
 
     public float steamPressure() {
