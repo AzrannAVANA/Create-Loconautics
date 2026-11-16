@@ -11,6 +11,7 @@
 - Steam takeoff power follows the boiler level, 16384 SU per level.
 - Boilers need flint and steel or a fire charge to light.
 - Boiler failures only put the fire out, nothing explodes.
+- Fireboxes join in a straight line of three, a fourth starts its own.
 
 ## Ver 0.1.3BETA
 
