@@ -41,6 +41,7 @@ public final class Loconautics {
 
         modEventBus.addListener(this::commonSetup);
         modEventBus.addListener(this::registerCapabilities);
+        modEventBus.addListener(com.lycoris.loconautics.content.controls.panel.target.RedstoneTargets::register);
         modEventBus.addListener(this::onAddPackFinders);
         modEventBus.addListener(
                 com.lycoris.loconautics.trainphysics.state.StationChunkTickets::register);
@@ -222,6 +223,7 @@ public final class Loconautics {
 
     private void onServerStopped(ServerStoppedEvent event) {
         runStopHook("PanelDriveBus", com.lycoris.loconautics.content.controls.panel.PanelDriveBus::clear);
+        runStopHook("PanelSignals", com.lycoris.loconautics.content.controls.panel.target.PanelSignals::clear);
         runStopHook("MapColorStorage", com.lycoris.loconautics.content.schedule.map.MapColorStorage::closeAll);
         runStopHook("ForceTrace", com.lycoris.loconautics.trainphysics.debug.force.ForceTrace::reset);
         runStopHook("RailDebug", com.lycoris.loconautics.trainphysics.debug.RailDebug::clearSelections);

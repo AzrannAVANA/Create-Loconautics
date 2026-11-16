@@ -32,6 +32,7 @@
     "BlockGetterCutClipMixin",
     "BlockGetterOversizeClipMixin",
     "ServerUseReachMixin",
+    "BlockStateSignalMixin",
     "ClipContextAccessor",
     "create.train.RailwaySavedDataShadowMixin",
     "sable.train.SubLevelPhysicsSystemBogeyBreakMixin",

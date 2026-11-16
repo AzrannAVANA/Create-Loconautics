@@ -4,7 +4,6 @@
 
 ### Bug Fixes
 - Boiler parts can be targeted on their whole shape, not only the center.
-- Railways boilers and smokeboxes now count as boiler bodies.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
@@ -16,6 +15,7 @@
 - Whistles sit on the round boiler, extensions included.
 - Whistles on a boiler blow with redstone once it has pressure.
 - Whistle sound and steam get stronger with boiler pressure.
+- Panel parts can power any Redstone block listed in a datapack.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
