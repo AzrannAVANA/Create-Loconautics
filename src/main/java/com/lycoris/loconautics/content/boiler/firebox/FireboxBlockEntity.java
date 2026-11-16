@@ -6,7 +6,6 @@ import com.lycoris.loconautics.common.strand.StrandTemplates;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleBlockEntity;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
-import com.lycoris.loconautics.content.boiler.BoilerBlastEffects;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
 import com.lycoris.loconautics.content.boiler.BoilerLevel;
 import com.lycoris.loconautics.content.boiler.FuelGrade;
@@ -44,7 +43,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-import com.lycoris.loconautics.common.advancement.TrainAdvancements;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -138,14 +136,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private int dryTicks;
     private int wasteGas;
-    private boolean lockedOut;
     private boolean ignited;
 
     private FailureCause lastFailure;
 
-    private static final float END_BLAST_SHARE = 0.75f;
     private static final float TAKEOFF_DRAW_MULTIPLIER = 2.5f;
-    private static final double END_SHATTER_REACH = 3.0;
 
     private static final float BLOCKED_SMOKE_MIN_DENSITY = 0.5f;
     private static final float BLOCKED_SMOKE_SCALE = 0.35f;
@@ -307,7 +302,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
         readSubLevelSpeed();
 
-        if (lockedOut || structure == null) {
+        if (structure == null) {
             forceCold();
             return;
         }
@@ -350,7 +345,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     @Nullable
     private String computeNextStep() {
-        if (lockedOut) return null;
         if (structure == null) return missingKey == null ? "add_boiler_body" : missingKey;
         if (!structure.hasWaterInlet()) return "add_water_inlet";
         if (!structure.hasTakeoff()) return "add_steam_takeoff";
@@ -368,7 +362,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     @Nullable
     private String computeOptionalStep() {
-        if (lockedOut || structure == null) return null;
+        if (structure == null) return null;
         if (boilerState == BoilerState.WARMING || boilerState == BoilerState.HOT) return null;
         return structure.hasSafetyValve() || hasBoundValve() ? null : "add_safety_valve";
     }
@@ -623,7 +617,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     public float outputFraction() {
-        if (structure == null || lockedOut) return 0f;
+        if (structure == null) return 0f;
 
         float raw = Math.min(1f, steamPressure);
         return Math.min(raw, structure.temperatureCap());
@@ -639,7 +633,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     public float shaftRpm() {
-        if (structure == null || lockedOut) return 0f;
+        if (structure == null) return 0f;
         float fraction = outputFraction();
         if (fraction <= 0f) return 0f;
         float min = (float) TAKEOFF_MIN_RPM;
@@ -902,90 +896,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private void fail(BlockPos at, FailureCause cause) {
         announceFailure(at, cause);
         lastFailure = cause;
-        LoconauticsConstants.LOGGER.info("[boilerfix] fail pos={} cause={} structureNull={} pressure={} realistic={}",
-                worldPosition, cause, structure == null, steamPressure, LoconauticsConfig.realistic());
-        float burstPressure = (float) (double) LoconauticsConfig.BURST_PRESSURE.get();
-        float pressureFraction = cause == FailureCause.OVERPRESSURE || burstPressure <= 0f
-                ? 1f : Math.min(1f, steamPressure / burstPressure);
         steamPressure = 0f;
         dryTicks = 0;
         warmupTicks = 0;
         boilerState = BoilerState.COLD;
-
-        if (!LoconauticsConfig.realistic()) {
-            lockedOut = true;
-            setChanged();
-            sendData();
-            return;
-        }
-
-        float base = (float) (double) LoconauticsConfig.FAILURE_EXPLOSION_BASE.get();
-        float max = (float) (double) LoconauticsConfig.FAILURE_EXPLOSION_MAX.get();
-        // an explosion can hand the controller to a neighbor firebox, which nulls structure mid failure
-        List<BlockPos> bodies = List.copyOf(structure.boilerPositions());
-        float scale = Math.min(1f, structure.boilerCapacity() / 24f);
-        float power = base + (max - base) * scale;
-
-        Vec3 middle = bodyCenter(bodies);
-        if (cause == FailureCause.OVERPRESSURE) {
-            Vec3 back = Vec3.atCenterOf(at);
-            Vec3 front = Vec3.atCenterOf(frontEnd(bodies, back));
-            explodeOutward(back, middle, power * END_BLAST_SHARE);
-            explodeOutward(front, middle, power * END_BLAST_SHARE);
-            shatterBodyNear(bodies, back, END_SHATTER_REACH);
-            shatterBodyNear(bodies, front, END_SHATTER_REACH);
-            level.destroyBlock(at, false);
-            level.destroyBlock(BlockPos.containing(front), false);
-            if (level instanceof ServerLevel server) TrainAdvancements.boilerBurst(server, at);
-        } else {
-            float scaled = base * 0.5f + (power - base * 0.5f) * pressureFraction;
-            level.explode(null, middle.x, middle.y, middle.z, scaled, Level.ExplosionInteraction.BLOCK);
-            if (level instanceof ServerLevel server) BoilerBlastEffects.burst(server, middle, scaled, pressureFraction);
-            shatterBodyNear(bodies, middle, Double.POSITIVE_INFINITY);
-            level.destroyBlock(at, false);
-        }
-        setChanged();
-        sendData();
-    }
-
-    private void shatterBodyNear(List<BlockPos> bodies, Vec3 center, double reach) {
-        double reachSqr = reach * reach;
-        for (BlockPos body : bodies) {
-            if (Vec3.atCenterOf(body).distanceToSqr(center) <= reachSqr) level.destroyBlock(body, false);
-        }
-    }
-
-    private Vec3 bodyCenter(List<BlockPos> bodies) {
-        Vec3 sum = Vec3.ZERO;
-        for (BlockPos body : bodies) {
-            sum = sum.add(Vec3.atCenterOf(body));
-        }
-        return sum.scale(1.0 / bodies.size());
-    }
-
-    private BlockPos frontEnd(List<BlockPos> bodies, Vec3 back) {
-        BlockPos front = bodies.getFirst();
-        for (BlockPos body : bodies) {
-            if (Vec3.atCenterOf(body).distanceToSqr(back) > Vec3.atCenterOf(front).distanceToSqr(back)) front = body;
-        }
-        return front;
-    }
-
-    private void explodeOutward(Vec3 end, Vec3 middle, float power) {
-        Vec3 away = end.subtract(middle);
-        Vec3 at = away.lengthSqr() < 1.0E-6 ? end : end.add(away.normalize().scale(0.5));
-        level.explode(null, at.x, at.y, at.z, power, Level.ExplosionInteraction.BLOCK);
-        if (level instanceof ServerLevel server) BoilerBlastEffects.jet(server, at, away, power);
-    }
-
-    public boolean isLockedOut() {
-        return lockedOut;
-    }
-
-    public void clearLockout() {
-        if (!lockedOut) return;
-        lockedOut = false;
-        dryTicks = 0;
+        ignited = false;
+        burnTimeRemaining = 0f;
+        updateLit(false);
         setChanged();
         sendData();
     }
@@ -1037,7 +954,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     public boolean ignite(Player player, ItemStack igniter) {
-        if (structure == null || lockedOut || ignited) return false;
+        if (structure == null || ignited) return false;
         if (burnTimeRemaining <= 0f && firstFuelSlot() < 0) return false;
         ignited = true;
         if (!player.isCreative()) {
@@ -1214,7 +1131,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         burningGrade = other.burningGrade;
         ignited = other.ignited;
         dryTicks = other.dryTicks;
-        lockedOut = other.lockedOut;
         lastFailure = other.lastFailure;
         steamPressure = other.steamPressure;
         lastBurning = other.lastBurning;
@@ -1234,7 +1150,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         burningGrade = FuelGrade.NORMAL;
         ignited = false;
         dryTicks = 0;
-        lockedOut = false;
         lastFailure = null;
         steamPressure = 0f;
         lastBurning = false;
@@ -1279,11 +1194,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         addFuelSlot(tooltip);
         addFailureWarning(tooltip);
 
-        if (lockedOut) {
-            LoconauticsLang.translate("gui.goggles.boiler_locked")
-                    .style(ChatFormatting.RED).forGoggles(tooltip);
-            return true;
-        }
         if (!dispValid) {
             LoconauticsLang.translate("gui.goggles.boiler_incomplete")
                     .style(ChatFormatting.RED).forGoggles(tooltip);
@@ -1433,7 +1343,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putBoolean("Ignited", ignited);
         tag.putInt("DryTicks", dryTicks);
         tag.putInt("WasteGas", wasteGas);
-        tag.putBoolean("LockedOut", lockedOut);
         tag.putString("LastFailure", lastFailure == null ? "" : lastFailure.name());
         tag.putBoolean("DispValid", dispValid);
         tag.putFloat("DispSu", dispSu);
@@ -1492,7 +1401,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dryTicks = tag.getInt("DryTicks");
         ignited = tag.contains("Ignited") ? tag.getBoolean("Ignited") : burnTimeRemaining > 0f;
         wasteGas = tag.getInt("WasteGas");
-        lockedOut = tag.getBoolean("LockedOut");
         lastFailure = readFailure(tag.getString("LastFailure"));
         dispValid = tag.getBoolean("DispValid");
         dispSu = tag.getFloat("DispSu");

@@ -8,7 +8,6 @@ public final class LoconauticsConfig {
 
     private static final String TRANSLATION_PREFIX = LoconauticsConstants.MOD_ID + ".configuration.";
 
-    public enum Realism { REALISTIC, ARCADE }
     public enum TemperatureUnit { CELSIUS, FAHRENHEIT, KELVIN }
 
     public static ModConfigSpec.BooleanValue ENABLE_SABLE_TRAINS;
@@ -45,7 +44,6 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.BooleanValue AUTO_RERAIL_ENABLED;
     public static ModConfigSpec.DoubleValue AUTO_RERAIL_MAX_SPEED;
 
-    public static ModConfigSpec.EnumValue<Realism> BOILER_REALISM;
     public static ModConfigSpec.DoubleValue AMBIENT_TEMPERATURE_C;
     public static ModConfigSpec.DoubleValue WORKING_TEMPERATURE_C;
 
@@ -66,8 +64,6 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.DoubleValue BURST_PRESSURE;
     public static ModConfigSpec.IntValue CROWN_SHEET_TICKS;
     public static ModConfigSpec.IntValue DRAFT_CHOKE_TICKS;
-    public static ModConfigSpec.DoubleValue FAILURE_EXPLOSION_BASE;
-    public static ModConfigSpec.DoubleValue FAILURE_EXPLOSION_MAX;
 
     public static ModConfigSpec.BooleanValue CRASH_EXPLODE_ENABLED;
     public static ModConfigSpec.DoubleValue CRASH_IMPACT_THRESHOLD;
@@ -285,9 +281,6 @@ public final class LoconauticsConfig {
 
         BUILDER.push("boiler");
 
-        BOILER_REALISM = BUILDER
-                .defineEnum("boilerRealism", Realism.REALISTIC);
-
         AMBIENT_TEMPERATURE_C = BUILDER
                 .defineInRange("ambientTemperatureC", 20.0, -100.0, 1000.0);
 
@@ -353,12 +346,6 @@ public final class LoconauticsConfig {
 
         CROWN_SHEET_TICKS = BUILDER
                 .defineInRange("crownSheetTicks", 600, 20, 72000);
-
-        FAILURE_EXPLOSION_BASE = BUILDER
-                .defineInRange("failureExplosionBase", 3.0, 0.0, 100.0);
-
-        FAILURE_EXPLOSION_MAX = BUILDER
-                .defineInRange("failureExplosionMax", 9.0, 0.0, 100.0);
 
         BUILDER.pop();
 
@@ -557,10 +544,6 @@ public final class LoconauticsConfig {
                 .defineInRange("dialWobbleDegrees", 1.2, 0.0, 20.0);
 
         BUILDER.pop();
-    }
-
-    public static boolean realistic() {
-        return BOILER_REALISM.get() == Realism.REALISTIC;
     }
 
     private LoconauticsConfig() {
