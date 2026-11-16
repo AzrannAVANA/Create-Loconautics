@@ -488,6 +488,8 @@
   "loconautics.gui.goggles.boiler_state_warming": "Warming",
   "loconautics.gui.goggles.boiler_stats": "Boiler Stats",
   "loconautics.gui.goggles.boiler_level": "Level",
+  "loconautics.gui.goggles.boiler_pool": "Power",
+  "loconautics.gui.goggles.boiler_pool_used": "%1$s of %2$s su in use",
   "loconautics.gui.goggles.boiler_level_limits": "Size %1$s, Fire %2$s",
   "loconautics.gui.goggles.boiler_step_add_boiler_body": "-> Add a Boiler Body block",
   "loconautics.gui.goggles.boiler_step_add_fuel": "-> Load fuel into the firebox",

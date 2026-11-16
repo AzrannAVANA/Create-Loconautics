@@ -10,6 +10,7 @@ import com.lycoris.loconautics.content.bearingaxle.BearingAxleBlockEntity;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
 import com.lycoris.loconautics.content.boiler.BoilerLevel;
+import com.lycoris.loconautics.content.boiler.BoilerPool;
 import com.lycoris.loconautics.content.boiler.FuelGrade;
 import com.lycoris.loconautics.content.boiler.FuelGrades;
 import com.lycoris.loconautics.content.boiler.BoilerMultiblockValidator;
@@ -1232,6 +1233,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                             structure.sizeLevels(), structure.fireLevels(fireGrade())).style(ChatFormatting.DARK_GRAY))
                     .forGoggles(tooltip, 1);
         }
+
+        BoilerPool pool = new BoilerPool(dispMaxSu, 0f, dispSu);
+        LoconauticsLang.translate("gui.goggles.boiler_pool").style(ChatFormatting.GRAY).forGoggles(tooltip);
+        LoconauticsLang.translate("gui.goggles.boiler_pool_used", Math.round(pool.used()), Math.round(pool.max()))
+                .style(pool.usedFraction() > 0.9f ? ChatFormatting.RED : ChatFormatting.AQUA).forGoggles(tooltip, 1);
 
         LoconauticsLang.translate("gui.goggles.boiler_state").style(ChatFormatting.GRAY).forGoggles(tooltip);
         LoconauticsLang.translate("gui.goggles.boiler_state_" + boilerState.name().toLowerCase(Locale.ROOT))
