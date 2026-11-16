@@ -3,7 +3,9 @@ package com.lycoris.loconautics.content.boiler.firebox;
 
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.strand.StrandTemplates;
+import com.lycoris.loconautics.common.signal.SignalSpeed;
 import com.lycoris.loconautics.config.LoconauticsConfig;
+import com.lycoris.loconautics.content.controls.panel.PanelDriveBus;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleBlockEntity;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
@@ -396,7 +398,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
         float rise = fed
                 ? (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get()
-                        * structure.temperatureCap() * draftChoke() * warmthEfficiency()
+                        * structure.temperatureCap() * draftChoke() * warmthEfficiency() * masterFraction()
                         * (1f + LOW_WATER_RISE_BOOST * lowWater(waterTank.getFluidAmount(), waterTank.getCapacity()))
                 : 0f;
         float vent = (float) PRESSURE_VENT_PER_TICK * valveOpening();
@@ -455,11 +457,25 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         sendData();
     }
 
+    private int masterSignal() {
+        int signal = Math.round(PanelDriveBus.report(level, worldPosition, 0f));
+        if (structure != null) {
+            for (BlockPos pos : structure.fireboxPositions()) {
+                signal = Math.max(signal, level.getBestNeighborSignal(pos));
+            }
+        }
+        return Mth.clamp(signal, 0, SignalSpeed.OFF_SIGNAL);
+    }
+
+    private float masterFraction() {
+        return SignalSpeed.fractionWithBank(masterSignal(), (float) (double) LoconauticsConfig.BANKED_BURN_FRACTION.get());
+    }
+
     private float burnRate() {
         double mass = Math.max(0.0, lastTrainMass);
         float stress = Math.max(0f, Math.min(1f, lastStressRatio));
         float load = 1f + stress + (float) (mass / BURN_MASS_DIVISOR);
-        return load * structure.burnMultiplier();
+        return load * structure.burnMultiplier() * masterFraction();
     }
 
     private boolean consumeFuel() {

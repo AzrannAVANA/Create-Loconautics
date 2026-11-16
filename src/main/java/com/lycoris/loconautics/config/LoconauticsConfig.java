@@ -49,6 +49,7 @@ public final class LoconauticsConfig {
 
     public static ModConfigSpec.IntValue WARMUP_TICKS;
     public static ModConfigSpec.DoubleValue SU_PER_LEVEL;
+    public static ModConfigSpec.DoubleValue BANKED_BURN_FRACTION;
 
     public static ModConfigSpec.IntValue BOILER_MAX_LENGTH;
     public static ModConfigSpec.IntValue BOILER_MAX_LEVEL;
@@ -293,6 +294,10 @@ public final class LoconauticsConfig {
         SU_PER_LEVEL = BUILDER
                 .comment("Stress units a boiler gives for each level at full pressure.")
                 .defineInRange("suPerLevel", 16384.0, 0.0, 1000000.0);
+
+        BANKED_BURN_FRACTION = BUILDER
+                .comment("Share of full burn a lit boiler keeps when its master signal is 15.")
+                .defineInRange("bankedBurnFraction", 0.05, 0.0, 1.0);
 
         BOILER_MAX_LENGTH = BUILDER
                 .comment("Most body blocks a boiler may span along its length before it stops working.",

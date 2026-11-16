@@ -892,6 +892,8 @@
   "loconautics.configuration.boiler.pressure.pressureVentPerTick": "Pressure Vent Per Tick",
   "loconautics.configuration.boiler.suPerLevel": "SU Per Level",
   "loconautics.configuration.boiler.suPerLevel.tooltip": "Stress units a boiler gives for each level at full pressure.",
+  "loconautics.configuration.boiler.bankedBurnFraction": "Banked Burn Fraction",
+  "loconautics.configuration.boiler.bankedBurnFraction.tooltip": "Share of full burn a lit boiler keeps when its master signal is 15.",
   "loconautics.configuration.boiler.takeoffMaxRpm": "Takeoff Max RPM",
   "loconautics.configuration.boiler.takeoffMinRpm": "Takeoff Min RPM",
   "loconautics.configuration.boiler.temperatureJitterC": "Temperature Jitter (C)",
