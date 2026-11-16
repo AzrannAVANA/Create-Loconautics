@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.content.smokestack;
 
 import com.lycoris.loconautics.content.boiler.BoilerAttach;
+import com.lycoris.loconautics.foundation.pick.OversizeShape;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.function.Consumer;
 
-public class SmokestackBlock extends Block implements IWrenchable, EntityBlock {
+public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, OversizeShape {
 
     public static final int MAX_HEIGHT = 6;
 

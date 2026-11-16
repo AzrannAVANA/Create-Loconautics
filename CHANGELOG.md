@@ -2,6 +2,9 @@
 
 ## Ver 0.1.4BETA
 
+### Bug Fixes
+- Boiler parts can be targeted on their whole shape, not only the center.
+
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
 - Fuel quality sets the boiler fire limit, wood is weakest and coal blocks strongest.
