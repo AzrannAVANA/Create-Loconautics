@@ -1,12 +1,14 @@
 package com.lycoris.loconautics.content.boiler.bogey;
 
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
+import com.lycoris.loconautics.content.frequency.FrequencyBindUtil;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.content.trains.bogey.BogeySizes;
 import com.simibubi.create.content.trains.bogey.BogeyStyle;
 import com.simibubi.create.content.trains.track.TrackMaterial;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.core.Direction;
 import net.minecraft.world.item.ItemStack;
@@ -18,6 +20,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import org.jetbrains.annotations.Nullable;
 
 public class BoilerBogeyBlock extends AbstractBogeyBlock<BoilerBogeyBlockEntity> {
 
@@ -48,6 +51,25 @@ public class BoilerBogeyBlock extends AbstractBogeyBlock<BoilerBogeyBlockEntity>
             player.openMenu(bogey, bogey::sendToMenu);
         }
         return InteractionResult.CONSUME;
+    }
+
+    @Override
+    public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer,
+                            ItemStack stack) {
+        super.setPlacedBy(level, pos, state, placer, stack);
+        if (level.isClientSide || !FrequencyBindUtil.isBound(stack)
+                || !(level.getBlockEntity(pos) instanceof BoilerBogeyBlockEntity bogey)) {
+            return;
+        }
+        var registries = level.registryAccess();
+        ItemStack[] speed = FrequencyBindUtil.read(stack, registries, "Speed");
+        if (speed != null) bogey.setSpeedFrequency(speed[0], speed[1]);
+        ItemStack[] direction = FrequencyBindUtil.read(stack, registries, "Direction");
+        if (direction != null) bogey.setDirectionFrequency(direction[0], direction[1]);
+        ItemStack[] left = FrequencyBindUtil.read(stack, registries, "Left");
+        if (left != null) bogey.setLeftFrequency(left[0], left[1]);
+        ItemStack[] right = FrequencyBindUtil.read(stack, registries, "Right");
+        if (right != null) bogey.setRightFrequency(right[0], right[1]);
     }
 
     @Override
