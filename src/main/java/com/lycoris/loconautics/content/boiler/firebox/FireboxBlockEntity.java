@@ -6,6 +6,11 @@ import com.lycoris.loconautics.common.strand.StrandTemplates;
 import com.lycoris.loconautics.common.signal.SignalSpeed;
 import com.lycoris.loconautics.content.analogcontroller.TrainHorn;
 import com.lycoris.loconautics.config.LoconauticsConfig;
+import com.lycoris.loconautics.common.sable.SubLevelBlocks;
+import com.lycoris.loconautics.content.boiler.BoilerSummary;
+import com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyBlockEntity;
+import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.lycoris.loconautics.trainphysics.drive.DriveSources;
 import com.lycoris.loconautics.trainphysics.drive.TrainDriveSource;
 import com.lycoris.loconautics.content.controls.panel.PanelDriveBus;
@@ -1118,6 +1123,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private void tickDisplay() {
         if (--displayCooldown > 0) return;
         displayCooldown = DISPLAY_TICKS;
+        syncTrainSummary();
 
         BoilerWaterSource injector = water();
 
@@ -1144,6 +1150,62 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         pushSmokestack();
         setChanged();
         sendData();
+    }
+
+    // a train that is unloaded keeps what is left of the fuel and the water, the loaded boiler hands it over
+    private void syncTrainSummary() {
+        if (!(Sable.HELPER.getContaining(this) instanceof ServerSubLevel sub)) return;
+        SableTrain train = SableTrainRegistry.get(sub.getUniqueId());
+        if (train == null) return;
+        if (SubLevelBlocks.findAll(sub, BoilerBogeyBlockEntity.class).isEmpty()) {
+            train.setBoilerSummary(null);
+            return;
+        }
+        BoilerSummary old = train.boilerSummary();
+        if (old != null && old.hasSpent()) applySpent(old.takeSpentFuel(), old.takeSpentWater());
+        train.setBoilerSummary(new BoilerSummary(ignited, fuelLeft(), lastBurnRate,
+                water() == null ? 0 : water().getWaterAmount(), netWaterPerTick()));
+    }
+
+    private float fuelLeft() {
+        float queued = 0f;
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+            ItemStack fuel = inventory.getStackInSlot(slot);
+            if (isFuel(fuel)) queued += (float) fuel.getBurnTime(RecipeType.SMELTING) * fuel.getCount();
+        }
+        return burnTimeRemaining + queued;
+    }
+
+    private float netWaterPerTick() {
+        if (structure == null) return 0f;
+        float steamLeaving = Math.max(outputFraction(), ventedFraction());
+        return structure.boilerCapacity() * (float) WATER_PER_BODY_PER_TICK * steamLeaving
+                * (1f - (float) WATER_RECYCLE_FRACTION);
+    }
+
+    // the same burn and water the loaded tick would have used, taken in one go when the car loads back in
+    private void applySpent(float burn, int waterUsed) {
+        while (burn > 0f) {
+            if (burnTimeRemaining > 0f) {
+                float used = Math.min(burn, burnTimeRemaining);
+                burnTimeRemaining -= used;
+                burn -= used;
+                continue;
+            }
+            int slot = firstFuelSlot();
+            if (slot < 0) {
+                ignited = false;
+                break;
+            }
+            int burnTime = inventory.getStackInSlot(slot).getBurnTime(RecipeType.SMELTING);
+            burningGrade = FuelGrades.of(inventory.getStackInSlot(slot));
+            burnTimeRemaining = burnTime <= 0 ? 1600 : burnTime;
+            inventory.extractItem(slot, 1, false);
+        }
+        if (burnTimeRemaining <= 0f && firstFuelSlot() < 0) ignited = false;
+        BoilerWaterSource injector = water();
+        if (injector != null && waterUsed > 0) injector.drawWater(waterUsed);
+        setChanged();
     }
 
     private boolean hasStack() {

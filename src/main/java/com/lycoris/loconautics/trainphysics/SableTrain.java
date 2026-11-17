@@ -45,6 +45,7 @@ public final class SableTrain {
     private final boolean physics;
 
     private UUID owner;
+    private com.lycoris.loconautics.content.boiler.BoilerSummary boilerSummary;
     private double speed;
     private double lastRollingSpeed;
     private double targetSpeed;
@@ -203,6 +204,14 @@ public final class SableTrain {
 
     public UUID owner() {
         return owner;
+    }
+
+    public com.lycoris.loconautics.content.boiler.BoilerSummary boilerSummary() {
+        return boilerSummary;
+    }
+
+    public void setBoilerSummary(com.lycoris.loconautics.content.boiler.BoilerSummary summary) {
+        this.boilerSummary = summary;
     }
 
     public void setOwner(UUID owner) {

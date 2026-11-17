@@ -31,6 +31,7 @@
 - Schedules get a boiler fire entry that sets the burn.
 - Fumes pile up in a firebox with no smokestack and burst out when the door opens.
 - Flames burn inside the firebox and sparks fly out of the open door.
+- Unloaded steam trains on a schedule stop when the fuel runs out, the owner gets told.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
