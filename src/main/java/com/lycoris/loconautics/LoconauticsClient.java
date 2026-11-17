@@ -412,6 +412,8 @@ public final class LoconauticsClient {
                 TransmissionScreen::new);
         event.register(LoconauticsRegistries.BEARING_AXLE_MENU.get(),
                 com.lycoris.loconautics.content.bearingaxle.BearingAxleScreen::new);
+        event.register(LoconauticsRegistries.BOILER_BOGEY_MENU.get(),
+                com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyScreen::new);
         event.register(LoconauticsRegistries.PANEL_FREQUENCY_MENU.get(), PanelPartScreens::create);
     }
 

@@ -217,8 +217,13 @@ public final class LoconauticsRegistries {
             BEARING_AXLE_MENU = MENUS.register("bearing_axle", () ->
             IMenuTypeExtension.create(LoconauticsRegistries::createBearingAxleMenu));
 
+    public static final DeferredHolder<MenuType<?>, MenuType<com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyMenu>>
+            BOILER_BOGEY_MENU = MENUS.register("boiler_bogey", () ->
+            IMenuTypeExtension.create((id, inv, buf) -> new com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyMenu(
+                    LoconauticsRegistries.BOILER_BOGEY_MENU.get(), id, inv, buf)));
+
     public static final DeferredHolder<MenuType<?>, MenuType<PanelFrequencyMenu>>
-            PANEL_FREQUENCY_MENU = MENUS.register("panel_frequency", () ->
+            PANEL_FREQUENCY_MENU =MENUS.register("panel_frequency", () ->
             IMenuTypeExtension.create(LoconauticsRegistries::createPanelFrequencyMenu));
 
     public static final DeferredHolder<Block, TurntableBearingBlock> TURNTABLE_BEARING =
