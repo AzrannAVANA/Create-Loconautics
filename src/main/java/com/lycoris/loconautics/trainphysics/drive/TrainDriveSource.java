@@ -29,6 +29,9 @@ public interface TrainDriveSource {
 
     long getPlacedTime();
 
+    // the car mass this source was last solved with
+    double trainMass();
+
     int getSteerInput();
 
     int gear();

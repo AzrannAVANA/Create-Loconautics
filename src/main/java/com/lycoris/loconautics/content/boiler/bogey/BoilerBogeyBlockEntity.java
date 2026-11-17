@@ -178,7 +178,8 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
         return fire == null ? 0f : fire.drivePressure();
     }
 
-    public double trainMassShare() {
+    @Override
+    public double trainMass() {
         return massShare;
     }
 

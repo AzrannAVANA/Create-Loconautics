@@ -6,9 +6,9 @@ import com.lycoris.loconautics.common.strand.StrandTemplates;
 import com.lycoris.loconautics.common.signal.SignalSpeed;
 import com.lycoris.loconautics.content.analogcontroller.TrainHorn;
 import com.lycoris.loconautics.config.LoconauticsConfig;
+import com.lycoris.loconautics.trainphysics.drive.DriveSources;
+import com.lycoris.loconautics.trainphysics.drive.TrainDriveSource;
 import com.lycoris.loconautics.content.controls.panel.PanelDriveBus;
-import com.lycoris.loconautics.content.bearingaxle.BearingAxleBlockEntity;
-import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
 import com.lycoris.loconautics.content.boiler.BoilerLevel;
 import com.lycoris.loconautics.content.boiler.BoilerPool;
@@ -1124,8 +1124,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (!(level instanceof ServerLevel)) return NO_TRAIN;
         var sub = Sable.HELPER.getContaining(this);
         if (!(sub instanceof ServerSubLevel serverSub)) return NO_TRAIN;
-        BearingAxleBlockEntity axle = BearingAxleValidity.resolve(serverSub);
-        return axle == null ? NO_TRAIN : axle.getTrainMass();
+        TrainDriveSource source = DriveSources.resolve(serverSub);
+        return source == null ? NO_TRAIN : source.trainMass();
     }
 
     @Nullable

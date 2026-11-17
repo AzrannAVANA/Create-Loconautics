@@ -238,7 +238,8 @@ public class BearingAxleBlockEntity extends KineticBlockEntity
         return lastStressApplied * Math.abs(getTheoreticalSpeed());
     }
 
-    public double getTrainMass() {
+    @Override
+    public double trainMass() {
         return totalMassKg;
     }
 
