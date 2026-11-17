@@ -515,6 +515,8 @@
   "loconautics.gui.goggles.gauge_altitude_height": "Altitude",
   "loconautics.gui.goggles.gauge_boiler_missing": "Boiler Missing",
   "loconautics.gui.goggles.gauge_burn_rate": "Burn Rate",
+  "loconautics.gui.goggles.gauge_fire": "Fire",
+  "loconautics.gui.goggles.gauge_fire_out": "Fire Out",
   "loconautics.gui.goggles.gauge_burner_fuel": "Fuel Tank",
   "loconautics.gui.goggles.gauge_burner_heat": "Heat Level",
   "loconautics.gui.goggles.gauge_burner_time": "Burns For",

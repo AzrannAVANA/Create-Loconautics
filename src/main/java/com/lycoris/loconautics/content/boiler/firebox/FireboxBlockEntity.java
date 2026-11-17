@@ -201,6 +201,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private float dispPressure;
     private float dispMaxSu;
     private float dispBogeyDemand;
+    private float dispFire;
     private int dispWaterCapacity;
     @Nullable private String dispStep;
     @Nullable private String dispOptionalStep;
@@ -540,6 +541,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     public float drivePressure() {
         return ignited ? outputFraction() : 0f;
     }
+
+    public float getDisplayFire() { return dispFire; }
 
     private boolean tickPressure(boolean fed) {
         float burst = (float) (double) LoconauticsConfig.BURST_PRESSURE.get();
@@ -989,6 +992,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dispPressure = burstPressure <= 0f ? 0f : steamPressure / burstPressure;
         dispMaxSu = maxPossibleSu();
         dispBogeyDemand = bogeyDemand();
+        dispFire = lastBurning ? masterFraction() : 0f;
         dispWaterCapacity = structure == null ? 0 : structure.waterCapacity();
 
         pushTakeoff();
@@ -1556,6 +1560,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putFloat("SteamPressure", steamPressure);
         tag.putFloat("DispMaxSu", dispMaxSu);
         tag.putFloat("DispBogeyDemand", dispBogeyDemand);
+        tag.putFloat("DispFire", dispFire);
         tag.putInt("DispWaterCapacity", dispWaterCapacity);
         tag.putFloat("DispBurnRate", lastBurnRate);
         tag.putFloat("DispStress", lastStressRatio);
@@ -1615,6 +1620,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         steamPressure = tag.getFloat("SteamPressure");
         dispMaxSu = tag.getFloat("DispMaxSu");
         dispBogeyDemand = tag.getFloat("DispBogeyDemand");
+        dispFire = tag.getFloat("DispFire");
         dispWaterCapacity = tag.getInt("DispWaterCapacity");
         lastBurnRate = tag.getFloat("DispBurnRate");
         lastStressRatio = tag.getFloat("DispStress");

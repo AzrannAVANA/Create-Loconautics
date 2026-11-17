@@ -20,6 +20,8 @@
 - Panel parts can power any Redstone block listed in a datapack.
 - Boiler Bogey for steam trains, it does not drive yet.
 - A shovel on a lit firebox door puts the fire out.
+- Panel parts control the boiler burn, 0 burns full and 15 idles.
+- Panel gauges can show how strong the boiler fire burns.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
