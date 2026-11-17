@@ -37,6 +37,7 @@
 - Smokestacks sit raised on a boiler, firebox body or Steam n Rails boiler.
 - Boiler whistles stay quiet until pressure reaches 30 percent of burst.
 - Boilers burn more fuel and lose pressure the more power is used.
+- Boilers keep steam after the fire goes out and cool down slowly.
 
 ### Ponder
 #### Instrument Panel

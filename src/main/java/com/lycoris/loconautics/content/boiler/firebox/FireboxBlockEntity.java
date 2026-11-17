@@ -156,6 +156,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private FailureCause lastFailure;
 
     private static final float POOL_DRAW_MULTIPLIER = 2.5f;
+    private static final float COAST_RISE_MULTIPLIER = 2f;
+    private static final int COOLING_STEAM_COLOR = 0xD6D6D6;
 
     private static final float BLOCKED_SMOKE_MIN_DENSITY = 0.5f;
     private static final float BLOCKED_SMOKE_SCALE = 0.35f;
@@ -333,7 +335,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         boolean watered = drawWater();
 
         tickStateMachine(burning, watered);
-        if (tickPressure(burning && watered)) return;
+        if (tickPressure(burning && watered, watered)) return;
         tickWasteGas(burning);
         if (tickFailure(watered)) return;
         updateLit(burning);
@@ -534,17 +536,14 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return rpm <= 0f ? 0f : pool().remainder() / rpm;
     }
 
-    public boolean isIgnited() {
-        return ignited;
-    }
-
+    // a fire that just went out still has steam, the output coasts down as the pressure bleeds off
     public float drivePressure() {
-        return ignited ? outputFraction() : 0f;
+        return outputFraction();
     }
 
     public float getDisplayFire() { return dispFire; }
 
-    private boolean tickPressure(boolean fed) {
+    private boolean tickPressure(boolean fed, boolean watered) {
         float burst = (float) (double) LoconauticsConfig.BURST_PRESSURE.get();
         SafetyValveBlockEntity valve = safetyValve();
         if (valve != null) valve.setVenting(steamPressure > 0f);
@@ -555,9 +554,9 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 ? (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get()
                         * structure.temperatureCap() * draftChoke() * warmthEfficiency() * masterFraction()
                         * (1f + LOW_WATER_RISE_BOOST * lowWater(waterTank.getFluidAmount(), waterTank.getCapacity()))
-                : 0f;
+                : coastRise(watered);
         float vent = (float) PRESSURE_VENT_PER_TICK * valveOpening();
-        float bleed = fed ? 0f : idleBleed();
+        float bleed = fed ? 0f : idleBleed() * (1f - temperatureFraction());
         float draw = poolDraw();
         float before = steamPressure;
         steamPressure = Math.max(0f, steamPressure + rise - vent - bleed - draw);
@@ -573,6 +572,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             return true;
         }
         return false;
+    }
+
+    // a fire that went out leaves a hot shell, it keeps the steam up to what its warmth can hold while it cools
+    private float coastRise(boolean watered) {
+        float warmth = temperatureFraction();
+        if (!watered || steamPressure >= warmth) return 0f;
+        return (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get() * COAST_RISE_MULTIPLIER * warmth;
     }
 
     // bogeys and outputs together, as a share of what the pool holds right now
@@ -1013,7 +1019,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 && level.getBlockState(top.above()).is(BoilerTags.SMOKESTACK)) {
             top = top.above();
         }
-        int power = lastBurning ? Math.max(1, Math.round(temperatureFraction() * 15f)) : 0;
+        int warm = Math.round(temperatureFraction() * 15f);
+        int power = lastBurning ? Math.max(1, warm) : steamPressure > 0f ? warm : 0;
         for (BlockPos at = base; at.getY() <= top.getY(); at = at.above()) {
             if (level.getBlockEntity(at) instanceof SmokestackBlockEntity stack) {
                 stack.setBoilerDriven(true);
@@ -1024,6 +1031,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     private int smokeColor() {
+        if (!lastBurning && warmupTicks > 0) return COOLING_STEAM_COLOR;
         return switch (boilerState) {
             case COLD -> 0x201C18;
             case WARMING, HOT -> blendSmoke(warmthEfficiency());
