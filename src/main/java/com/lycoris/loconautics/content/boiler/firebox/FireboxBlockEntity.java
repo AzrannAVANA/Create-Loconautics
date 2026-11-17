@@ -52,6 +52,8 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.Mth;
@@ -279,9 +281,60 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 lowPitch + random.nextFloat() * (highPitch - lowPitch), false);
     }
 
+    // the blaze burner's flames, kept inside the body, they show through the open door
+    // plot space positions on purpose, sable glues these to the body so they ride along with the train
+    private void spawnFlames() {
+        BlockState state = getBlockState();
+        if (!state.getValue(BlockStateProperties.LIT) || dispFire <= 0f) return;
+        boolean open = doorOpenTime > DOOR_SWING_TICKS * 0.3f;
+        float base;
+        switch (boilerState) {
+            case COLD -> base = 0.6f;
+            case WARMING -> base = 1.4f;
+            case HOT -> base = 2.6f;
+            default -> base = 0.4f;
+        }
+        RandomSource random = level.random;
+        // behind a shut door nobody sees them, so only a few
+        float expected = base * (0.3f + 0.7f * dispFire) * (open ? 1f : 0.2f);
+        int count = (int) expected + (random.nextFloat() < expected - (int) expected ? 1 : 0);
+        Direction face = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
+        Direction side = face.getClockWise();
+        Vec3 center = Vec3.atCenterOf(worldPosition);
+        if (PortalCutsClient.hiddenAtPlot(center.x, center.y, center.z)) return;
+        for (int i = 0; i < count; i++) {
+            double along = (random.nextDouble() - 0.5) * 0.7;
+            double across = (random.nextDouble() - 0.5) * 0.55;
+            double up = -0.32 + random.nextDouble() * 0.25;
+            ParticleOptions type = random.nextFloat() < 0.6f ? ParticleTypes.FLAME : ParticleTypes.SMALL_FLAME;
+            level.addParticle(type,
+                    center.x + face.getStepX() * along + side.getStepX() * across, center.y + up,
+                    center.z + face.getStepZ() * along + side.getStepZ() * across,
+                    (random.nextDouble() - 0.5) * 0.01, 0.02 + random.nextDouble() * 0.03,
+                    (random.nextDouble() - 0.5) * 0.01);
+        }
+        if (!open) return;
+        if (random.nextInt(4) == 0) {
+            // thrown out of the door in a loose fan so they do not pile up at the sill
+            double lateral = (random.nextDouble() - 0.5) * 0.3;
+            double out = 0.05 + random.nextDouble() * 0.12;
+            double spread = (random.nextDouble() - 0.5) * 0.08;
+            level.addParticle(ParticleTypes.LAVA,
+                    center.x + face.getStepX() * 0.42 + side.getStepX() * lateral, center.y - 0.25 + random.nextDouble() * 0.2,
+                    center.z + face.getStepZ() * 0.42 + side.getStepZ() * lateral,
+                    face.getStepX() * out + side.getStepX() * spread, 0.04 + random.nextDouble() * 0.1,
+                    face.getStepZ() * out + side.getStepZ() * spread);
+        }
+        if (random.nextInt(6) == 0) {
+            level.addParticle(ParticleTypes.SMOKE, center.x + (random.nextDouble() - 0.5) * 0.4, center.y + 0.2,
+                    center.z + (random.nextDouble() - 0.5) * 0.4, 0.0, 0.015, 0.0);
+        }
+    }
+
     public void clientTick() {
         if (level == null) return;
         tickCrackle();
+        spawnFlames();
 
         if (--jitterCooldown <= 0) {
             jitterCooldown = DISPLAY_TICKS;

@@ -30,6 +30,7 @@
 - The firebox crackles like a blaze burner, and the sound follows its state.
 - Schedules get a boiler fire entry that sets the burn.
 - Fumes pile up in a firebox with no smokestack and burst out when the door opens.
+- Flames burn inside the firebox and sparks fly out of the open door.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
