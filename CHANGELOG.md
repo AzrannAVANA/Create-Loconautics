@@ -24,6 +24,7 @@
 - Panel parts control the boiler burn, 0 burns full and 15 idles.
 - Panel gauges can show how strong the boiler fire burns.
 - A powered smart safety valve opens fully and blows off the pressure.
+- Analog controller autofill reads the frequencies of the Boiler Bogey.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
