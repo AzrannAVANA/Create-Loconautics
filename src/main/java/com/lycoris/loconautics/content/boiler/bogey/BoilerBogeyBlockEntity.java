@@ -25,6 +25,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import org.jetbrains.annotations.Nullable;
 
 public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements MenuProvider, LinkHolder, TrainDriveSource {
@@ -192,7 +193,15 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
 
     @Override
     public Direction frontLocal() {
-        return Direction.get(Direction.AxisDirection.POSITIVE, getBlockState().getValue(AbstractBogeyBlock.AXIS));
+        Direction.Axis axis = getBlockState().getValue(AbstractBogeyBlock.AXIS);
+        FireboxBlockEntity fire = boiler();
+        if (fire != null) {
+            // the firebox door is the rear of the engine, the body runs forward from it
+            Direction forward = level.getBlockState(fire.getBlockPos())
+                    .getValue(BlockStateProperties.HORIZONTAL_FACING).getOpposite();
+            if (forward.getAxis() == axis) return forward;
+        }
+        return Direction.get(Direction.AxisDirection.POSITIVE, axis);
     }
 
     @Override
