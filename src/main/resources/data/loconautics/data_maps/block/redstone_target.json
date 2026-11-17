@@ -1,5 +1,8 @@
 {
   "values": {
+    "#loconautics:boiler_firebox": {
+      "kind": "analog"
+    },
     "create:gearshift": {
       "kind": "binary"
     },
