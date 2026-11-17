@@ -45,7 +45,7 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
     private double slopeAngleDeg;
     private double massShare;
     private boolean opposed;
-    private long lookedUp = Long.MIN_VALUE;
+    private long lookedUp = -LOOKUP_TICKS;
     @Nullable private FireboxBlockEntity boiler;
 
     public BoilerBogeyBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
@@ -161,7 +161,7 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
         long now = level.getGameTime();
         if (boiler != null && boiler.isRemoved()) {
             boiler = null;
-            lookedUp = Long.MIN_VALUE;
+            lookedUp = -LOOKUP_TICKS;
         }
         if (now - lookedUp < LOOKUP_TICKS) return boiler;
         lookedUp = now;
