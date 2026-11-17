@@ -32,6 +32,16 @@ This mod reaches deep into Create, Sable and Create Simulated with mixins. A new
 
 Sable and Simulated are the only hard dependencies. Their jars are not in this repo: drop the Sable jar and either the Simulated jar or the Create Aeronautics bundle (which carries Simulated) in `run/mods`, then run `./gradlew runClient`. Railways, Burnt, CC: Tweaked, Create: Aeronautics, Create: Propulsion and Create: Diesel Generators are optional and only read by name, so none of them is needed to build. Gradle unpacks the bundled libraries it needs for compiling from the Sable jar by itself.
 
+## Thanks
+
+- Lyc and MDLOP, development
+- Basilforrealss, TugKanDeMan and Hatchet, art
+- ZyxBe, MaxweLi, Bwah, Popochka, GoldenPants, Čipollø and Miat, testing.
+- The Create team, for the trains this is built around.
+- RyanHCode and the Sable team, for the physics.
+- Dimforge, for Rapier.
+
+
 ## Translations
 
 English is the main language. The other languages are community work, and more help is welcome.
@@ -51,14 +61,6 @@ English is the main language. The other languages are community work, and more h
 
 Want to add a language or finish one? Copy `src/main/resources/assets/loconautics/lang/en_us.json`, name it for your language (for example `fr_fr.json`), translate the values and leave the keys as they are. Then open a pull request, or ask on Discord. A partial translation is fine, any missing text shows in English.
 
-## Thanks
-
-- Lyc and MDLOP, development
-- Basilforrealss, TugKanDeMan and Hatchet, art
-- ZyxBe, MaxweLi, Bwah, Popochka, GoldenPants, Čipollø and Miat, testing.
-- The Create team, for the trains this is built around.
-- RyanHCode and the Sable team, for the physics.
-- Dimforge, for Rapier.
 
 ## License
 
