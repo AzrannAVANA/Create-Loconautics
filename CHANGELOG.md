@@ -18,6 +18,7 @@
 - Whistle sound and steam get stronger with boiler pressure.
 - Panel parts can power any Redstone block listed in a datapack.
 - Boiler Bogey for steam trains, it does not drive yet.
+- A shovel on a lit firebox door puts the fire out.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.

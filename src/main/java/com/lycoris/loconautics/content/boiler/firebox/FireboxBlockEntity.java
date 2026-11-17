@@ -1209,6 +1209,17 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (level != null) FireboxGroups.rerender(level, worldPosition);
     }
 
+    public boolean extinguish() {
+        if (!ignited) return false;
+        ignited = false;
+        burnTimeRemaining = 0f;
+        lastBurning = false;
+        level.playSound(null, worldPosition, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.8f, 1f);
+        setChanged();
+        sendData();
+        return true;
+    }
+
     public void dropFuel() {
         if (level == null) return;
         // extractitem never hands back more than one vanilla stack, and a wide firebox holds several
