@@ -31,6 +31,10 @@
 - Smokestacks sit raised on a boiler, firebox body or Steam n Rails boiler.
 - Boiler whistles stay quiet until pressure reaches 30 percent of burst.
 
+### Ponder
+#### Instrument Panel
+- Added a scene for connecting panel parts to blocks.
+
 ## Ver 0.1.3BETA
 
 ### Bug Fixes
