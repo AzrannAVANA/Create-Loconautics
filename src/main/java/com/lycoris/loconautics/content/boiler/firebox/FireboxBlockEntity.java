@@ -200,6 +200,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private float dispWaterJitter;
     private float dispPressure;
     private float dispMaxSu;
+    private float dispBogeyDemand;
     private int dispWaterCapacity;
     @Nullable private String dispStep;
     @Nullable private String dispOptionalStep;
@@ -485,6 +486,45 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public float steamPressure() {
         return steamPressure;
+    }
+
+    // a bogey reports every solve, a report older than this belongs to a bogey that is gone
+    private static final long DEMAND_TICKS = 40L;
+    private final Map<Long, float[]> bogeyDemands = new HashMap<>();
+
+    public void reportBogeyDemand(BlockPos bogey, float su) {
+        if (level == null) return;
+        bogeyDemands.put(bogey.asLong(), new float[]{su, (float) level.getGameTime()});
+    }
+
+    public void clearBogeyDemand(BlockPos bogey) {
+        bogeyDemands.remove(bogey.asLong());
+    }
+
+    public float bogeyDemand() {
+        if (level == null) return 0f;
+        long now = level.getGameTime();
+        float total = 0f;
+        Iterator<float[]> it = bogeyDemands.values().iterator();
+        while (it.hasNext()) {
+            float[] entry = it.next();
+            if (now - (long) entry[1] > DEMAND_TICKS) {
+                it.remove();
+                continue;
+            }
+            total += entry[0];
+        }
+        return total;
+    }
+
+    public float poolMax() {
+        if (structure == null) return 0f;
+        return BoilerLevel.poolSu(structure.level(fireGrade()), (float) (double) LoconauticsConfig.SU_PER_LEVEL.get(),
+                drivePressure());
+    }
+
+    public BoilerPool pool() {
+        return new BoilerPool(poolMax(), bogeyDemand(), suOutput());
     }
 
     public boolean isIgnited() {
@@ -941,6 +981,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         float burstPressure = (float) (double) LoconauticsConfig.BURST_PRESSURE.get();
         dispPressure = burstPressure <= 0f ? 0f : steamPressure / burstPressure;
         dispMaxSu = maxPossibleSu();
+        dispBogeyDemand = bogeyDemand();
         dispWaterCapacity = structure == null ? 0 : structure.waterCapacity();
 
         pushTakeoff();
@@ -1339,7 +1380,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                     .forGoggles(tooltip, 1);
         }
 
-        BoilerPool pool = new BoilerPool(dispMaxSu, 0f, dispSu);
+        BoilerPool pool = new BoilerPool(dispMaxSu, dispBogeyDemand, dispSu);
         LoconauticsLang.translate("gui.goggles.boiler_pool").style(ChatFormatting.GRAY).forGoggles(tooltip);
         LoconauticsLang.translate("gui.goggles.boiler_pool_used", Math.round(pool.used()), Math.round(pool.max()))
                 .style(pool.usedFraction() > 0.9f ? ChatFormatting.RED : ChatFormatting.AQUA).forGoggles(tooltip, 1);
@@ -1490,6 +1531,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putFloat("DispPressure", dispPressure);
         tag.putFloat("SteamPressure", steamPressure);
         tag.putFloat("DispMaxSu", dispMaxSu);
+        tag.putFloat("DispBogeyDemand", dispBogeyDemand);
         tag.putInt("DispWaterCapacity", dispWaterCapacity);
         tag.putFloat("DispBurnRate", lastBurnRate);
         tag.putFloat("DispStress", lastStressRatio);
@@ -1548,6 +1590,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dispPressure = tag.getFloat("DispPressure");
         steamPressure = tag.getFloat("SteamPressure");
         dispMaxSu = tag.getFloat("DispMaxSu");
+        dispBogeyDemand = tag.getFloat("DispBogeyDemand");
         dispWaterCapacity = tag.getInt("DispWaterCapacity");
         lastBurnRate = tag.getFloat("DispBurnRate");
         lastStressRatio = tag.getFloat("DispStress");

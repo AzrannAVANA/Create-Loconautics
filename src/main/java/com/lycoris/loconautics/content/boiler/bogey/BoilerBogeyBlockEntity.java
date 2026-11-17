@@ -68,6 +68,8 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
     @Override
     public void setRemoved() {
         releaseLinks();
+        FireboxBlockEntity fire = boiler;
+        if (fire != null) fire.clearBogeyDemand(worldPosition);
         super.setRemoved();
     }
 
@@ -201,7 +203,9 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
 
     @Override
     public double effectiveRpm() {
-        return isPlumbed() ? rawRpm() : 0.0;
+        FireboxBlockEntity fire = boiler();
+        if (fire == null || !isPlumbed() || fire.pool().bogeysOverdrawn()) return 0.0;
+        return rawRpm();
     }
 
     @Override
@@ -250,6 +254,10 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
                                AxleGearing.Gearing gearing) {
         this.massShare = massShare;
         this.opposed = opposed;
+        FireboxBlockEntity fire = boiler();
+        if (fire != null) {
+            fire.reportBogeyDemand(worldPosition, (float) (directImpact(massShare, opposed) * Math.abs(rawRpm())));
+        }
     }
 
     @Override
