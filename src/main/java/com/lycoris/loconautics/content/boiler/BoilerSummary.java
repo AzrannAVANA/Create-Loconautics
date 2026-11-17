@@ -16,7 +16,6 @@ public final class BoilerSummary {
     private float waterPerTick;
     private float spentFuel;
     private float spentWater;
-    private boolean exhausted;
 
     public BoilerSummary() {
     }
@@ -27,14 +26,6 @@ public final class BoilerSummary {
         this.burnPerTick = burnPerTick;
         this.water = water;
         this.waterPerTick = waterPerTick;
-    }
-
-    public boolean exhausted() {
-        return exhausted;
-    }
-
-    public void markExhausted() {
-        exhausted = true;
     }
 
     public boolean hasSpent() {
@@ -72,6 +63,11 @@ public final class BoilerSummary {
         }
     }
 
+    public String describe() {
+        return "ignited=" + ignited + " fuel=" + fuel + " burn=" + burnPerTick + " water=" + water
+                + " waterPerTick=" + waterPerTick + " spentFuel=" + spentFuel + " spentWater=" + spentWater;
+    }
+
     public CompoundTag save() {
         CompoundTag tag = new CompoundTag();
         tag.putBoolean("Ignited", ignited);
@@ -81,7 +77,6 @@ public final class BoilerSummary {
         tag.putFloat("WaterPerTick", waterPerTick);
         tag.putFloat("SpentFuel", spentFuel);
         tag.putFloat("SpentWater", spentWater);
-        tag.putBoolean("Exhausted", exhausted);
         return tag;
     }
 
@@ -90,7 +85,6 @@ public final class BoilerSummary {
                 tag.getFloat("BurnPerTick"), tag.getInt("Water"), tag.getFloat("WaterPerTick"));
         summary.spentFuel = tag.getFloat("SpentFuel");
         summary.spentWater = tag.getFloat("SpentWater");
-        summary.exhausted = tag.getBoolean("Exhausted");
         return summary;
     }
 }

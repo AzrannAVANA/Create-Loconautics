@@ -7,6 +7,7 @@ import com.lycoris.loconautics.common.signal.SignalSpeed;
 import com.lycoris.loconautics.content.analogcontroller.TrainHorn;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
+import com.lycoris.loconautics.content.boiler.BoilerStopAlert;
 import com.lycoris.loconautics.content.boiler.BoilerSummary;
 import com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyBlockEntity;
 import com.lycoris.loconautics.trainphysics.SableTrain;
@@ -1153,18 +1154,28 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     // a train that is unloaded keeps what is left of the fuel and the water, the loaded boiler hands it over
+    private int summaryLogs;
+
     private void syncTrainSummary() {
         if (!(Sable.HELPER.getContaining(this) instanceof ServerSubLevel sub)) return;
-        SableTrain train = SableTrainRegistry.get(sub.getUniqueId());
+        SableTrain train = SableTrainRegistry.bySubLevel(sub.getUniqueId());
         if (train == null) return;
-        if (SubLevelBlocks.findAll(sub, BoilerBogeyBlockEntity.class).isEmpty()) {
+        boolean hasBogey = !SubLevelBlocks.findAll(sub, BoilerBogeyBlockEntity.class).isEmpty();
+        if (++summaryLogs % 10 == 0) LoconauticsConstants.LOGGER.warn("[boilerghost] sync train={} bogey={} ignited={} fuel={} water={}",
+                train.id(), hasBogey, ignited, fuelLeft(), water() == null ? -1 : water().getWaterAmount());
+        if (!hasBogey) {
             train.setBoilerSummary(null);
             return;
         }
         BoilerSummary old = train.boilerSummary();
-        if (old != null && old.hasSpent()) applySpent(old.takeSpentFuel(), old.takeSpentWater());
-        train.setBoilerSummary(new BoilerSummary(ignited, fuelLeft(), lastBurnRate,
-                water() == null ? 0 : water().getWaterAmount(), netWaterPerTick()));
+        if (old != null && old.hasSpent()) {
+            LoconauticsConstants.LOGGER.warn("[boilerghost] load back train={} {}", train.id(), old.describe());
+            applySpent(old.takeSpentFuel(), old.takeSpentWater());
+        }
+        BoilerSummary fresh = new BoilerSummary(ignited, fuelLeft(), lastBurnRate,
+                water() == null ? 0 : water().getWaterAmount(), netWaterPerTick());
+        train.setBoilerSummary(fresh);
+        BoilerStopAlert.check(train, BoilerStopAlert.rake(train), fresh, steamPressure);
     }
 
     private float fuelLeft() {
