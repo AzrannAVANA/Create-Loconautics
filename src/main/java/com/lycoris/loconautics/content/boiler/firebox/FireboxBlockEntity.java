@@ -147,6 +147,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private int dryTicks;
     private int wasteGas;
+    private boolean doorsOpenNow;
+    private int doorCheck;
     private boolean ignited;
     @Nullable
     private BlockPos whistleHeld;
@@ -162,6 +164,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private static final float BLOCKED_SMOKE_MIN_DENSITY = 0.5f;
     private static final float BLOCKED_SMOKE_SCALE = 0.35f;
+    private static final int DOOR_FUME_RELEASE = 6;
+    private static final int DOOR_CHECK_TICKS = 5;
     private static final int BLOCKED_SMOKE_COLOR = 0x2A2622;
 
     private static final float LOW_WATER_RISE_BOOST = 1.0f;
@@ -205,6 +209,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private float dispMaxSu;
     private float dispBogeyDemand;
     private float dispFire;
+    private boolean dispNoStack;
     private int dispWaterCapacity;
     @Nullable private String dispStep;
     @Nullable private String dispOptionalStep;
@@ -297,11 +302,18 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         doorOpenTime = Math.max(0f, Math.min(DOOR_SWING_TICKS, doorOpenTime + dir * DOOR_SWING_SPEED));
     }
 
+    // shut doors leak a little, open doors let the fumes out, and the first burst is what piled up inside
     private void spewSmoke() {
         BlockState state = getBlockState();
-        if (!state.getValue(BlockStateProperties.LIT) || dispWasteGas <= 0) return;
+        if (!state.getValue(BlockStateProperties.LIT) || !dispNoStack) return;
+        boolean open = doorOpenTime > DOOR_SWING_TICKS * 0.3f;
+        if (!open && dispWasteGas <= 0) return;
         float choke = Math.min(1f, dispWasteGas / (float) LoconauticsConfig.DRAFT_CHOKE_TICKS.get());
-        float density = BLOCKED_SMOKE_MIN_DENSITY + (1f - BLOCKED_SMOKE_MIN_DENSITY) * choke;
+        float density = open ? 1f : BLOCKED_SMOKE_MIN_DENSITY + (1f - BLOCKED_SMOKE_MIN_DENSITY) * choke;
+        int count = open ? 2 + Math.round(choke * 6f) : 2;
+        float scale = BLOCKED_SMOKE_SCALE * (open ? 1f + choke * 1.5f : 1f);
+        double push = open ? 0.04 + 0.08 * choke : 0.03;
+        double rise = open ? 0.01 + 0.03 * choke : 0.0;
         Direction face = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
         Vec3 mouth = Vec3.atCenterOf(worldPosition).add(face.getStepX() * 0.6, -0.1, face.getStepZ() * 0.6);
         if (PortalCutsClient.hiddenAtPlot(mouth.x, mouth.y, mouth.z)) {
@@ -310,13 +322,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         Vec3 world = Sable.HELPER.projectOutOfSubLevel(level, mouth);
         Vec3 outward = Sable.HELPER.projectOutOfSubLevel(level, mouth.add(face.getStepX(), 0.0, face.getStepZ()))
                 .subtract(world);
-        for (int i = 0; i < 2; i++) {
+        for (int i = 0; i < count; i++) {
             if (level.random.nextFloat() > density) continue;
-            ParticleWorldLock.addParticle(level, new SmokeOptions(BLOCKED_SMOKE_COLOR, SmokeStyle.LEAK, BLOCKED_SMOKE_SCALE),
+            ParticleWorldLock.addParticle(level, new SmokeOptions(BLOCKED_SMOKE_COLOR, SmokeStyle.LEAK, scale),
                     world.x + (level.random.nextDouble() - 0.5) * 0.3,
                     world.y + level.random.nextDouble() * 0.3,
                     world.z + (level.random.nextDouble() - 0.5) * 0.3,
-                    outward.x * 0.03, 0.0, outward.z * 0.03);
+                    outward.x * push, rise, outward.z * push);
         }
     }
 
@@ -1025,12 +1037,25 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return quantize2(outputSuPerRpm() * shaftRpm());
     }
 
+    // with no smokestack the fumes pile up inside, open doors let them out
     private void tickWasteGas(boolean burning) {
         if (burning && !hasStack()) {
-            wasteGas = Math.min(wasteGas + 1, LoconauticsConfig.DRAFT_CHOKE_TICKS.get());
+            if (doorsOpen()) {
+                wasteGas = Math.max(0, wasteGas - DOOR_FUME_RELEASE);
+            } else {
+                wasteGas = Math.min(wasteGas + 1, LoconauticsConfig.DRAFT_CHOKE_TICKS.get());
+            }
         } else {
             ventWasteGas();
         }
+    }
+
+    private boolean doorsOpen() {
+        if (--doorCheck <= 0) {
+            doorCheck = DOOR_CHECK_TICKS;
+            doorsOpenNow = manualDoorsOpen || stoker() != null;
+        }
+        return doorsOpenNow;
     }
 
     private void ventWasteGas() {
@@ -1059,6 +1084,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dispMaxSu = maxPossibleSu();
         dispBogeyDemand = bogeyDemand();
         dispFire = lastBurning ? masterFraction() : 0f;
+        dispNoStack = structure != null && !structure.hasStack();
         dispWaterCapacity = structure == null ? 0 : structure.waterCapacity();
 
         pushTakeoff();
@@ -1630,6 +1656,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putFloat("DispMaxSu", dispMaxSu);
         tag.putFloat("DispBogeyDemand", dispBogeyDemand);
         tag.putFloat("DispFire", dispFire);
+        tag.putBoolean("DispNoStack", dispNoStack);
         tag.putInt("DispWaterCapacity", dispWaterCapacity);
         tag.putFloat("DispBurnRate", lastBurnRate);
         tag.putFloat("DispStress", lastStressRatio);
@@ -1691,6 +1718,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dispMaxSu = tag.getFloat("DispMaxSu");
         dispBogeyDemand = tag.getFloat("DispBogeyDemand");
         dispFire = tag.getFloat("DispFire");
+        dispNoStack = tag.getBoolean("DispNoStack");
         dispWaterCapacity = tag.getInt("DispWaterCapacity");
         lastBurnRate = tag.getFloat("DispBurnRate");
         lastStressRatio = tag.getFloat("DispStress");

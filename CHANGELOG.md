@@ -29,6 +29,7 @@
 - Schedules run on trains driven by a Boiler Bogey.
 - The firebox crackles like a blaze burner, and the sound follows its state.
 - Schedules get a boiler fire entry that sets the burn.
+- Fumes pile up in a firebox with no smokestack and burst out when the door opens.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
