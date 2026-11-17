@@ -53,6 +53,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.RandomSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -250,8 +251,31 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return manualDoorsOpen;
     }
 
+    // the blaze burner's campfire crackle, quiet while it lights, loud when hot, weak when starved
+    // animateTick never runs for blocks on a train, so the block entity does it
+    private void tickCrackle() {
+        if (!getBlockState().getValue(BlockStateProperties.LIT) || dispFire <= 0f) return;
+        int rarity;
+        float loudness;
+        float lowPitch;
+        float highPitch;
+        switch (boilerState) {
+            case COLD -> { rarity = 40; loudness = 0.3f; lowPitch = 0.5f; highPitch = 0.8f; }
+            case WARMING -> { rarity = 30; loudness = 0.6f; lowPitch = 0.6f; highPitch = 1.1f; }
+            case HOT -> { rarity = 18; loudness = 0.9f; lowPitch = 0.8f; highPitch = 1.3f; }
+            default -> { rarity = 48; loudness = 0.3f; lowPitch = 0.5f; highPitch = 0.7f; }
+        }
+        RandomSource random = level.random;
+        if (random.nextInt(rarity) != 0) return;
+        Vec3 at = Sable.HELPER.projectOutOfSubLevel(level, Vec3.atCenterOf(worldPosition));
+        level.playLocalSound(at.x, at.y, at.z, SoundEvents.CAMPFIRE_CRACKLE, SoundSource.BLOCKS,
+                (loudness + random.nextFloat() * 0.5f) * (0.4f + 0.6f * dispFire),
+                lowPitch + random.nextFloat() * (highPitch - lowPitch), false);
+    }
+
     public void clientTick() {
         if (level == null) return;
+        tickCrackle();
 
         if (--jitterCooldown <= 0) {
             jitterCooldown = DISPLAY_TICKS;

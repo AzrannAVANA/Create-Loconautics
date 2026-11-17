@@ -27,6 +27,7 @@
 - Analog controller autofill reads the frequencies of the Boiler Bogey.
 - Shift right click copies frequencies between the controller and the Boiler Bogey.
 - Schedules run on trains driven by a Boiler Bogey.
+- The firebox crackles like a blaze burner, and the sound follows its state.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
