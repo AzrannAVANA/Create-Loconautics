@@ -3,6 +3,9 @@
     "#loconautics:boiler_firebox": {
       "kind": "analog"
     },
+    "loconautics:smart_safety_valve": {
+      "kind": "binary"
+    },
     "create:gearshift": {
       "kind": "binary"
     },

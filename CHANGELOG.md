@@ -22,6 +22,7 @@
 - A shovel on a lit firebox door puts the fire out.
 - Panel parts control the boiler burn, 0 burns full and 15 idles.
 - Panel gauges can show how strong the boiler fire burns.
+- A powered smart safety valve opens fully and blows off the pressure.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
@@ -39,6 +40,7 @@
 - Boilers burn more fuel and lose pressure the more power is used.
 - Boilers keep steam after the fire goes out and cool down slowly.
 - Steam takeoff speed and power are always whole even numbers.
+- The safety valve hisses in one steady sound, not chuffs.
 
 ### Ponder
 #### Instrument Panel
