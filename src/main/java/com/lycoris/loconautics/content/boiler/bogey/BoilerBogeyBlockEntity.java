@@ -206,7 +206,7 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
 
     @Override
     public double rawRpm() {
-        double rpm = Math.ceil(speedPower * AxleGearing.FULL_RPM / 15.0) * pressure();
+        double rpm = Math.round(Math.ceil(speedPower * AxleGearing.FULL_RPM / 15.0) * pressure() / 2.0) * 2.0;
         return reversed ? -rpm : rpm;
     }
 

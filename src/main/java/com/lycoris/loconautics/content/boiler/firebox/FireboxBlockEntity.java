@@ -533,7 +533,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     // create counts capacity per rpm, the outputs get what the bogeys leave of the pool
     public float outputSuPerRpm() {
         float rpm = shaftRpm();
-        return rpm <= 0f ? 0f : pool().remainder() / rpm;
+        return rpm <= 0f ? 0f : quantize2(pool().remainder()) / rpm;
     }
 
     // a fire that just went out still has steam, the output coasts down as the pressure bleeds off
@@ -812,8 +812,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return Math.max(0f, 1f - wasteGas / full);
     }
 
-    public static float quantize4(float value) {
-        return Math.round(value / 4f) * 4f;
+    public static float quantize2(float value) {
+        return Math.round(value / 2f) * 2f;
     }
 
     public float shaftRpm() {
@@ -822,7 +822,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (fraction <= 0f) return 0f;
         float min = (float) TAKEOFF_MIN_RPM;
         float max = (float) TAKEOFF_MAX_RPM;
-        return quantize4((min + (max - min) * fraction) * takeoffRegulator());
+        return quantize2((min + (max - min) * fraction) * takeoffRegulator());
     }
 
     private float takeoffRegulator() {
@@ -962,7 +962,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public float suOutput() {
         if (structure == null) return 0f;
-        return quantize4(outputSuPerRpm() * shaftRpm());
+        return quantize2(outputSuPerRpm() * shaftRpm());
     }
 
     private void tickWasteGas(boolean burning) {

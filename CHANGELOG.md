@@ -38,6 +38,7 @@
 - Boiler whistles stay quiet until pressure reaches 30 percent of burst.
 - Boilers burn more fuel and lose pressure the more power is used.
 - Boilers keep steam after the fire goes out and cool down slowly.
+- Steam takeoff speed and power are always whole even numbers.
 
 ### Ponder
 #### Instrument Panel
