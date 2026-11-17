@@ -334,6 +334,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         drainInlets();
         boolean burning = consumeFuel();
         boolean watered = drawWater();
+        refillTank();
 
         tickStateMachine(burning, watered);
         if (tickPressure(burning && watered, watered)) return;
@@ -694,6 +695,10 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private void drainInlets() {
         if (inflowCooldown > 0) inflowCooldown--;
+        refillTank();
+    }
+
+    private void refillTank() {
         if (structure == null) return;
         int room = waterTank.getSpace();
         if (room <= 0) return;

@@ -6,6 +6,7 @@
 - Boiler parts can be targeted on their whole shape, not only the center.
 - Railways boilers and smokeboxes now count as boiler bodies.
 - Boiler lighting and shovel sounds play where the train is.
+- A boiler with a steady water supply stays full, not a little short.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
