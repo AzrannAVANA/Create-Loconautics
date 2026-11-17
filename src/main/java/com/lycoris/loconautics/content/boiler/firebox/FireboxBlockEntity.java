@@ -524,7 +524,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     public BoilerPool pool() {
-        return new BoilerPool(poolMax(), bogeyDemand(), suOutput());
+        return new BoilerPool(poolMax(), bogeyDemand(), 0f);
+    }
+
+    // create counts capacity per rpm, the outputs get what the bogeys leave of the pool
+    public float outputSuPerRpm() {
+        float rpm = shaftRpm();
+        return rpm <= 0f ? 0f : pool().remainder() / rpm;
     }
 
     public boolean isIgnited() {
@@ -532,7 +538,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     public float drivePressure() {
-        return ignited ? pressureFraction() : 0f;
+        return ignited ? outputFraction() : 0f;
     }
 
     private boolean tickPressure(boolean fed) {
@@ -946,7 +952,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public float suOutput() {
         if (structure == null) return 0f;
-        return quantize4(suPerRpm() * shaftRpm());
+        return quantize4(outputSuPerRpm() * shaftRpm());
     }
 
     private void tickWasteGas(boolean burning) {
@@ -1035,7 +1041,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private void pushTakeoff() {
         if (structure == null || structure.takeoffPos() == null) return;
         if (level.getBlockEntity(structure.takeoffPos()) instanceof SteamTakeoffBlockEntity takeoff) {
-            takeoff.supply(shaftRpm(), suPerRpm());
+            takeoff.supply(shaftRpm(), outputSuPerRpm());
         }
     }
 
@@ -1380,7 +1386,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                     .forGoggles(tooltip, 1);
         }
 
-        BoilerPool pool = new BoilerPool(dispMaxSu, dispBogeyDemand, dispSu);
+        BoilerPool pool = new BoilerPool(dispMaxSu, dispBogeyDemand, dispSu * Math.min(1f, lastStressRatio));
         LoconauticsLang.translate("gui.goggles.boiler_pool").style(ChatFormatting.GRAY).forGoggles(tooltip);
         LoconauticsLang.translate("gui.goggles.boiler_pool_used", Math.round(pool.used()), Math.round(pool.max()))
                 .style(pool.usedFraction() > 0.9f ? ChatFormatting.RED : ChatFormatting.AQUA).forGoggles(tooltip, 1);

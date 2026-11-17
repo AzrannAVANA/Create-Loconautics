@@ -652,7 +652,7 @@ public final class SableTrainDriver {
                 }
             }
         }
-        return car.carriage() == null ? null : forwardUnit(car.carriage());
+        return forwardUnit(car.carriage());
     }
 
     static Vector3d forwardUnit(RailCarriage carriage) {
@@ -723,9 +723,6 @@ public final class SableTrainDriver {
         }
         Vector3d relative = handle.getLinearVelocity(new Vector3d()).sub(railVelocityUnder(sub, car));
         Vector3d tangent = railTangent(car);
-        if (tangent == null) {
-            return;
-        }
         double speed = relative.dot(tangent);
         if (Math.abs(speed) > capMps) {
             Vector3d delta = new Vector3d(tangent).mul(Math.signum(speed) * capMps - speed);

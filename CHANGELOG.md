@@ -4,6 +4,7 @@
 
 ### Bug Fixes
 - Boiler parts can be targeted on their whole shape, not only the center.
+- Railways boilers and smokeboxes now count as boiler bodies.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
