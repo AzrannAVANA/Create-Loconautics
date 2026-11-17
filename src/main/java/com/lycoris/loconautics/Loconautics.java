@@ -28,6 +28,7 @@ public final class Loconautics {
         LoconauticsRegistries.register(modEventBus);
         com.lycoris.loconautics.common.experimental.ExperimentalCondition.register(modEventBus);
         BoilerBlocks.register(modEventBus);
+        com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyStyles.init();
         com.lycoris.loconautics.content.cerisene.CeriseneBlocks.register(modEventBus);
         HoseSprayEntities.register(modEventBus);
         com.lycoris.loconautics.content.locomotiveready.LocomotiveReadyWorld.register(modEventBus);
