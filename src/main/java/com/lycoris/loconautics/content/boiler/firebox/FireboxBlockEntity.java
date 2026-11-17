@@ -50,6 +50,7 @@ import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -1139,7 +1140,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 igniter.shrink(1);
             }
         }
-        level.playSound(null, worldPosition, SoundEvents.FLINTANDSTEEL_USE, SoundSource.BLOCKS, 1f, 1f);
+        playAt(SoundEvents.FLINTANDSTEEL_USE, 1f);
         setChanged();
         sendData();
         return true;
@@ -1209,12 +1210,18 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (level != null) FireboxGroups.rerender(level, worldPosition);
     }
 
+    // a boiler on a train sits in plot space, a sound there is too far away to hear
+    private void playAt(SoundEvent sound, float volume) {
+        Vec3 at = Sable.HELPER.projectOutOfSubLevel(level, Vec3.atCenterOf(worldPosition));
+        level.playSound(null, at.x, at.y, at.z, sound, SoundSource.BLOCKS, volume, 1f);
+    }
+
     public boolean extinguish() {
         if (!ignited) return false;
         ignited = false;
         burnTimeRemaining = 0f;
         lastBurning = false;
-        level.playSound(null, worldPosition, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.8f, 1f);
+        playAt(SoundEvents.FIRE_EXTINGUISH, 0.8f);
         setChanged();
         sendData();
         return true;
