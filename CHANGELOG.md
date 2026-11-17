@@ -32,6 +32,7 @@
 - The firebox is now the Firebox Body and shows its shell as an item.
 - Smokestacks sit raised on a boiler, firebox body or Steam n Rails boiler.
 - Boiler whistles stay quiet until pressure reaches 30 percent of burst.
+- Boilers burn more fuel and lose pressure the more power is used.
 
 ### Ponder
 #### Instrument Panel

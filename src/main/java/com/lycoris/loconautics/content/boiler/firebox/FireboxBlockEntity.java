@@ -86,7 +86,6 @@ import java.util.Objects;
 import java.util.Set;
 
 public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInformation {
-    static final double BURN_MASS_DIVISOR = 20000.0;
     static final float WATER_PER_BODY_PER_TICK = 2.0f;
     static final float WATER_RECYCLE_FRACTION = 0.65f;
     static final float TEMPERATURE_JITTER_C = 10.0f;
@@ -155,7 +154,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private FailureCause lastFailure;
 
-    private static final float TAKEOFF_DRAW_MULTIPLIER = 2.5f;
+    private static final float POOL_DRAW_MULTIPLIER = 2.5f;
 
     private static final float BLOCKED_SMOKE_MIN_DENSITY = 0.5f;
     private static final float BLOCKED_SMOKE_SCALE = 0.35f;
@@ -555,7 +554,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 : 0f;
         float vent = (float) PRESSURE_VENT_PER_TICK * valveOpening();
         float bleed = fed ? 0f : idleBleed();
-        float draw = takeoffDraw();
+        float draw = poolDraw();
         float before = steamPressure;
         steamPressure = Math.max(0f, steamPressure + rise - vent - bleed - draw);
         if (steamPressure < before && level.getGameTime() % 20 == 0) {
@@ -572,11 +571,15 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return false;
     }
 
-    private float takeoffDraw() {
-        float maxRpm = (float) TAKEOFF_MAX_RPM;
-        if (maxRpm <= 0f) return 0f;
-        float load = Math.max(0f, Math.min(1f, lastStressRatio)) * Math.min(1f, shaftRpm() / maxRpm);
-        return (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get() * load * TAKEOFF_DRAW_MULTIPLIER;
+    // bogeys and outputs together, as a share of what the pool holds right now
+    private float poolUsedFraction() {
+        float outputUsed = suOutput() * Math.max(0f, Math.min(1f, lastStressRatio));
+        return new BoilerPool(poolMax(), bogeyDemand(), outputUsed).usedFraction();
+    }
+
+    private float poolDraw() {
+        return (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get() * poolUsedFraction()
+                * POOL_DRAW_MULTIPLIER;
     }
 
     private static float lowWater(int amount, int capacity) {
@@ -624,10 +627,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     private float burnRate() {
-        double mass = Math.max(0.0, lastTrainMass);
-        float stress = Math.max(0f, Math.min(1f, lastStressRatio));
-        float load = 1f + stress + (float) (mass / BURN_MASS_DIVISOR);
-        return load * structure.burnMultiplier() * masterFraction();
+        return (1f + poolUsedFraction()) * structure.burnMultiplier() * masterFraction();
     }
 
     private boolean consumeFuel() {
