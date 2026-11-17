@@ -886,7 +886,20 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             if (isFuel(fuel)) queued += (float) fuel.getBurnTime(RecipeType.SMELTING) * fuel.getCount();
         }
         float ticks = (burnTimeRemaining + queued) / lastBurnRate;
-        return Math.round(ticks / 20f);
+        int fuelSeconds = Math.round(ticks / 20f);
+        int waterSeconds = waterSecondsLeft();
+        return waterSeconds < 0 ? fuelSeconds : Math.min(fuelSeconds, waterSeconds);
+    }
+
+    // minus one when the water is no limit, a supply that keeps filling the tank never runs it dry
+    private int waterSecondsLeft() {
+        BoilerWaterSource injector = water();
+        if (injector == null || inflowCooldown > 0) return -1;
+        float steamLeaving = Math.max(outputFraction(), ventedFraction());
+        float net = structure.boilerCapacity() * (float) WATER_PER_BODY_PER_TICK * steamLeaving
+                * (1f - (float) WATER_RECYCLE_FRACTION);
+        if (net <= 0f) return -1;
+        return Math.round(injector.getWaterAmount() / net / 20f);
     }
 
     public static String formatTime(int sec) {

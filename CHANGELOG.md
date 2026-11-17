@@ -48,6 +48,7 @@
 - Steam takeoff speed and power are always whole even numbers.
 - The safety valve hisses in one steady sound, not chuffs.
 - A venting boiler burns through its water and can run dry.
+- Burns for shows the shorter of the fuel time and the water time.
 
 ### Ponder
 #### Instrument Panel
