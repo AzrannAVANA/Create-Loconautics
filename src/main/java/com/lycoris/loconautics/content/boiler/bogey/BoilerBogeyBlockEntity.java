@@ -2,10 +2,18 @@ package com.lycoris.loconautics.content.boiler.bogey;
 
 import com.lycoris.loconautics.common.LinkHolder;
 import com.lycoris.loconautics.common.RedstoneLinkPair;
+import com.lycoris.loconautics.content.boiler.BoilerLookup;
+import com.lycoris.loconautics.content.boiler.BoilerTags;
+import com.lycoris.loconautics.content.boiler.firebox.FireboxBlockEntity;
 import com.lycoris.loconautics.registry.LoconauticsRegistries;
+import com.lycoris.loconautics.trainphysics.drive.AxleGearing;
+import com.lycoris.loconautics.trainphysics.drive.AxleImpact;
+import com.lycoris.loconautics.trainphysics.drive.TrainDriveSource;
+import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlockEntity;
 import com.simibubi.create.content.trains.bogey.BogeyStyle;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -19,7 +27,7 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements MenuProvider, LinkHolder {
+public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements MenuProvider, LinkHolder, TrainDriveSource {
 
     private final RedstoneLinkPair throttleLinks = new RedstoneLinkPair(this,
             this::setSpeedPower, s -> setReversed(s > 0));
@@ -30,6 +38,15 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
     private boolean reversed;
     private boolean left;
     private boolean right;
+
+    private static final long LOOKUP_TICKS = 20L;
+
+    private long placedTime;
+    private double slopeAngleDeg;
+    private double massShare;
+    private boolean opposed;
+    private long lookedUp = Long.MIN_VALUE;
+    @Nullable private FireboxBlockEntity boiler;
 
     public BoilerBogeyBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
@@ -44,6 +61,7 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
     public void onLoad() {
         super.onLoad();
         if (level == null || level.isClientSide) return;
+        if (placedTime == 0L) placedTime = level.getGameTime();
         registerLinks();
     }
 
@@ -135,6 +153,114 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
         if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
     }
 
+    @Nullable
+    public FireboxBlockEntity boiler() {
+        if (level == null || level.isClientSide) return null;
+        long now = level.getGameTime();
+        if (boiler != null && boiler.isRemoved()) {
+            boiler = null;
+            lookedUp = Long.MIN_VALUE;
+        }
+        if (now - lookedUp < LOOKUP_TICKS) return boiler;
+        lookedUp = now;
+        BlockPos above = worldPosition.above();
+        boolean onBody = level.getBlockState(above).is(BoilerTags.BOILER_BODY)
+                || level.getBlockState(above).is(BoilerTags.BOILER_FIREBOX);
+        boiler = onBody ? BoilerLookup.controllerFor(level, above) : null;
+        return boiler;
+    }
+
+    private float pressure() {
+        FireboxBlockEntity fire = boiler();
+        return fire == null ? 0f : fire.drivePressure();
+    }
+
+    public double trainMassShare() {
+        return massShare;
+    }
+
+    public boolean isOpposed() {
+        return opposed;
+    }
+
+    @Override
+    public BlockPos driverBogeyPos() {
+        return worldPosition;
+    }
+
+    @Override
+    public Direction frontLocal() {
+        return Direction.get(Direction.AxisDirection.POSITIVE, getBlockState().getValue(AbstractBogeyBlock.AXIS));
+    }
+
+    @Override
+    public double rawRpm() {
+        double rpm = Math.ceil(speedPower * AxleGearing.FULL_RPM / 15.0) * pressure();
+        return reversed ? -rpm : rpm;
+    }
+
+    @Override
+    public double effectiveRpm() {
+        return isPlumbed() ? rawRpm() : 0.0;
+    }
+
+    @Override
+    public boolean isPlumbed() {
+        return pressure() > 0f;
+    }
+
+    @Override
+    public long getPlacedTime() {
+        return placedTime;
+    }
+
+    @Override
+    public int getSteerInput() {
+        return steerInput();
+    }
+
+    @Override
+    public int gear() {
+        return 0;
+    }
+
+    @Override
+    public double gearRatio() {
+        return 1.0;
+    }
+
+    @Override
+    public double maxGearRatio() {
+        return 1.0;
+    }
+
+    @Override
+    public AxleGearing.Load gearingLoad(double massShare, boolean opposed, boolean gearsEnabled) {
+        return new AxleGearing.Load(null, 0.0, 0.0, 0.0, directImpact(massShare, opposed), 0);
+    }
+
+    @Override
+    public double directImpact(double massShare, boolean opposed) {
+        return AxleImpact.of(massShare, slopeAngleDeg, opposed);
+    }
+
+    @Override
+    public void setConsistLoad(double massShare, boolean opposed, int group, double ownStrength,
+                               double netStrength, double slipFactor, int groupSize,
+                               AxleGearing.Gearing gearing) {
+        this.massShare = massShare;
+        this.opposed = opposed;
+    }
+
+    @Override
+    public void setSlopeAngle(double degrees) {
+        this.slopeAngleDeg = Math.max(0.0, degrees);
+    }
+
+    @Override
+    public void resetGearing() {
+    }
+
     public RedstoneLinkPair throttleLinks() {
         return throttleLinks;
     }
@@ -165,6 +291,7 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
         tag.putBoolean("Reversed", reversed);
         tag.putBoolean("Left", left);
         tag.putBoolean("Right", right);
+        tag.putLong("PlacedTime", placedTime);
         CompoundTag freq = new CompoundTag();
         freq.put("SpeedFirst", throttleLinks.getFirstFreqA().saveOptional(registries));
         freq.put("SpeedSecond", throttleLinks.getFirstFreqB().saveOptional(registries));
@@ -184,6 +311,7 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
         reversed = tag.getBoolean("Reversed");
         left = tag.getBoolean("Left");
         right = tag.getBoolean("Right");
+        placedTime = tag.getLong("PlacedTime");
         if (!tag.contains("Frequency")) return;
         CompoundTag freq = tag.getCompound("Frequency");
         throttleLinks.setFirstFrequency(

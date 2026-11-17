@@ -1,6 +1,8 @@
 package com.lycoris.loconautics.trainphysics.drive;
 
+import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
+import com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyBlockEntity;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
@@ -21,7 +23,9 @@ public final class DriveSources {
     }
 
     public static List<TrainDriveSource> valid(ServerSubLevel sub) {
-        return new ArrayList<>(BearingAxleValidity.valid(sub));
+        List<TrainDriveSource> sources = new ArrayList<>(BearingAxleValidity.valid(sub));
+        sources.addAll(SubLevelBlocks.findAll(sub, BoilerBogeyBlockEntity.class));
+        return sources;
     }
 
     @Nullable

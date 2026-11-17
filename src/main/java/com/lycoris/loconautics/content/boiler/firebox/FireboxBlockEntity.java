@@ -487,6 +487,14 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return steamPressure;
     }
 
+    public boolean isIgnited() {
+        return ignited;
+    }
+
+    public float drivePressure() {
+        return ignited ? pressureFraction() : 0f;
+    }
+
     private boolean tickPressure(boolean fed) {
         float burst = (float) (double) LoconauticsConfig.BURST_PRESSURE.get();
         SafetyValveBlockEntity valve = safetyValve();
