@@ -211,6 +211,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private float steamPressure;
     private boolean lastBurning;
     private float lastBurnRate;
+    private float lastVented;
     private float lastStressRatio;
     private double lastTrainMass = NO_TRAIN;
     private int lastWaterDrawn;
@@ -559,6 +560,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         float bleed = fed ? 0f : idleBleed() * (1f - temperatureFraction());
         float draw = poolDraw();
         float before = steamPressure;
+        lastVented = Math.min(vent, steamPressure + rise);
         steamPressure = Math.max(0f, steamPressure + rise - vent - bleed - draw);
         if (steamPressure < before && level.getGameTime() % 20 == 0) {
             LoconauticsConstants.LOGGER.info("[boilerfix] bleed pos={} fed={} before={} after={} rise={} vent={} bleed={} draw={} hasTakeoff={} hasValve={} boundValve={} valveOpening={}",
@@ -579,6 +581,12 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         float warmth = temperatureFraction();
         if (!watered || steamPressure >= warmth) return 0f;
         return (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get() * COAST_RISE_MULTIPLIER * warmth;
+    }
+
+    // steam that went out of the valve was water too, full use is the same as pressure drain of 2.5 rises
+    private float ventedFraction() {
+        float full = (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get() * POOL_DRAW_MULTIPLIER;
+        return full <= 0f ? 0f : Math.min(1f, lastVented / full);
     }
 
     // bogeys and outputs together, as a share of what the pool holds right now
@@ -731,7 +739,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
 
         float perTick = (float) WATER_PER_BODY_PER_TICK;
-        int wanted = Math.round(structure.boilerCapacity() * perTick * outputFraction());
+        float steamLeaving = Math.max(outputFraction(), ventedFraction());
+        int wanted = Math.round(structure.boilerCapacity() * perTick * steamLeaving);
         if (wanted <= 0) {
             lastWaterDrawn = 0;
             return injector.getWaterAmount() > 0;

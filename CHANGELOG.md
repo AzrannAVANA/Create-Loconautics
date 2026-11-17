@@ -41,6 +41,7 @@
 - Boilers keep steam after the fire goes out and cool down slowly.
 - Steam takeoff speed and power are always whole even numbers.
 - The safety valve hisses in one steady sound, not chuffs.
+- A venting boiler burns through its water and can run dry.
 
 ### Ponder
 #### Instrument Panel
