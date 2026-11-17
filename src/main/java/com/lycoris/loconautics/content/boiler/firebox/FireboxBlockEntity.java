@@ -213,6 +213,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private boolean lastBurning;
     private float lastBurnRate;
     private float lastVented;
+    private int scheduleSignal;
     private float lastStressRatio;
     private double lastTrainMass = NO_TRAIN;
     private int lastWaterDrawn;
@@ -655,8 +656,16 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         sendData();
     }
 
+    // a schedule can only raise the burn signal, 0 leaves it to the redstone and the panel parts
+    public void setScheduleSignal(int signal) {
+        int clamped = Mth.clamp(signal, 0, SignalSpeed.OFF_SIGNAL);
+        if (clamped == scheduleSignal) return;
+        scheduleSignal = clamped;
+        setChanged();
+    }
+
     private int masterSignal() {
-        int signal = Math.round(PanelDriveBus.report(level, worldPosition, 0f));
+        int signal = Math.max(scheduleSignal, Math.round(PanelDriveBus.report(level, worldPosition, 0f)));
         if (structure != null) {
             for (BlockPos pos : structure.fireboxPositions()) {
                 signal = Math.max(signal, level.getBestNeighborSignal(pos));
@@ -1589,6 +1598,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putFloat("BurnTimeRemaining", burnTimeRemaining);
         tag.putString("BurningGrade", burningGrade.name());
         tag.putBoolean("Ignited", ignited);
+        tag.putInt("ScheduleSignal", scheduleSignal);
         tag.putInt("DryTicks", dryTicks);
         tag.putInt("WasteGas", wasteGas);
         tag.putString("LastFailure", lastFailure == null ? "" : lastFailure.name());
@@ -1650,6 +1660,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
         dryTicks = tag.getInt("DryTicks");
         ignited = tag.contains("Ignited") ? tag.getBoolean("Ignited") : burnTimeRemaining > 0f;
+        scheduleSignal = tag.getInt("ScheduleSignal");
         wasteGas = tag.getInt("WasteGas");
         lastFailure = readFailure(tag.getString("LastFailure"));
         dispValid = tag.getBoolean("DispValid");
