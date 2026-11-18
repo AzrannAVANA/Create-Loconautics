@@ -1,6 +1,5 @@
 package com.lycoris.loconautics.content.boiler;
 
-import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 
 import java.util.List;
@@ -20,17 +19,12 @@ public final class BoilerGhost {
                 break;
             }
         }
-        boolean log = (leader.level().getGameTime() + leader.id().hashCode()) % 100 == 0;
         boolean scheduled = BoilerStopAlert.hasWorkingSchedule(group);
         if (summary == null || !scheduled) {
-            if (log) LoconauticsConstants.LOGGER.warn("[boilerghost] skip train={} summary={} scheduled={}",
-                    leader.id(), summary != null, scheduled);
             return;
         }
         summary.spendTick();
         String problem = summary.problem();
-        if (log) LoconauticsConstants.LOGGER.warn("[boilerghost] step train={} {} problem={} target={} speed={} cruise={}",
-                leader.id(), summary.describe(), problem, leader.targetSpeed(), leader.speed(), leader.ghostCruise());
         if (problem == null) return;
         leader.setTargetSpeed(0.0);
         BoilerStopAlert.check(leader, group, summary, null);

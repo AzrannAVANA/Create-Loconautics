@@ -1,6 +1,5 @@
 package com.lycoris.loconautics.content.boiler;
 
-import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.train.TrainStatusChat;
 import com.lycoris.loconautics.content.schedule.SableScheduleRuntime;
 import com.lycoris.loconautics.foundation.LoconauticsLang;
@@ -45,8 +44,6 @@ public final class BoilerStopAlert {
         if (steamPressure != null && steamPressure > 0f) return;
         if (Math.abs(train.speed()) > STOPPED_SPEED) return;
         if (!hasWorkingSchedule(group)) return;
-        if (TrainStatusChat.cannotContinueOnce(train, LoconauticsLang.translate("boiler.stopped." + problem).component())) {
-            LoconauticsConstants.LOGGER.warn("[boilerghost] STOP train={} problem={} owner={}", train.id(), problem, train.owner());
-        }
+        TrainStatusChat.cannotContinueOnce(train, LoconauticsLang.translate("boiler.stopped." + problem).component());
     }
 }

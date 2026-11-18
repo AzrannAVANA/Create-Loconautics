@@ -671,14 +671,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         float vent = (float) PRESSURE_VENT_PER_TICK * valveOpening();
         float bleed = fed ? 0f : idleBleed() * (1f - temperatureFraction());
         float draw = poolDraw() + bogeyTrim(burst);
-        float before = steamPressure;
         lastVented = Math.min(vent, steamPressure + rise);
         steamPressure = Math.max(0f, steamPressure + rise - vent - bleed - draw);
-        if (steamPressure < before && level.getGameTime() % 20 == 0) {
-            LoconauticsConstants.LOGGER.info("[boilerfix] bleed pos={} fed={} before={} after={} rise={} vent={} bleed={} draw={} hasTakeoff={} hasValve={} boundValve={} valveOpening={}",
-                    worldPosition, fed, before, steamPressure, rise, vent, bleed, draw,
-                    structure.hasTakeoff(), structure.hasSafetyValve(), hasBoundValve(), valveOpening());
-        }
 
         if (steamPressure >= (float) (double) LoconauticsConfig.BURST_PRESSURE.get()) {
             steamPressure = 0f;
@@ -1186,15 +1180,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     // a train that is unloaded keeps what is left of the fuel and the water, the loaded boiler hands it over
-    private int summaryLogs;
-
     private void syncTrainSummary() {
         if (!(Sable.HELPER.getContaining(this) instanceof ServerSubLevel sub)) return;
         SableTrain train = SableTrainRegistry.bySubLevel(sub.getUniqueId());
         if (train == null) return;
         boolean hasBogey = !SubLevelBlocks.findAll(sub, BoilerBogeyBlockEntity.class).isEmpty();
-        if (++summaryLogs % 10 == 0) LoconauticsConstants.LOGGER.warn("[boilerghost] sync train={} bogey={} ignited={} fuel={} water={}",
-                train.id(), hasBogey, ignited, fuelLeft(), water() == null ? -1 : water().getWaterAmount());
         if (!hasBogey) {
             train.setBoilerSummary(null);
             return;
@@ -1204,7 +1194,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             long away = old.ticksAway(level.getGameTime());
             float cooling = away - old.burnedTicks();
             if (old.hasSpent()) {
-                LoconauticsConstants.LOGGER.warn("[boilerghost] load back train={} {}", train.id(), old.describe());
                 applySpent(old.takeSpentFuel(), old.takeSpentWater());
             }
             if (away > AWAY_TICKS && old.fireOut()) coolWhileAway(cooling);
@@ -1221,7 +1210,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         warmupTicks = Math.max(0, warmupTicks - Math.round(ticks));
         if (warmupTicks == 0) boilerState = BoilerState.COLD;
         steamPressure = Math.min(steamPressure, temperatureFraction());
-        LoconauticsConstants.LOGGER.warn("[boilerghost] cooled away={} warmup={} pressure={}", ticks, warmupTicks, steamPressure);
         setChanged();
     }
 
