@@ -202,6 +202,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     @Nullable private String missingKey;
 
     public static final int DISPLAY_TICKS = 20;
+    private static final int AWAY_TICKS = DISPLAY_TICKS * 4;
 
     private int displayCooldown;
     private int jitterCooldown;
@@ -1185,14 +1186,29 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             return;
         }
         BoilerSummary old = train.boilerSummary();
-        if (old != null && old.hasSpent()) {
-            LoconauticsConstants.LOGGER.warn("[boilerghost] load back train={} {}", train.id(), old.describe());
-            applySpent(old.takeSpentFuel(), old.takeSpentWater());
+        if (old != null) {
+            long away = old.ticksAway(level.getGameTime());
+            float cooling = away - old.burnedTicks();
+            if (old.hasSpent()) {
+                LoconauticsConstants.LOGGER.warn("[boilerghost] load back train={} {}", train.id(), old.describe());
+                applySpent(old.takeSpentFuel(), old.takeSpentWater());
+            }
+            if (away > AWAY_TICKS && old.fireOut()) coolWhileAway(cooling);
         }
         BoilerSummary fresh = new BoilerSummary(ignited, fuelLeft(), lastBurnRate,
                 water() == null ? 0 : water().getWaterAmount(), netWaterPerTick());
+        fresh.stamp(level.getGameTime());
         train.setBoilerSummary(fresh);
         BoilerStopAlert.check(train, BoilerStopAlert.rake(train), fresh, steamPressure);
+    }
+
+    private void coolWhileAway(float ticks) {
+        if (ticks <= 0f || warmupTicks <= 0) return;
+        warmupTicks = Math.max(0, warmupTicks - Math.round(ticks));
+        if (warmupTicks == 0) boilerState = BoilerState.COLD;
+        steamPressure = Math.min(steamPressure, temperatureFraction());
+        LoconauticsConstants.LOGGER.warn("[boilerghost] cooled away={} warmup={} pressure={}", ticks, warmupTicks, steamPressure);
+        setChanged();
     }
 
     private float fuelLeft() {

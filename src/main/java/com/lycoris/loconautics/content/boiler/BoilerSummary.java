@@ -16,6 +16,7 @@ public final class BoilerSummary {
     private float waterPerTick;
     private float spentFuel;
     private float spentWater;
+    private long syncedAt = -1L;
 
     public BoilerSummary() {
     }
@@ -26,6 +27,22 @@ public final class BoilerSummary {
         this.burnPerTick = burnPerTick;
         this.water = water;
         this.waterPerTick = waterPerTick;
+    }
+
+    public void stamp(long gameTime) {
+        syncedAt = gameTime;
+    }
+
+    public long ticksAway(long gameTime) {
+        return syncedAt < 0L ? -1L : gameTime - syncedAt;
+    }
+
+    public boolean fireOut() {
+        return !ignited || fuel <= 0f;
+    }
+
+    public float burnedTicks() {
+        return burnPerTick <= 0f ? 0f : spentFuel / burnPerTick;
     }
 
     public boolean hasSpent() {
@@ -77,6 +94,7 @@ public final class BoilerSummary {
         tag.putFloat("WaterPerTick", waterPerTick);
         tag.putFloat("SpentFuel", spentFuel);
         tag.putFloat("SpentWater", spentWater);
+        tag.putLong("SyncedAt", syncedAt);
         return tag;
     }
 
@@ -85,6 +103,7 @@ public final class BoilerSummary {
                 tag.getFloat("BurnPerTick"), tag.getInt("Water"), tag.getFloat("WaterPerTick"));
         summary.spentFuel = tag.getFloat("SpentFuel");
         summary.spentWater = tag.getFloat("SpentWater");
+        summary.syncedAt = tag.contains("SyncedAt") ? tag.getLong("SyncedAt") : -1L;
         return summary;
     }
 }
