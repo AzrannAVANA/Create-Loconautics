@@ -1410,7 +1410,9 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 spill(stack);
             }
         }
+                ItemStack remainder = igniter.getCraftingRemainingItem();
         setChanged();
+                if (!remainder.isEmpty()) player.getInventory().placeItemBackInInventory(remainder);
     }
 
     private void spill(ItemStack stack) {

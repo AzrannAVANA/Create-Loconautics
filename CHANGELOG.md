@@ -36,6 +36,7 @@
 - Flames burn inside the firebox and sparks fly out of the open door.
 - Unloaded steam trains on a schedule stop when the fuel runs out, the owner gets told.
 - Datapacks can set the fuel grade of any item.
+- Lava buckets, blaze rods and blaze powder light the boiler.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
