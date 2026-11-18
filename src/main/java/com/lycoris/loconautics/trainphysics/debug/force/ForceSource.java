@@ -12,7 +12,6 @@ public enum ForceSource {
     RAIL_PIN("rail pin", 0x00A0FF),
     DERAILED_DRIVE("derailed drive", 0x80FF80),
     KNOCKBACK("knockback", 0xFF00FF),
-    DERAIL_LAUNCH("derail launch", 0xFF60C0),
     RAIL_RECOIL("rail recoil", 0xC060FF),
     COLLISION("collision", 0xFF0080),
     RAIL_REWIND("collision rewind", 0xFF9060),

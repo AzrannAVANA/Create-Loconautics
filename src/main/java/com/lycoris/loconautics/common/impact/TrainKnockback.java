@@ -73,40 +73,6 @@ public final class TrainKnockback {
                 new Vector3d(sub.logicalPose().position()), "immediate knockback");
     }
 
-    public static void launchOnDerail(SableTrain train, double lift) {
-        launchOnDerail(train, lift, null, 0.0, null, 0.0);
-    }
-
-    public static void launchOnDerail(SableTrain train, double lift, net.minecraft.world.phys.Vec3 outward, double kick,
-                                      net.minecraft.world.phys.Vec3 rollAxis, double roll) {
-        ServerSubLevelContainer container = SubLevelContainer.getContainer(train.level());
-        if (container == null || train.car() == null) {
-            return;
-        }
-        UUID id = train.car().subLevelId();
-        if (id == null || !(container.getSubLevel(id) instanceof ServerSubLevel sub) || sub.isRemoved()) {
-            return;
-        }
-        RigidBodyHandle handle = RigidBodyHandle.of(sub);
-        if (handle == null) {
-            return;
-        }
-        double speed = handle.getLinearVelocity(new Vector3d()).length();
-        if (speed < 1.0e-3) {
-            return;
-        }
-        container.physicsSystem().getPipeline().wakeUp(sub);
-        Vector3d launch = new Vector3d(0.0, speed * lift, 0.0);
-        if (outward != null) {
-            launch.add(outward.x * speed * kick, 0.0, outward.z * speed * kick);
-        }
-        Vector3d spin = rollAxis == null ? new Vector3d() : new Vector3d(rollAxis.x, rollAxis.y, rollAxis.z).mul(roll);
-        handle.addLinearAndAngularVelocity(launch, spin);
-        ForceTrace.deltaV(sub, ForceSource.DERAIL_LAUNCH, launch, new Vector3d(sub.logicalPose().position()),
-                "thrown clear of the railhead at " + String.format(java.util.Locale.ROOT, "%.2f", speed)
-                        + " b/s with lift " + lift);
-    }
-
     public static void applyKnockbackNowAtPoint(SableTrain train, Vector3d worldDeltaVelocity, Vector3d worldPoint) {
         ServerSubLevelContainer container = SubLevelContainer.getContainer(train.level());
         if (container == null) {
@@ -197,7 +163,6 @@ public final class TrainKnockback {
             if (sub == null || sub.isRemoved()) {
                 continue;
             }
-            // registered trains have their own recoil, pushing them with global knockback breaks the rail constraint
             if (SableTrainRegistry.bySubLevel(sub.getUniqueId()) != null) {
                 continue;
             }

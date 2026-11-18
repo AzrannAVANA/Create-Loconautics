@@ -1,6 +1,5 @@
 package com.lycoris.loconautics.trainphysics.drive;
 
-import com.lycoris.loconautics.common.impact.TrainKnockback;
 import com.lycoris.loconautics.common.train.TrainStatusChat;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.config.LoconauticsConfig;
@@ -24,8 +23,6 @@ import java.util.UUID;
 import static com.lycoris.loconautics.foundation.LogFormat.shortId;
 
 public final class TrainDerailment {
-    static final double MAX_END_IMPACT = 10.0;
-
     private TrainDerailment() {
     }
 
@@ -86,8 +83,6 @@ public final class TrainDerailment {
         if (ExternalForceDerail.check(train, sub)) {
             return;
         }
-        double approach = Math.max(Math.abs(train.speed()), Math.abs(train.lastRollingSpeed()));
-        train.setLastRollingSpeed(train.speed());
         if (LoconauticsConfig.DERAIL_AT_TRACK_END.get() && SableTrainDriver.DEAD_END.contains(sub.getUniqueId())) {
             boolean full = false;
             for (SableTrain.Bogey bogey : car.bogeys()) {
@@ -96,13 +91,9 @@ public final class TrainDerailment {
                 }
             }
             if (full) {
-                double impact = SableTrainDriver.trainMass(sub) * approach * 20.0;
-                if (impact > MAX_END_IMPACT) {
-                    TrainKnockback.launchOnDerail(train, DERAIL_LAUNCH_LIFT);
-                }
                 LoconauticsConstants.LOGGER.info(
-                        "[sabletrain] car {} ran every bogey off the track end, impact {} vs {}",
-                        train.id(), SableTrainDriver.f(impact), SableTrainDriver.f(MAX_END_IMPACT));
+                        "[sabletrain] car {} ran every bogey off the track end at {} b/s",
+                        train.id(), SableTrainDriver.f(train.speed() * 20.0));
                 return;
             }
             if (train.hasOffTrackBogey()) {
@@ -168,8 +159,6 @@ public final class TrainDerailment {
                 train.id(), SableTrainDriver.f(tilt), SableTrainDriver.f(limit));
         return true;
     }
-
-    static final double DERAIL_LAUNCH_LIFT = 0.35;
 
     static boolean derailBogey(SableTrain train, Car car, SableTrain.Bogey bogey, String statusKey) {
         train.setDerailReason(statusKey);

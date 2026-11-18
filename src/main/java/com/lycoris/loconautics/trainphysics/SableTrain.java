@@ -47,7 +47,6 @@ public final class SableTrain {
     private UUID owner;
     private com.lycoris.loconautics.content.boiler.BoilerSummary boilerSummary;
     private double speed;
-    private double lastRollingSpeed;
     private double targetSpeed;
     private double accel = 0.01;
     private double measuredAccel;
@@ -224,14 +223,6 @@ public final class SableTrain {
 
     public void setSpeed(double speed) {
         this.speed = speed;
-    }
-
-    public double lastRollingSpeed() {
-        return lastRollingSpeed;
-    }
-
-    public void setLastRollingSpeed(double lastRollingSpeed) {
-        this.lastRollingSpeed = lastRollingSpeed;
     }
 
     public void setTargetSpeed(double targetSpeed) {

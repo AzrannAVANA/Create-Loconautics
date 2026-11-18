@@ -138,7 +138,9 @@ public final class SableTrainDriver {
             }
             Car group = DockGroups.composite(sub, train, car);
             if (useForceGlue(train, group)) {
-                RailSnap.snapToRail(pipeline, sub, group, train, timeStep);
+                if (!endPending(sub.getUniqueId())) {
+                    RailSnap.snapToRail(pipeline, sub, group, train, timeStep);
+                }
             } else {
                 pinCar(pipeline, sub, group, true, train);
             }
@@ -216,6 +218,11 @@ public final class SableTrainDriver {
     // a body that just came back is welded nowhere and squared to nothing, the constraint only nudges so it gets teleported instead
     public static boolean useForceGlue(SableTrain train, Car car) {
         return !train.isPoseSettling() && useForceGlue(car);
+    }
+
+    public static boolean endPending(UUID bodyId) {
+        return LoconauticsConfig.DERAIL_AT_TRACK_END.get()
+                && (DEAD_END.contains(bodyId) || DEAD_END_MISS.containsKey(bodyId));
     }
 
     static void updateDeadEnd(ServerSubLevel bodySub, Car car, SableTrain train) {
@@ -475,13 +482,16 @@ public final class SableTrainDriver {
         }
 
         // braking cuts the axle, which reads as unpowered, so a commanded brake has to open this gate too
-        if (train.isPowered() || train.servoBrake()) {
+        boolean runningOff = train.derailedAtTrackEnd();
+        if (!runningOff && (train.isPowered() || train.servoBrake())) {
             applyTangentialDrive(pipeline, bodySub, pivotTrackSub, railPoint, tangent, dt, train);
         }
         TrainBrakes.applyResistance(bodySub, pivotTrackSub, railPoint, tangent, dt,
                 train.isBraked() ? train.brakeScale() : TrainBrakes.rollingScale(train, bodySub),
                 train.isBraked() ? ForceSource.BRAKE : ForceSource.ROLLING);
-        TrainBrakes.relieveSlopeGravity(bodySub, railPoint, tangent, dt);
+        if (!runningOff) {
+            TrainBrakes.relieveSlopeGravity(bodySub, railPoint, tangent, dt);
+        }
 
         readBackSpeed(train, bodySub, pivotTrackSub, railPoint, tangent, dt);
     }
@@ -891,12 +901,6 @@ public final class SableTrainDriver {
                 ForceTrace.tickEnd(train.level());
             }
         }
-    }
-
-    static double trainMass(ServerSubLevel sub) {
-        MassData md = sub.getMassTracker();
-        double m = (md != null && !md.isInvalid()) ? md.getMass() : 0.0;
-        return m > 0.0 ? m : TrainPropulsion.liveMass(sub);
     }
 
     static String f(double d) {
