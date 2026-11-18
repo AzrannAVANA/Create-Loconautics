@@ -15,6 +15,7 @@
 - Pipes show moving fluid when a hose carries it.
 - Raised smokestacks no longer turn black next to full blocks.
 - Boiler bodies keep one even color next to other blocks.
+- Boiler parts on a train can be targeted on their whole shape.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
