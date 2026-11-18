@@ -179,6 +179,11 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
     }
 
     @Override
+    public double powerFraction() {
+        return pressure();
+    }
+
+    @Override
     public double trainMass() {
         return massShare;
     }
