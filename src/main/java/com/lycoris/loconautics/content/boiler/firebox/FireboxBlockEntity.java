@@ -4,7 +4,6 @@ package com.lycoris.loconautics.content.boiler.firebox;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.strand.StrandTemplates;
 import com.lycoris.loconautics.common.signal.SignalSpeed;
-import com.lycoris.loconautics.content.analogcontroller.TrainHorn;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import com.lycoris.loconautics.content.boiler.BoilerStopAlert;
@@ -21,6 +20,7 @@ import com.lycoris.loconautics.content.boiler.BoilerPool;
 import com.lycoris.loconautics.content.boiler.FuelGrade;
 import com.lycoris.loconautics.content.boiler.FuelGrades;
 import com.lycoris.loconautics.content.boiler.BoilerMultiblockValidator;
+import com.lycoris.loconautics.common.advancement.TrainAdvancements;
 import com.lycoris.loconautics.content.boiler.BoilerState;
 import com.lycoris.loconautics.content.boiler.BoilerStructure;
 import com.lycoris.loconautics.content.boiler.BoilerTags;
@@ -39,7 +39,6 @@ import com.lycoris.loconautics.foundation.smoke.SmokeStyle;
 import com.lycoris.loconautics.trainphysics.fx.ParticleWorldLock;
 import com.lycoris.loconautics.trainphysics.portal.PortalCutsClient;
 import com.simibubi.create.api.equipment.goggles.IHaveGoggleInformation;
-import com.simibubi.create.content.decoration.steamWhistle.WhistleBlock;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import dev.ryanhcode.sable.sublevel.SubLevel;
@@ -67,6 +66,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Containers;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
@@ -112,6 +112,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public static final int RESCAN_TICKS = 20;
 
+    private static final int DEFAULT_BURN_TICKS = 1600;
+
     public static final double NO_TRAIN = -1.0;
 
     private final ItemStackHandler inventory = new ItemStackHandler(FUEL_SLOTS) {
@@ -140,9 +142,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private final Map<BlockPos, Integer> trackedBarrels = new HashMap<>();
 
-    private static final int WHISTLE_RESEND_TICKS = 5;
-    private static final double WHISTLE_REACH = 1.6;
-    private static final double WHISTLE_HEIGHT = 2.2;
     private static final float WHISTLE_MIN_PRESSURE = 0.3f;
 
     private static final double BOILING_C = 100.0;
@@ -161,10 +160,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private int doorCheck;
     private boolean ignited;
     @Nullable
-    private BlockPos whistleHeld;
-    private int whistleCooldown;
-    private final Set<BlockPos> poweredWhistles = new HashSet<>();
-    private int poweredWhistleCooldown;
+    private final BoilerWhistles whistles = new BoilerWhistles();
 
     private FailureCause lastFailure;
 
@@ -276,8 +272,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return manualDoorsOpen;
     }
 
-    // the blaze burner's campfire crackle, quiet while it lights, loud when hot, weak when starved
-    // animateTick never runs for blocks on a train, so the block entity does it
     private void tickCrackle() {
         if (!getBlockState().getValue(BlockStateProperties.LIT) || dispFire <= 0f) return;
         int rarity;
@@ -298,7 +292,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 lowPitch + random.nextFloat() * (highPitch - lowPitch), false);
     }
 
-    // the blaze burner's flames, kept inside the body, they show through the open door
     // plot space positions on purpose, sable glues these to the body so they ride along with the train
     private void spawnFlames() {
         BlockState state = getBlockState();
@@ -428,8 +421,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
 
         readSubLevelSpeed();
-        tickWhistle();
-        tickPoweredWhistles();
+        tickWhistles();
 
         if (structure == null) {
             forceCold();
@@ -451,74 +443,10 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tickDisplay();
     }
 
-    // someone sneaking on a working boiler blows the nearest whistle of its train
-    private void tickWhistle() {
+    private void tickWhistles() {
         if (!(level instanceof ServerLevel server)) return;
-        ServerPlayer rider = canWhistle() ? sneakingRider(server) : null;
-        if (rider == null) {
-            if (whistleHeld != null) {
-                TrainHorn.blow(server, whistleHeld, false);
-                whistleHeld = null;
-            }
-            return;
-        }
-        if (whistleHeld == null) whistleHeld = TrainHorn.nearestWhistle(server, worldPosition);
-        if (whistleHeld == null) return;
-        if (--whistleCooldown > 0) return;
-        whistleCooldown = WHISTLE_RESEND_TICKS;
-        TrainHorn.sound(rider, whistleHeld, true, whistleStrength());
-    }
-
-    // a redstone powered whistle on a boiler with pressure blows, create only knows its own tanks
-    private void tickPoweredWhistles() {
-        if (!(level instanceof ServerLevel server)) return;
-        if (--poweredWhistleCooldown > 0) return;
-        poweredWhistleCooldown = WHISTLE_RESEND_TICKS;
-        Set<BlockPos> sounding = canWhistle() ? poweredWhistlesOnBoiler() : Set.of();
-        float strength = whistleStrength();
-        for (BlockPos pos : sounding) TrainHorn.blow(server, pos, true, strength);
-        for (BlockPos pos : poweredWhistles) {
-            if (!sounding.contains(pos)) TrainHorn.blow(server, pos, false);
-        }
-        poweredWhistles.clear();
-        poweredWhistles.addAll(sounding);
-    }
-
-    private Set<BlockPos> poweredWhistlesOnBoiler() {
-        Set<BlockPos> found = new HashSet<>();
-        if (structure == null) return found;
-        List<BlockPos> hosts = new ArrayList<>(structure.boilerPositions());
-        hosts.addAll(structure.fireboxPositions());
-        for (BlockPos host : hosts) {
-            for (Direction dir : Direction.values()) {
-                BlockPos pos = host.relative(dir);
-                BlockState state = level.getBlockState(pos);
-                if (!(state.getBlock() instanceof WhistleBlock) || !state.getValue(WhistleBlock.POWERED)) continue;
-                if (WhistleBlock.getAttachedDirection(state) == dir.getOpposite()) found.add(pos);
-            }
-        }
-        return found;
-    }
-
-    @Nullable
-    private ServerPlayer sneakingRider(ServerLevel server) {
-        if (structure == null) return null;
-        List<BlockPos> blocks = new ArrayList<>(structure.boilerPositions());
-        blocks.addAll(structure.fireboxPositions());
-        for (ServerPlayer player : server.players()) {
-            if (!player.isShiftKeyDown() || player.isSpectator()) continue;
-            Vec3 feet = player.position();
-            for (BlockPos pos : blocks) {
-                Vec3 top = Sable.HELPER.projectOutOfSubLevel(level, Vec3.atCenterOf(pos));
-                double dx = feet.x - top.x;
-                double dz = feet.z - top.z;
-                double above = feet.y - top.y;
-                if (dx * dx + dz * dz <= WHISTLE_REACH * WHISTLE_REACH && above >= 0.0 && above <= WHISTLE_HEIGHT) {
-                    return player;
-                }
-            }
-        }
-        return null;
+        boolean can = canWhistle();
+        whistles.tick(server, worldPosition, structure, can, can ? whistleStrength() : 0f);
     }
 
     private void rescan() {
@@ -603,11 +531,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     // a bogey reports every solve, a report older than this belongs to a bogey that is gone
     private static final long DEMAND_TICKS = 40L;
-    private final Map<Long, float[]> bogeyDemands = new HashMap<>();
+    private record Demand(float su, long tick) {}
+
+    private final Map<Long, Demand> bogeyDemands = new HashMap<>();
 
     public void reportBogeyDemand(BlockPos bogey, float su) {
         if (level == null) return;
-        bogeyDemands.put(bogey.asLong(), new float[]{su, (float) level.getGameTime()});
+        bogeyDemands.put(bogey.asLong(), new Demand(su, level.getGameTime()));
     }
 
     public void clearBogeyDemand(BlockPos bogey) {
@@ -618,14 +548,14 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (level == null) return 0f;
         long now = level.getGameTime();
         float total = 0f;
-        Iterator<float[]> it = bogeyDemands.values().iterator();
+        Iterator<Demand> it = bogeyDemands.values().iterator();
         while (it.hasNext()) {
-            float[] entry = it.next();
-            if (now - (long) entry[1] > DEMAND_TICKS) {
+            Demand entry = it.next();
+            if (now - entry.tick() > DEMAND_TICKS) {
                 it.remove();
                 continue;
             }
-            total += entry[0];
+            total += entry.su();
         }
         return total;
     }
@@ -677,6 +607,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (steamPressure >= (float) (double) LoconauticsConfig.BURST_PRESSURE.get()) {
             steamPressure = 0f;
             fail(worldPosition, FailureCause.OVERPRESSURE);
+            if (level instanceof ServerLevel server) TrainAdvancements.boilerBurst(server, worldPosition);
             return true;
         }
         return false;
@@ -775,35 +706,46 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             return false;
         }
         lastBurnRate = burnRate();
-        lastBurning = true;
-
-        if (burnTimeRemaining > 0f) {
-            burnTimeRemaining = Math.max(0f, burnTimeRemaining - lastBurnRate);
-            setChanged();
-            return true;
-        }
-
-        int slot = firstFuelSlot();
-        if (slot < 0) {
-            lastBurning = false;
-            ignited = false;
-            setChanged();
-            return false;
-        }
-
-        int burnTime = inventory.getStackInSlot(slot).getBurnTime(RecipeType.SMELTING);
-        if (burnTime <= 0) burnTime = 1600;
-        burnTimeRemaining = burnTime - lastBurnRate;
-        burningGrade = FuelGrades.of(inventory.getStackInSlot(slot));
-        inventory.extractItem(slot, 1, false);
+        lastBurning = burnFuel(lastBurnRate);
         setChanged();
-        return true;
+        return lastBurning;
+    }
+
+    private boolean burnFuel(float amount) {
+        boolean burned = false;
+        while (amount > 0f) {
+            if (burnTimeRemaining > 0f) {
+                float used = Math.min(amount, burnTimeRemaining);
+                burnTimeRemaining -= used;
+                amount -= used;
+                burned = true;
+                continue;
+            }
+            int slot = firstFuelSlot();
+            if (slot < 0) {
+                ignited = false;
+                break;
+            }
+            burnTimeRemaining = takeFuel(slot);
+        }
+        if (burnTimeRemaining <= 0f && firstFuelSlot() < 0) ignited = false;
+        return burned;
+    }
+
+    private int takeFuel(int slot) {
+        ItemStack stack = inventory.getStackInSlot(slot);
+        int burnTime = stack.getBurnTime(RecipeType.SMELTING);
+        burningGrade = FuelGrades.of(stack);
+        ItemStack remainder = stack.getCraftingRemainingItem();
+        inventory.extractItem(slot, 1, false);
+        spill(remainder);
+        return burnTime <= 0 ? DEFAULT_BURN_TICKS : burnTime;
     }
 
     @Nullable
     private BoilerWaterSource socket() {
         if (structure == null || structure.injectorPos() == null) return null;
-        net.minecraft.world.level.block.entity.BlockEntity be = level.getBlockEntity(structure.injectorPos());
+        BlockEntity be = level.getBlockEntity(structure.injectorPos());
         if (be instanceof BoilerWaterSource socket) return socket;
         return be == null ? null : HullsteelSocketBridge.waterSource(be);
     }
@@ -1170,7 +1112,6 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dispFireLevels = structure == null ? 0 : structure.fireLevels(fireGrade());
         dispLevel = structure == null ? 0 : structure.level(fireGrade());
         dispMaxLevel = LoconauticsConfig.BOILER_MAX_LEVEL.get();
-        bogeyDemand();
         dispBogeys = !bogeyDemands.isEmpty();
 
         pushTakeoff();
@@ -1231,24 +1172,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     // the same burn and water the loaded tick would have used, taken in one go when the car loads back in
     private void applySpent(float burn, int waterUsed) {
-        while (burn > 0f) {
-            if (burnTimeRemaining > 0f) {
-                float used = Math.min(burn, burnTimeRemaining);
-                burnTimeRemaining -= used;
-                burn -= used;
-                continue;
-            }
-            int slot = firstFuelSlot();
-            if (slot < 0) {
-                ignited = false;
-                break;
-            }
-            int burnTime = inventory.getStackInSlot(slot).getBurnTime(RecipeType.SMELTING);
-            burningGrade = FuelGrades.of(inventory.getStackInSlot(slot));
-            burnTimeRemaining = burnTime <= 0 ? 1600 : burnTime;
-            inventory.extractItem(slot, 1, false);
-        }
-        if (burnTimeRemaining <= 0f && firstFuelSlot() < 0) ignited = false;
+        burnFuel(burn);
         BoilerWaterSource injector = water();
         if (injector != null && waterUsed > 0) injector.drawWater(waterUsed);
         setChanged();
@@ -1388,13 +1312,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         sendData();
     }
 
-    public boolean ignite(Player player, ItemStack igniter) {
+    public boolean ignite(Player player, ItemStack igniter, InteractionHand hand) {
         if (structure == null || ignited) return false;
         if (burnTimeRemaining <= 0f && firstFuelSlot() < 0) return false;
         ignited = true;
         if (!player.isCreative()) {
             if (igniter.isDamageableItem()) {
-                igniter.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
+                igniter.hurtAndBreak(1, player, LivingEntity.getSlotForHand(hand));
             } else {
                 ItemStack remainder = igniter.getCraftingRemainingItem();
                 igniter.shrink(1);
@@ -1584,6 +1508,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         burnTimeRemaining = other.burnTimeRemaining;
         burningGrade = other.burningGrade;
         ignited = other.ignited;
+        scheduleSignal = other.scheduleSignal;
+        wasteGas = other.wasteGas;
         dryTicks = other.dryTicks;
         lastFailure = other.lastFailure;
         steamPressure = other.steamPressure;
@@ -1603,6 +1529,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         burnTimeRemaining = 0f;
         burningGrade = FuelGrade.NORMAL;
         ignited = false;
+        scheduleSignal = 0;
+        wasteGas = 0;
         dryTicks = 0;
         lastFailure = null;
         steamPressure = 0f;
@@ -1620,6 +1548,16 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         trackedBarrels.putAll(moved);
         rescanCooldown = 0;
         setChanged();
+    }
+
+    @Override
+    public void setRemoved() {
+        if (level instanceof ServerLevel server) {
+            whistles.stopAll(server);
+            PanelDriveBus.release(server, worldPosition);
+        }
+        whistles.forget();
+        super.setRemoved();
     }
 
     public void onBecameController() {

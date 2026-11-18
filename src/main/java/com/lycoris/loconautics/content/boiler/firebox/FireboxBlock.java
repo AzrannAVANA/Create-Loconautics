@@ -261,7 +261,7 @@ public class FireboxBlock extends BaseEntityBlock
         }
         if (Igniters.is(stack)) {
             if (level.isClientSide) return ItemInteractionResult.SUCCESS;
-            return controller.ignite(player, stack)
+            return controller.ignite(player, stack, hand)
                     ? ItemInteractionResult.SUCCESS
                     : ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }

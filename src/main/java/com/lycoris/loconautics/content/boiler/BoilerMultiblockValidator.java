@@ -2,12 +2,15 @@ package com.lycoris.loconautics.content.boiler;
 
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.boiler.barrel.BarrelPipeConnector;
+import com.lycoris.loconautics.content.boiler.firebox.FireboxGroups;
 import com.lycoris.loconautics.content.boiler.safetyvalve.SafetyValveBlock;
 import com.lycoris.loconautics.content.boiler.steamtakeoff.SteamTakeoffBlock;
+import com.lycoris.loconautics.content.hose.link.HoseConnectorBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -22,14 +25,12 @@ public final class BoilerMultiblockValidator {
 
     private BoilerMultiblockValidator() {}
 
-    public record Scan(@org.jetbrains.annotations.Nullable BoilerStructure structure,
-                       @org.jetbrains.annotations.Nullable String missingKey) {}
+    public record Scan(@Nullable BoilerStructure structure, @Nullable String missingKey) {}
 
     public static Scan scan(Level level, BlockPos controllerPos) {
         if (level == null || level.isClientSide) return new Scan(null, null);
 
-        Set<BlockPos> fireboxes = com.lycoris.loconautics.content.boiler.firebox.FireboxGroups
-                .members(level, controllerPos);
+        Set<BlockPos> fireboxes = FireboxGroups.members(level, controllerPos);
 
         float fireboxHeat = 0f;
         for (BlockPos pos : fireboxes) {
@@ -154,9 +155,8 @@ public final class BoilerMultiblockValidator {
             if (length == null) continue;
             for (Direction face : Direction.values()) {
                 BlockState beside = level.getBlockState(body.relative(face));
-                if (beside.getBlock() instanceof com.lycoris.loconautics.content.hose.link.HoseConnectorBlock
-                        && beside.getValue(com.lycoris.loconautics.content.hose.link.HoseConnectorBlock.FACING)
-                        == face.getOpposite()) {
+                if (beside.getBlock() instanceof HoseConnectorBlock
+                        && beside.getValue(HoseConnectorBlock.FACING) == face.getOpposite()) {
                     found.add(body.relative(face));
                     continue;
                 }

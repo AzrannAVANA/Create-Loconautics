@@ -15,6 +15,8 @@
 - Pipes show moving fluid when a hose carries it.
 - Raised smokestacks no longer turn black next to full blocks.
 - Boiler bodies keep one even color next to other blocks.
+- Lava buckets burned in a firebox leave their empty bucket.
+- Boiler whistles stop blowing when their boiler is broken.
 - Boiler parts on a train can be targeted on their whole shape.
 
 ### Added
@@ -49,6 +51,7 @@
 - The Boiler Bogey crafts from a Redstone Link, Boiler Tubes and Industrial Iron.
 - A driving Boiler Bogey eases pressure down to 70 percent, keeping the valve shut.
 - Railways smokeboxes hold water in a boiler, untested.
+- A boiler that overpressures gives the Too Much Pressure advancement.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
