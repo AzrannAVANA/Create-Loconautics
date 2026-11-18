@@ -10,6 +10,7 @@
 - Scheduled steam trains no longer report no steam right after loading.
 - Slow starts no longer play the wheel grinding sound.
 - Safety valves stop blowing when their boiler is broken or gone.
+- Steam Takeoff no longer darkens the blocks around it, untested.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
