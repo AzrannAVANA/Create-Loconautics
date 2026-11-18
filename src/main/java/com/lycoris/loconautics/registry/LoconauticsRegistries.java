@@ -543,7 +543,6 @@ public final class LoconauticsRegistries {
 
                         output.accept(BEARING_AXLE_ITEM.get());
                         output.accept(TRANSMISSION_ITEM.get());
-                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.BOILER_BOGEY_ITEM.get());
 
                         com.lycoris.loconautics.content.dashboard.DashboardBlocks.DASHBOARD_ITEMS
                                 .forEach((color, item) -> output.accept(new net.minecraft.world.item.ItemStack(item.get()),
@@ -618,6 +617,7 @@ public final class LoconauticsRegistries {
                         output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.STEAM_TAKEOFF_ITEM.get());
                         output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.SMART_SAFETY_VALVE_ITEM.get());
                         output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.FIREBOX_STOCKER_ITEM.get());
+                        output.accept(com.lycoris.loconautics.content.boiler.BoilerBlocks.BOILER_BOGEY_ITEM.get());
                         output.accept(BOILER_TUBES.get());
                         output.accept(VALVE_GEAR.get());
                         com.lycoris.loconautics.content.combustion.SmallEngineBlocks.ENGINE_ITEMS
