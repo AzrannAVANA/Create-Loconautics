@@ -770,7 +770,7 @@ public final class PortalTwins {
                     if (twinLevel.getBlockState(to) == want) {
                         continue;
                     }
-                    twinLevel.setBlock(to, want, TWIN_FLAGS);
+                    setWithoutDrops(twinLevel, to, want);
                     BlockEntity source = masterLevel.getBlockEntity(from);
                     BlockEntity copy = twinLevel.getBlockEntity(to);
                     if (source != null && copy != null) {
@@ -893,6 +893,13 @@ public final class PortalTwins {
         container.removeSubLevel(sub, SubLevelRemovalReason.REMOVED);
     }
 
+    private static void setWithoutDrops(ServerLevel level, BlockPos pos, BlockState state) {
+        if (level.getBlockState(pos).hasBlockEntity()) {
+            level.removeBlockEntity(pos);
+        }
+        level.setBlock(pos, state, TWIN_FLAGS);
+    }
+
     // setblock, never destroyblock, which fires the break particles and cracks for every block even with drops off
     private static void clearBox(ServerLevel level, BoundingBox3ic bounds) {
         if (bounds == null || bounds.volume() <= 0) {
@@ -901,7 +908,7 @@ public final class PortalTwins {
         for (int x = bounds.minX(); x <= bounds.maxX(); x++) {
             for (int y = bounds.minY(); y <= bounds.maxY(); y++) {
                 for (int z = bounds.minZ(); z <= bounds.maxZ(); z++) {
-                    level.setBlock(new BlockPos(x, y, z), Blocks.AIR.defaultBlockState(), TWIN_FLAGS);
+                    setWithoutDrops(level, new BlockPos(x, y, z), Blocks.AIR.defaultBlockState());
                 }
             }
         }

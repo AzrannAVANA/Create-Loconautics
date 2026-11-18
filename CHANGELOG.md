@@ -18,6 +18,7 @@
 - Lava buckets burned in a firebox leave their empty bucket.
 - Boiler whistles stop blowing when their boiler is broken.
 - Boiler parts on a train can be targeted on their whole shape.
+- Copycat items no longer drop on the ground when a train crosses a portal.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
