@@ -13,6 +13,7 @@
 - Steam Takeoff no longer darkens the blocks around it, untested.
 - Pumps now pull water through a hose from an open pipe end.
 - Pipes show moving fluid when a hose carries it.
+- Raised smokestacks no longer turn black next to full blocks.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
