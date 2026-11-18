@@ -193,6 +193,35 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
         return massShare;
     }
 
+    public int wheelPairs() {
+        return BoilerBogeyWheels.read(getBogeyData());
+    }
+
+    public void flipPistons() {
+        CompoundTag data = getBogeyData();
+        data.putBoolean(BoilerBogeyWheels.PISTONS_REAR_KEY, !data.getBoolean(BoilerBogeyWheels.PISTONS_REAR_KEY));
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+    }
+
+    public boolean addWheelPair() {
+        int pairs = wheelPairs();
+        if (pairs >= BoilerBogeyWheels.MAX_PAIRS) return false;
+        getBogeyData().putInt(BoilerBogeyWheels.KEY, pairs + 1);
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        return true;
+    }
+
+    public boolean removeWheelPair() {
+        int pairs = wheelPairs();
+        if (pairs <= BoilerBogeyWheels.MIN_PAIRS) return false;
+        getBogeyData().putInt(BoilerBogeyWheels.KEY, pairs - 1);
+        setChanged();
+        if (level != null) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3);
+        return true;
+    }
+
     public boolean isOpposed() {
         return opposed;
     }
