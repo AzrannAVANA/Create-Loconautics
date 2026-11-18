@@ -30,7 +30,7 @@
 - Whistles on a boiler blow with redstone once it has pressure.
 - Whistle sound and steam get stronger with boiler pressure.
 - Panel parts can power any Redstone block listed in a datapack.
-- Boiler Bogey for steam trains, it does not drive yet.
+- Boiler Bogey drives steam trains from the analog controller.
 - A shovel on a lit firebox door puts the fire out.
 - Panel parts control the boiler burn, 0 burns full and 15 idles.
 - Panel gauges can show how strong the boiler fire burns.
