@@ -1378,7 +1378,9 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             if (igniter.isDamageableItem()) {
                 igniter.hurtAndBreak(1, player, LivingEntity.getSlotForHand(player.getUsedItemHand()));
             } else {
+                ItemStack remainder = igniter.getCraftingRemainingItem();
                 igniter.shrink(1);
+                if (!remainder.isEmpty()) player.getInventory().placeItemBackInInventory(remainder);
             }
         }
         playAt(SoundEvents.FLINTANDSTEEL_USE, 1f);
@@ -1411,9 +1413,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 spill(stack);
             }
         }
-                ItemStack remainder = igniter.getCraftingRemainingItem();
         setChanged();
-                if (!remainder.isEmpty()) player.getInventory().placeItemBackInInventory(remainder);
     }
 
     private void spill(ItemStack stack) {
