@@ -56,6 +56,7 @@
 - A venting boiler burns through its water and can run dry.
 - Burns for shows the shorter of the fuel time and the water time.
 - Boiler bogeys pull less when the steam pressure is low.
+- Boiler goggles show level bars like Create, on any boiler body.
 
 ### Ponder
 #### Instrument Panel

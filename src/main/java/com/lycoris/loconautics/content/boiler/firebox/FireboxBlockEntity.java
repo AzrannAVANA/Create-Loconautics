@@ -50,7 +50,9 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import com.lycoris.loconautics.content.boiler.BoilerGoggleBars;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
@@ -219,6 +221,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private float dispFire;
     private boolean dispNoStack;
     private int dispWaterCapacity;
+    private int dispSizeLevels;
+    private int dispFireLevels;
+    private int dispLevel;
+    private int dispMaxLevel = 12;
+    private boolean dispBogeys;
     @Nullable private String dispStep;
     @Nullable private String dispOptionalStep;
 
@@ -1149,6 +1156,12 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dispFire = lastBurning ? masterFraction() : 0f;
         dispNoStack = structure != null && !structure.hasStack();
         dispWaterCapacity = structure == null ? 0 : structure.waterCapacity();
+        dispSizeLevels = structure == null ? 0 : structure.sizeLevels();
+        dispFireLevels = structure == null ? 0 : structure.fireLevels(fireGrade());
+        dispLevel = structure == null ? 0 : structure.level(fireGrade());
+        dispMaxLevel = LoconauticsConfig.BOILER_MAX_LEVEL.get();
+        bogeyDemand();
+        dispBogeys = !bogeyDemands.isEmpty();
 
         pushTakeoff();
         pushSmokestack();
@@ -1610,39 +1623,52 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 return owner.addToGoggleTooltip(tooltip, isPlayerSneaking);
             }
         }
-        LoconauticsLang.translate("gui.goggles.boiler_stats").forGoggles(tooltip);
-        addFuelSlot(tooltip);
-        addFailureWarning(tooltip);
-
         if (!dispValid) {
+            LoconauticsLang.translate("gui.goggles.boiler_stats").forGoggles(tooltip);
+            addFuelSlot(tooltip);
+            addFailureWarning(tooltip);
             LoconauticsLang.translate("gui.goggles.boiler_incomplete")
                     .style(ChatFormatting.RED).forGoggles(tooltip);
             addNextStep(tooltip);
             return true;
         }
 
-        if (structure != null) {
-            LoconauticsLang.translate("gui.goggles.boiler_level").style(ChatFormatting.GRAY).forGoggles(tooltip);
-            int boilerLevel = structure.level(fireGrade());
-            LoconauticsLang.builder().text(String.valueOf(boilerLevel))
-                    .style(boilerLevel > 0 ? ChatFormatting.GOLD : ChatFormatting.DARK_GRAY)
-                    .text(" ").add(LoconauticsLang.translate("gui.goggles.boiler_level_limits",
-                            structure.sizeLevels(), structure.fireLevels(fireGrade())).style(ChatFormatting.DARK_GRAY))
-                    .forGoggles(tooltip, 1);
+        int sizeLevels = dispSizeLevels;
+        int fireLevels = ignited ? dispFireLevels : 0;
+        int waterLevels = dispWaterCapacity <= 0 ? 0 : Math.round((float) dispMaxLevel * dispWater / dispWaterCapacity);
+        int boilerLevel = ignited ? dispLevel : 0;
+        boolean producing = ignited || dispPressure > 0f || dispSu > 0f;
+
+        boolean fireOut = boilerState == BoilerState.COLD;
+        MutableComponent status;
+        if (fireOut && lastFailure != null) {
+            status = LoconauticsLang.translate("gui.goggles.boiler_state_cold").component().withStyle(ChatFormatting.RED);
+        } else if (!producing) {
+            status = LoconauticsLang.translate("gui.goggles.boiler_idle").component().withStyle(ChatFormatting.GRAY);
+        } else if (fireOut || boilerLevel <= 0) {
+            status = LoconauticsLang.translate("gui.goggles.boiler_state_cold").component().withStyle(ChatFormatting.GRAY);
+        } else {
+            MutableComponent level = boilerLevel >= dispMaxLevel
+                    ? LoconauticsLang.translate("gui.goggles.boiler_max").component()
+                    : LoconauticsLang.translate("gui.goggles.boiler_lvl", boilerLevel).component();
+            status = LoconauticsLang.translate("gui.goggles.boiler_state_" + boilerState.name().toLowerCase(Locale.ROOT))
+                    .component().withStyle(stateColor())
+                    .append(Component.literal("  ").append(level).withStyle(ChatFormatting.DARK_GRAY));
         }
+        LoconauticsLang.translate("gui.goggles.boiler_status", status).forGoggles(tooltip);
 
-        BoilerPool pool = new BoilerPool(dispMaxSu, dispBogeyDemand, dispSu * Math.min(1f, lastStressRatio));
-        LoconauticsLang.translate("gui.goggles.boiler_pool").style(ChatFormatting.GRAY).forGoggles(tooltip);
-        LoconauticsLang.translate("gui.goggles.boiler_pool_used", Math.round(pool.used()), Math.round(pool.max()))
-                .style(pool.usedFraction() > 0.9f ? ChatFormatting.RED : ChatFormatting.AQUA).forGoggles(tooltip, 1);
+        BoilerGoggleBars bars = new BoilerGoggleBars(dispMaxLevel, sizeLevels, fireLevels, waterLevels);
+        LoconauticsLang.builder().add(bars.row("size", sizeLevels)).forGoggles(tooltip, 1);
+        LoconauticsLang.builder().add(bars.row("water", waterLevels)).forGoggles(tooltip, 1);
+        LoconauticsLang.builder().add(bars.row("fire", fireLevels)).forGoggles(tooltip, 1);
 
-        LoconauticsLang.translate("gui.goggles.boiler_state").style(ChatFormatting.GRAY).forGoggles(tooltip);
-        LoconauticsLang.translate("gui.goggles.boiler_state_" + boilerState.name().toLowerCase(Locale.ROOT))
-                .style(stateColor()).forGoggles(tooltip, 1);
+        addFuelSlot(tooltip);
+        addFailureWarning(tooltip);
 
-        LoconauticsLang.translate("gui.goggles.gauge_temperature").style(ChatFormatting.GRAY).forGoggles(tooltip);
-        LoconauticsLang.translate("gui.goggles.boiler_feel_" + temperatureFeelKey())
-                .style(ChatFormatting.GOLD).forGoggles(tooltip, 1);
+        if (dispBogeys) {
+            LoconauticsLang.translate("gui.goggles.boiler_bar_bogey").style(ChatFormatting.WHITE).forGoggles(tooltip);
+            LoconauticsLang.builder().add(bars.powerRow("power", dispBogeyDemand, dispMaxSu)).forGoggles(tooltip, 1);
+        }
 
         addNextStep(tooltip);
         addOptionalStep(tooltip);
@@ -1650,7 +1676,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     private void addFuelSlot(List<Component> tooltip) {
-        LoconauticsLang.translate("gui.goggles.boiler_fuel").style(ChatFormatting.GRAY).forGoggles(tooltip);
+        LoconauticsLang.translate("gui.goggles.boiler_fuel").style(ChatFormatting.WHITE).forGoggles(tooltip);
         if (firstFuel().isEmpty()) {
             LoconauticsLang.translate("gui.goggles.boiler_fuel_empty")
                     .style(ChatFormatting.DARK_GRAY).forGoggles(tooltip, 1);
@@ -1787,6 +1813,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         tag.putFloat("DispFire", dispFire);
         tag.putBoolean("DispNoStack", dispNoStack);
         tag.putInt("DispWaterCapacity", dispWaterCapacity);
+        tag.putInt("DispSizeLevels", dispSizeLevels);
+        tag.putInt("DispFireLevels", dispFireLevels);
+        tag.putInt("DispLevel", dispLevel);
+        tag.putInt("DispMaxLevel", dispMaxLevel);
+        tag.putBoolean("DispBogeys", dispBogeys);
         tag.putFloat("DispBurnRate", lastBurnRate);
         tag.putFloat("DispStress", lastStressRatio);
         tag.putDouble("DispMass", lastTrainMass);
@@ -1849,6 +1880,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         dispFire = tag.getFloat("DispFire");
         dispNoStack = tag.getBoolean("DispNoStack");
         dispWaterCapacity = tag.getInt("DispWaterCapacity");
+        dispSizeLevels = tag.getInt("DispSizeLevels");
+        dispFireLevels = tag.getInt("DispFireLevels");
+        dispLevel = tag.getInt("DispLevel");
+        dispMaxLevel = tag.contains("DispMaxLevel") ? tag.getInt("DispMaxLevel") : 12;
+        dispBogeys = tag.getBoolean("DispBogeys");
         lastBurnRate = tag.getFloat("DispBurnRate");
         lastStressRatio = tag.getFloat("DispStress");
         lastTrainMass = tag.contains("DispMass") ? tag.getDouble("DispMass") : NO_TRAIN;
