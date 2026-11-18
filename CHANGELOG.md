@@ -14,6 +14,7 @@
 - Pumps now pull water through a hose from an open pipe end.
 - Pipes show moving fluid when a hose carries it.
 - Raised smokestacks no longer turn black next to full blocks.
+- Boiler bodies keep one even color next to other blocks.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
@@ -44,6 +45,9 @@
 - A config option scales how fast boilers burn fuel.
 - Cold boilers lose their heat while the train is unloaded.
 - Gauges can show the boiler level and the bogey power.
+- The Boiler Bogey crafts from a Redstone Link, Boiler Tubes and Industrial Iron.
+- A driving Boiler Bogey eases pressure down to 70 percent, keeping the valve shut.
+- Railways smokeboxes hold water in a boiler, untested.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
@@ -67,6 +71,8 @@
 - Boiler bogeys pull less when the steam pressure is low.
 - Boiler goggles show level bars like Create, on any boiler body.
 - Boiler goggles tell you to light the fire and add an output.
+- The steam release when a train stops comes from the Boiler Bogey.
+- The safety valve hiss is quiet below half open and louder when fully open.
 
 ### Ponder
 #### Instrument Panel

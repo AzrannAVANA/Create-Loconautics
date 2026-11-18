@@ -1,8 +1,16 @@
 {
-    "parent": "loconautics:block/boiler/barrel/shell/plated/back",
+    "loader": "neoforge:obj",
+    "model": "loconautics:models/block/boiler/barrel/obj/plated.obj",
+    "flip_v": true,
+    "automatic_culling": false,
     "render_type": "minecraft:cutout",
+    "visibility": {
+        "sides_front": false,
+        "sides_middle": false,
+        "cap16": false
+    },
     "textures": {
-        "0": "loconautics:block/boiler/barrel/red/body_atlas",
-        "particle": "loconautics:block/boiler/barrel/red/body_atlas"
+        "0": "loconautics:block/boiler/barrel/red/shell_atlas",
+        "particle": "loconautics:block/boiler/barrel/red/shell_atlas"
     }
 }

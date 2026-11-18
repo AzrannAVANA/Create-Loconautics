@@ -23,7 +23,6 @@ public enum ExperimentalFeature {
                 BoilerBlocks.SMART_SAFETY_VALVE_ITEM.get(),
                 BoilerBlocks.FIREBOX_STOCKER_ITEM.get(),
                 BoilerBlocks.BOILER_BOGEY_ITEM.get(),
-                LoconauticsRegistries.TRAIN_WHEEL.get(),
                 LoconauticsRegistries.SMOKESTACK_ITEM.get(),
                 LoconauticsRegistries.BOILER_TUBES.get(),
                 LoconauticsRegistries.VALVE_GEAR.get()));

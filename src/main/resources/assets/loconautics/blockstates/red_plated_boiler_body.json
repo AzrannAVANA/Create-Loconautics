@@ -1,7 +1,7 @@
 {
   "variants": {
     "connected_neg=false,connected_pos=false,facing=north": {
-      "model": "loconautics:block/boiler/barrel/red/plated/back"
+      "model": "loconautics:block/boiler/barrel/red/plated/single"
     },
     "connected_neg=false,connected_pos=true,facing=north": {
       "model": "loconautics:block/boiler/barrel/red/plated/back"
@@ -13,7 +13,7 @@
       "model": "loconautics:block/boiler/barrel/red/plated/middle"
     },
     "connected_neg=false,connected_pos=false,facing=east": {
-      "model": "loconautics:block/boiler/barrel/red/plated/front",
+      "model": "loconautics:block/boiler/barrel/red/plated/single",
       "y": 90
     },
     "connected_neg=false,connected_pos=true,facing=east": {
@@ -29,7 +29,7 @@
       "y": 90
     },
     "connected_neg=false,connected_pos=false,facing=south": {
-      "model": "loconautics:block/boiler/barrel/red/plated/front",
+      "model": "loconautics:block/boiler/barrel/red/plated/single",
       "y": 180
     },
     "connected_neg=false,connected_pos=true,facing=south": {
@@ -45,7 +45,7 @@
       "y": 180
     },
     "connected_neg=false,connected_pos=false,facing=west": {
-      "model": "loconautics:block/boiler/barrel/red/plated/back",
+      "model": "loconautics:block/boiler/barrel/red/plated/single",
       "y": 270
     },
     "connected_neg=false,connected_pos=true,facing=west": {
@@ -61,7 +61,7 @@
       "y": 270
     },
     "connected_neg=false,connected_pos=false,facing=up": {
-      "model": "loconautics:block/boiler/barrel/red/plated/front",
+      "model": "loconautics:block/boiler/barrel/red/plated/single",
       "x": 270
     },
     "connected_neg=false,connected_pos=true,facing=up": {
@@ -77,7 +77,7 @@
       "x": 270
     },
     "connected_neg=false,connected_pos=false,facing=down": {
-      "model": "loconautics:block/boiler/barrel/red/plated/back",
+      "model": "loconautics:block/boiler/barrel/red/plated/single",
       "x": 90
     },
     "connected_neg=false,connected_pos=true,facing=down": {
