@@ -544,11 +544,12 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private String computeNextStep() {
         if (structure == null) return missingKey == null ? "add_boiler_body" : missingKey;
         if (!structure.hasWaterInlet()) return "add_water_inlet";
-        if (!structure.hasTakeoff()) return "add_steam_takeoff";
+        if (!structure.hasTakeoff() && bogeyDemands.isEmpty()) return "add_output";
         if (!structure.hasStack()) return "add_smokestack";
         BoilerWaterSource injector = water();
         if (injector == null || injector.getWaterAmount() <= 0) return "add_water";
         if (burnTimeRemaining <= 0f && firstFuelSlot() < 0) return "add_fuel";
+        if (!ignited) return "light_fire";
         return null;
     }
 

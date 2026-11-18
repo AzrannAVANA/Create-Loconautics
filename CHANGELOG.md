@@ -63,6 +63,7 @@
 - Burns for shows the shorter of the fuel time and the water time.
 - Boiler bogeys pull less when the steam pressure is low.
 - Boiler goggles show level bars like Create, on any boiler body.
+- Boiler goggles tell you to light the fire and add an output.
 
 ### Ponder
 #### Instrument Panel
