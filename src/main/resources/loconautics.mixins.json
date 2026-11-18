@@ -68,6 +68,7 @@
     "create.link.RedstoneLinkPanelSkinMixin",
     "create.link.LinkBehaviourPanelMixin",
     "create.fluid.FluidPipeBarrelGapMixin",
+    "create.fluid.PipeConnectionHoseFlowMixin",
     "create.fluid.IndustrialPumpRangeMixin",
     "create.contraption.PortableStorageInterfaceSableMixin",
     "compat.create.CreateStickerMixin",

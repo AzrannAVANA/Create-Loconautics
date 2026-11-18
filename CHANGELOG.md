@@ -11,6 +11,8 @@
 - Slow starts no longer play the wheel grinding sound.
 - Safety valves stop blowing when their boiler is broken or gone.
 - Steam Takeoff no longer darkens the blocks around it, untested.
+- Pumps now pull water through a hose from an open pipe end.
+- Pipes show moving fluid when a hose carries it.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
