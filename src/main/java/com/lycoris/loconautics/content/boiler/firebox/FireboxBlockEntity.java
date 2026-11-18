@@ -169,6 +169,9 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private FailureCause lastFailure;
 
     private static final float POOL_DRAW_MULTIPLIER = 2.5f;
+    private static final float BOGEY_TARGET_PRESSURE = 0.7f;
+    private static final float BOGEY_TRIM_PER_TICK = 0.0008f;
+    private static final float BOGEY_TRIM_EASE = 0.05f;
     private static final float COAST_RISE_MULTIPLIER = 2f;
     private static final int COOLING_STEAM_COLOR = 0xD6D6D6;
 
@@ -667,7 +670,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 : coastRise(watered);
         float vent = (float) PRESSURE_VENT_PER_TICK * valveOpening();
         float bleed = fed ? 0f : idleBleed() * (1f - temperatureFraction());
-        float draw = poolDraw();
+        float draw = poolDraw() + bogeyTrim(burst);
         float before = steamPressure;
         lastVented = Math.min(vent, steamPressure + rise);
         steamPressure = Math.max(0f, steamPressure + rise - vent - bleed - draw);
@@ -702,6 +705,12 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private float poolUsedFraction() {
         float outputUsed = suOutput() * Math.max(0f, Math.min(1f, lastStressRatio));
         return new BoilerPool(poolMax(), bogeyDemand(), outputUsed).usedFraction();
+    }
+
+    private float bogeyTrim(float burst) {
+        if (pool().bogeyDraw() <= 0f) return 0f;
+        float excess = steamPressure - BOGEY_TARGET_PRESSURE * burst;
+        return Math.max(0f, Math.min(excess * BOGEY_TRIM_EASE, BOGEY_TRIM_PER_TICK));
     }
 
     private float poolDraw() {
