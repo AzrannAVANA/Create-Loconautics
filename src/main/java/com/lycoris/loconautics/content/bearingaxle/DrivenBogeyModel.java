@@ -28,6 +28,8 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
 
@@ -42,6 +44,7 @@ public class DrivenBogeyModel extends BakedModelWrapper<BakedModel> {
     private static final ResourceLocation CREATE_TOP = ResourceLocation.fromNamespaceAndPath("create", "block/bogey/top");
     private static final ResourceLocation GRAY_TOP = LoconauticsConstants.id("block/bearingaxle/bogey/top");
     private static final int VERTEX_INTS = 8;
+    private static final Set<ResourceLocation> MISSING_LOGGED = ConcurrentHashMap.newKeySet();
 
     private final boolean standardShape;
 
@@ -100,7 +103,15 @@ public class DrivenBogeyModel extends BakedModelWrapper<BakedModel> {
             List<BakedQuad> own = super.getQuads(state, face, rand, data, renderType);
             return driven ? grayed(own) : own;
         }
-        BakedModel swapped = pick(driven, shafted).get();
+        PartialModel partial = pick(driven, shafted);
+        BakedModel swapped = partial.get();
+        if (swapped == null) {
+            if (MISSING_LOGGED.add(partial.modelLocation())) {
+                LoconauticsConstants.LOGGER.warn("[drivenbogey] partial {} is not baked, drawing the stock bogey model (driven={}, shafted={}, state={}). Look for a bake error on this model or a resource reload during the chunk rebuild.",
+                        partial.modelLocation(), driven, shafted, state);
+            }
+            return super.getQuads(state, face, rand, data, renderType);
+        }
         boolean turned = state.hasProperty(BlockStateProperties.HORIZONTAL_AXIS)
                 && state.getValue(BlockStateProperties.HORIZONTAL_AXIS) == Direction.Axis.X;
         if (!turned) {

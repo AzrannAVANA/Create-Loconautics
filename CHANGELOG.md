@@ -7,6 +7,7 @@
 - Railways boilers and smokeboxes now count as boiler bodies.
 - Boiler lighting and shovel sounds play where the train is.
 - A boiler with a steady water supply stays full, not a little short.
+- The Creative Train Relocator no longer crashes the creative tab with a missing model.
 - Scheduled steam trains no longer report no steam right after loading.
 - Slow starts no longer play the wheel grinding sound.
 - Safety valves stop blowing when their boiler is broken or gone.
@@ -18,7 +19,9 @@
 - Lava buckets burned in a firebox leave their empty bucket.
 - Boiler whistles stop blowing when their boiler is broken.
 - Boiler parts on a train can be targeted on their whole shape.
+- Carts no longer keep old roll, coupler and rerail state after a relocate or rerail.
 - Copycat items no longer drop on the ground when a train crosses a portal.
+- ISSUE 197: Bearing axle bogeys no longer crash the game when their model is not ready.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
