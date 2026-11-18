@@ -899,6 +899,7 @@
   "loconautics.configuration.boiler.bodyWaterCapacity": "Body Water Capacity",
   "loconautics.configuration.boiler.burnMassDivisor": "Burn Mass Divisor",
   "loconautics.configuration.boiler.burnRateScale": "Burn Rate Scale",
+  "loconautics.configuration.boiler.burnRateScale.tooltip": "Multiplies how fast a lit boiler burns fuel. Water use and pressure are not changed.",
   "loconautics.configuration.boiler.burnStressFactor": "Burn Stress Factor",
   "loconautics.configuration.boiler.crash.crashImpactThreshold": "Crash Impact Threshold",
   "loconautics.configuration.boiler.crash.explodeOnCrash": "Explode On Crash",

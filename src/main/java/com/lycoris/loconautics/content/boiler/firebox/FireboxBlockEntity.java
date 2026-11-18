@@ -760,7 +760,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     }
 
     private float burnRate() {
-        return (1f + poolUsedFraction()) * structure.burnMultiplier() * masterFraction();
+        return (1f + poolUsedFraction()) * structure.burnMultiplier() * masterFraction()
+                * (float) (double) LoconauticsConfig.BURN_RATE_SCALE.get();
     }
 
     private boolean consumeFuel() {
