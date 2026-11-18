@@ -580,6 +580,8 @@
   "loconautics.gui.goggles.gauge_train_weight": "Train Weight",
   "loconautics.gui.goggles.gauge_valve_closed": "Closed",
   "loconautics.gui.goggles.gauge_valve_open": "Open",
+  "loconautics.gui.goggles.gauge_boiler_level": "Boiler Level",
+  "loconautics.gui.goggles.gauge_bogey_power": "Bogey Power",
   "loconautics.gui.goggles.gauge_water_level": "Water Level",
   "loconautics.gui.goggles.lever_stats": "Gauge Lever",
   "loconautics.gui.goggles.load_share": "Load Share",

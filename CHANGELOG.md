@@ -40,6 +40,7 @@
 - Lava buckets, blaze rods and blaze powder light the boiler.
 - A config option scales how fast boilers burn fuel.
 - Cold boilers lose their heat while the train is unloaded.
+- Gauges can show the boiler level and the bogey power.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.

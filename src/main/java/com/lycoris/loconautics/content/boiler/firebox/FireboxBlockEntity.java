@@ -1088,6 +1088,10 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     public boolean isDisplayValid() { return dispValid; }
     public float getDisplayPressure() { return dispPressure; }
     public float getDisplayMaxSu() { return dispMaxSu; }
+    public boolean isIgnited() { return ignited; }
+    public int getDisplayLevel() { return dispLevel; }
+    public int getDisplayMaxLevel() { return dispMaxLevel; }
+    public float getDisplayBogeyDemand() { return dispBogeyDemand; }
     public float getDisplaySu() { return dispSu; }
     public float getDisplayRpm() { return dispRpm; }
     public float getDisplayEfficiency() { return dispEfficiency; }
