@@ -74,6 +74,7 @@
 - Boiler goggles tell you to light the fire and add an output.
 - The steam release when a train stops comes from the Boiler Bogey.
 - The safety valve hiss is quiet below half open and louder when fully open.
+- Parts on a Railways smokebox sit flush, round bodies lift them.
 
 ### Ponder
 #### Instrument Panel

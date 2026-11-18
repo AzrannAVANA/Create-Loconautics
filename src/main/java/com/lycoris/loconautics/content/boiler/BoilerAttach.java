@@ -13,6 +13,9 @@ public final class BoilerAttach {
     public static final TagKey<Block> HOSTS = TagKey.create(net.minecraft.core.registries.Registries.BLOCK,
             LoconauticsConstants.id("boiler_hosts"));
 
+    public static final TagKey<Block> FLUSH_HOSTS = TagKey.create(net.minecraft.core.registries.Registries.BLOCK,
+            LoconauticsConstants.id("boiler_hosts_flush"));
+
     public static final BooleanProperty RAISED = BooleanProperty.create("raised");
 
     // how far a part sits out from its host, in blocks
@@ -31,6 +34,11 @@ public final class BoilerAttach {
 
     // face is the side of the part that touches the host
     public static boolean raisedOn(BlockGetter level, BlockPos part, Direction face) {
-        return isHostAt(level, part.relative(face));
+        return raisedAt(level, part.relative(face));
+    }
+
+    public static boolean raisedAt(BlockGetter level, BlockPos host) {
+        BlockState state = level.getBlockState(host);
+        return isHost(state) && !state.is(FLUSH_HOSTS);
     }
 }
