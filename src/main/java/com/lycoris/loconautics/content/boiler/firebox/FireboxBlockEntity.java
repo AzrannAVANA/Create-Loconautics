@@ -644,7 +644,10 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private boolean tickPressure(boolean fed, boolean watered) {
         float burst = (float) (double) LoconauticsConfig.BURST_PRESSURE.get();
         SafetyValveBlockEntity valve = safetyValve();
-        if (valve != null) valve.setVenting(steamPressure > 0f);
+        if (valve != null) {
+            valve.boilerSeen();
+            valve.setVenting(steamPressure > 0f);
+        }
         if (valve instanceof SmartSafetyValveBlockEntity smart) {
             smart.updateFromBoiler(burst <= 0f ? 0f : steamPressure / burst);
         }

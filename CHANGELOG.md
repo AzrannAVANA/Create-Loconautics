@@ -9,6 +9,7 @@
 - A boiler with a steady water supply stays full, not a little short.
 - Scheduled steam trains no longer report no steam right after loading.
 - Slow starts no longer play the wheel grinding sound.
+- Safety valves stop blowing when their boiler is broken or gone.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
