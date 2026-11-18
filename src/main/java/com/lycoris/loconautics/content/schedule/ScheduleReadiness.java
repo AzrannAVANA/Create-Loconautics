@@ -93,6 +93,10 @@ public final class ScheduleReadiness {
         if (boiler == null) {
             return Result.fail("no_boiler");
         }
+        // a boiler that has just loaded has no structure yet, so its pressure reads zero for a moment
+        if (!boiler.hasValidStructure()) {
+            return Result.PASS;
+        }
         return boiler.drivePressure() > 0f ? Result.PASS : Result.fail("no_boiler_fire");
     }
 

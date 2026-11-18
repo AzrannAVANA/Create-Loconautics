@@ -7,6 +7,7 @@
 - Railways boilers and smokeboxes now count as boiler bodies.
 - Boiler lighting and shovel sounds play where the train is.
 - A boiler with a steady water supply stays full, not a little short.
+- Scheduled steam trains no longer report no steam right after loading.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
