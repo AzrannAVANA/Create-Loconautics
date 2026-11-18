@@ -8,6 +8,7 @@
 - Boiler lighting and shovel sounds play where the train is.
 - A boiler with a steady water supply stays full, not a little short.
 - Scheduled steam trains no longer report no steam right after loading.
+- Slow starts no longer play the wheel grinding sound.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
@@ -53,6 +54,7 @@
 - The safety valve hisses in one steady sound, not chuffs.
 - A venting boiler burns through its water and can run dry.
 - Burns for shows the shorter of the fuel time and the water time.
+- Boiler bogeys pull less when the steam pressure is low.
 
 ### Ponder
 #### Instrument Panel

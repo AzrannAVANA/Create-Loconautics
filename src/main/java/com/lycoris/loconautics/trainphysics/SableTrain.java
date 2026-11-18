@@ -379,6 +379,20 @@ public final class SableTrain {
 
     private final java.util.Map<BlockPos, Integer> wheelStall = new java.util.LinkedHashMap<>();
 
+    private double lastCarSpeed;
+    private long lastCarSpeedTick = Long.MIN_VALUE;
+    private boolean gainingSpeed;
+
+    // true while the car speed is still climbing, a slow start is not a stuck wheel
+    public boolean gainingSpeed(long gameTime, double carSpeed) {
+        if (lastCarSpeedTick != gameTime) {
+            gainingSpeed = Math.abs(carSpeed) > Math.abs(lastCarSpeed) + 1.0e-5;
+            lastCarSpeed = carSpeed;
+            lastCarSpeedTick = gameTime;
+        }
+        return gainingSpeed;
+    }
+
     private final java.util.Set<BlockPos> slippingBogeys = new java.util.LinkedHashSet<>();
 
     private Vector3d lastBodyPos;
