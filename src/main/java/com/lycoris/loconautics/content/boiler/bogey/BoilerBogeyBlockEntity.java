@@ -48,6 +48,11 @@ public class BoilerBogeyBlockEntity extends AbstractBogeyBlockEntity implements 
     private boolean opposed;
     private long lookedUp = -LOOKUP_TICKS;
     @Nullable private FireboxBlockEntity boiler;
+    private final BoilerBogeySteam steam = new BoilerBogeySteam();
+
+    public void clientTick() {
+        steam.tick(level, worldPosition);
+    }
 
     public BoilerBogeyBlockEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
         super(type, pos, state);
