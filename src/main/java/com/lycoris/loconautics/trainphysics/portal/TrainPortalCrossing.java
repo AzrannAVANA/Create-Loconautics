@@ -227,6 +227,14 @@ public final class TrainPortalCrossing {
         String refusal = TrainTeleporter.handOverRefusal(train);
         if (refusal != null) {
             issue286(train, "refused: " + refusal);
+            if (PortalTrace.dueAlways("teleportfix" + train.car().subLevelId(), now, 20)) {
+                ServerSubLevel own = SubLevelData.resolve(train.level(), train.car().subLevelId());
+                LoconauticsConstants.LOGGER.warn("[teleportfix] refused car={} why={} speed={} target={} depth={} "
+                                + "derailed={}", PortalTrace.id(train.car().subLevelId()), refusal,
+                        PortalTrace.f(train.speed()), PortalTrace.f(train.targetSpeed()),
+                        own == null ? "n/a" : PortalTrace.f(frame.depth(own.logicalPose().position())),
+                        train.isDerailed());
+            }
             if (PortalTrace.due("refusal" + train.car().subLevelId(), now, 20)) {
                 PortalTrace.log("handover refused car={} why={}", PortalTrace.id(train.car().subLevelId()), refusal);
             }

@@ -7,6 +7,7 @@ import com.lycoris.loconautics.content.boiler.firebox.FireboxBlockEntity;
 import com.lycoris.loconautics.content.knuckle.KnuckleBlockEntity;
 import com.lycoris.loconautics.network.packets.train.SableTrainSyncPacket;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.TrainConsist;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.sublevel.SubLevelContacts;
@@ -18,6 +19,7 @@ import com.lycoris.loconautics.trainphysics.spawn.PlacementClearance;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner;
 import com.lycoris.loconautics.trainphysics.spawn.SubLevelSplitWatcher;
 import com.lycoris.loconautics.trainphysics.state.SableTrainPersistence;
+import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies;
 import com.simibubi.create.content.trains.graph.TrackGraphLocation;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
@@ -169,6 +171,12 @@ public final class TrainTeleporter {
 
     @Nullable
     private static String refuse(List<SableTrain> cars) {
+        Set<UUID> inChain = new HashSet<>();
+        for (SableTrain car : cars) {
+            if (car.car() != null && car.car().subLevelId() != null) {
+                inChain.add(car.car().subLevelId());
+            }
+        }
         for (SableTrain car : cars) {
             if (car.car() == null || car.car().subLevelId() == null) {
                 return "a car in the chain has no body";
@@ -178,6 +186,17 @@ public final class TrainTeleporter {
             }
             if (SableTeleportation.isInFlight(car.car().subLevelId())) {
                 return "car " + shortId(car) + " is already mid teleport";
+            }
+            for (UUID mate : TrainConsist.neighbours(car.level(), car.car().subLevelId())) {
+                if (inChain.contains(mate)) {
+                    continue;
+                }
+                if (SubLevelData.resolve(car.level(), mate) == null) {
+                    return "car " + shortId(car) + " is coupled to a car that is not loaded";
+                }
+                if (SableTrainRegistry.bySubLevel(mate) != null) {
+                    return "car " + shortId(car) + " is coupled to a car that is not moving with it";
+                }
             }
         }
         return null;
