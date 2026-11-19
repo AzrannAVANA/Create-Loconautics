@@ -164,6 +164,7 @@ public final class TeleportStrands {
                     && end.subLevelID() != null;
             RopeShape shape = carried || held ? RopeShape.of(container, strand, start, end) : null;
             if (!destroyRope(level, container, manager, strand, start, !carried && !held)) {
+                carry.cut++;
                 continue;
             }
             if (carried || held) {
@@ -187,11 +188,14 @@ public final class TeleportStrands {
         }
         LoconauticsConstants.LOGGER.warn("[teleport] rope {} has no live owner, removing it without its holder",
                 strand.getUUID());
+        Vector3d at = start == null ? null
+                : StrandEndpoints.worldPoint(level, container, start.subLevelID(), start.blockAttachment());
         SubLevelPhysicsSystem system = SubLevelPhysicsSystem.get(level);
         if (system != null && strand.isActive()) {
             system.removeObject(strand);
         }
         manager.removeStrand(strand.getUUID());
+        drop(level, at, new ItemStack(SimItems.ROPE_COUPLING.get()));
         return false;
     }
 
