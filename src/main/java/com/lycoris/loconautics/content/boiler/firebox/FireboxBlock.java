@@ -131,7 +131,6 @@ public class FireboxBlock extends BaseEntityBlock
         FireboxGroups.rerender(level, pos);
     }
 
-    // two half built fireboxes touching would otherwise sit there as separate controllers
     private static void absorbNeighbors(Level level, BlockPos controller) {
         for (BlockPos member : FireboxGroups.members(level, controller)) {
             for (Direction dir : Direction.Plane.HORIZONTAL) {
@@ -187,17 +186,17 @@ public class FireboxBlock extends BaseEntityBlock
 
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
-        return BoilerShapes.visual(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis(), false);
+        return BoilerShapes.fireboxVisual(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis());
     }
 
     @Override
     public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext ctx) {
-        return BoilerShapes.collision(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis(), false);
+        return BoilerShapes.fireboxCollision(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis());
     }
 
     @Override
     public VoxelShape getSubLevelCollisionShape(BlockGetter level, BlockState state) {
-        return BoilerShapes.collision(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis(), false);
+        return BoilerShapes.fireboxCollision(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis());
     }
 
     @Override

@@ -30,10 +30,10 @@ public class ConnectedVariantModelLoader implements IGeometryLoader<ConnectedVar
         for (String key : KEYS) {
             parts.add(json.has(key) ? ResourceLocation.parse(GsonHelper.getAsString(json, key)) : fallback);
         }
-        return new Geometry(List.copyOf(parts));
+        return new Geometry(List.copyOf(parts), GsonHelper.getAsBoolean(json, "along", false));
     }
 
-    public record Geometry(List<ResourceLocation> parts) implements IUnbakedGeometry<Geometry> {
+    public record Geometry(List<ResourceLocation> parts, boolean along) implements IUnbakedGeometry<Geometry> {
 
         @Override
         public void resolveParents(Function<ResourceLocation, UnbakedModel> modelGetter,
@@ -51,7 +51,7 @@ public class ConnectedVariantModelLoader implements IGeometryLoader<ConnectedVar
             for (ResourceLocation part : parts) {
                 baked.add(baker.bake(part, modelState, spriteGetter));
             }
-            return new ConnectedVariantModel(baked.get(0), baked.get(1), baked.get(2), baked.get(3));
+            return new ConnectedVariantModel(baked.get(0), baked.get(1), baked.get(2), baked.get(3), along);
         }
     }
 }

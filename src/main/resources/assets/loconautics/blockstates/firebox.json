@@ -1,9 +1,9 @@
 {
   "multipart": [
-    { "when": { "facing": "north" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_run" } },
-    { "when": { "facing": "east" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_run", "y": 90 } },
-    { "when": { "facing": "south" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_run", "y": 180 } },
-    { "when": { "facing": "west" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_run", "y": 270 } },
+    { "when": { "facing": "north" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined" } },
+    { "when": { "facing": "east" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined", "y": 90 } },
+    { "when": { "facing": "south" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined", "y": 180 } },
+    { "when": { "facing": "west" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined", "y": 270 } },
     { "apply": { "model": "loconautics:block/boiler/firebox/core" } },
     { "apply": { "model": "loconautics:block/boiler/firebox/fuel" } },
 

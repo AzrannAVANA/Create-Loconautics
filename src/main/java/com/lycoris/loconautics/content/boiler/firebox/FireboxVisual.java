@@ -74,6 +74,11 @@ public class FireboxVisual extends AbstractBlockEntityVisual<FireboxBlockEntity>
     }
 
     private TransformedInstance instance(PartialModel model) {
+        if (model.get() == null) {
+            com.lycoris.loconautics.LoconauticsConstants.LOGGER.warn("[fireboxpartial] no baked model for {}, model json present: {}",
+                    model.modelLocation(), net.minecraft.client.Minecraft.getInstance().getResourceManager().getResource(
+                            model.modelLocation().withPath(p -> "models/" + p + ".json")).isPresent());
+        }
         return instancerProvider()
                 .instancer(InstanceTypes.TRANSFORMED, Models.partial(model))
                 .createInstance();

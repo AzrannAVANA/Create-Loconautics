@@ -37,8 +37,11 @@ public class ConnectedVariantModel implements IDynamicBakedModel {
     private final BakedModel start;
     private final BakedModel middle;
     private final BakedModel end;
+    private final boolean along;
 
-    public ConnectedVariantModel(BakedModel single, BakedModel start, BakedModel middle, BakedModel end) {
+    public ConnectedVariantModel(BakedModel single, BakedModel start, BakedModel middle, BakedModel end,
+                                 boolean along) {
+        this.along = along;
         this.single = single;
         this.start = start;
         this.middle = middle;
@@ -66,8 +69,10 @@ public class ConnectedVariantModel implements IDynamicBakedModel {
                 .group(block, level, state, block.groupAnchor(level, state, pos));
 
         Direction facing = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
-        boolean toStart = group.contains(pos.relative(facing.getCounterClockWise()));
-        boolean toEnd = group.contains(pos.relative(facing.getClockWise()));
+        Direction startSide = along ? facing : facing.getCounterClockWise();
+        Direction endSide = along ? facing.getOpposite() : facing.getClockWise();
+        boolean toStart = group.contains(pos.relative(startSide));
+        boolean toEnd = group.contains(pos.relative(endSide));
 
         Variant variant;
         if (toStart && toEnd) {

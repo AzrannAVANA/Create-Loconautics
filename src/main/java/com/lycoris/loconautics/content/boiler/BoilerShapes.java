@@ -25,6 +25,60 @@ public final class BoilerShapes {
 
     private static final VoxelShape[][] VISUAL_SHAPES = buildAll(BoilerShapes::buildVisualBarrel);
     private static final VoxelShape[][] COLLISION_SHAPES = buildAll(BoilerShapes::buildSteppedBarrel);
+    private static final VoxelShape[] FIREBOX_VISUAL = buildFirebox(true);
+    private static final VoxelShape[] FIREBOX_COLLISION = buildFirebox(false);
+
+    private static VoxelShape[] buildFirebox(boolean visual) {
+        VoxelShape[] out = new VoxelShape[3];
+        for (Direction.Axis axis : Direction.Axis.values()) {
+            out[axis.ordinal()] = axis == Direction.Axis.Y
+                    ? (visual ? buildVisualBarrel(axis, SMALL) : buildSteppedBarrel(axis, SMALL))
+                    : fireboxShape(axis, visual);
+        }
+        return out;
+    }
+
+    private static VoxelShape fireboxShape(Direction.Axis lengthAxis, boolean visual) {
+        double outLo = SMALL[0], flatLo = SMALL[2];
+        VoxelShape lower = lengthAxis == Direction.Axis.X
+                ? boxForAxis(lengthAxis, outLo, flatLo, outLo, SMALL[1])
+                : boxForAxis(lengthAxis, outLo, SMALL[1], outLo, flatLo);
+        if (!visual) {
+            return Shapes.or(buildSteppedBarrel(lengthAxis, SMALL), lower).optimize();
+        }
+        double half = (SMALL[1] - SMALL[0]) / 32.0;
+        double flat = (SMALL[3] - SMALL[2]) / 32.0;
+        double along = (half + flat) * SQRT_HALF;
+        double across = (half - flat) * SQRT_HALF;
+        List<AABB> turned = List.of(turnedBox(lengthAxis, -along, along, -across, across),
+                turnedBox(lengthAxis, -across, across, -along, along));
+        VoxelShape straight = Shapes.or(boxForAxis(lengthAxis, outLo, SMALL[1], flatLo, SMALL[3]),
+                boxForAxis(lengthAxis, flatLo, SMALL[3], outLo, SMALL[1]), lower).optimize();
+        return TiltedShape.of(straight, turned,
+                point -> turnedToBlock(lengthAxis, point), point -> blockToTurned(lengthAxis, point),
+                fireboxOutline(lengthAxis, half, flat));
+    }
+
+    private static List<Vec3[]> fireboxOutline(Direction.Axis lengthAxis, double half, double flat) {
+        double[][] rim = {{half, -half}, {half, flat}, {flat, half}, {-flat, half}, {-half, flat}, {-half, -half}};
+        List<Vec3[]> edges = new ArrayList<>();
+        for (int i = 0; i < rim.length; i++) {
+            double[] here = rim[i];
+            double[] next = rim[(i + 1) % rim.length];
+            Vec3 lo = sidewaysPoint(lengthAxis, here, 0.0);
+            Vec3 hi = sidewaysPoint(lengthAxis, here, 1.0);
+            edges.add(new Vec3[]{lo, hi});
+            edges.add(new Vec3[]{lo, sidewaysPoint(lengthAxis, next, 0.0)});
+            edges.add(new Vec3[]{hi, sidewaysPoint(lengthAxis, next, 1.0)});
+        }
+        return edges;
+    }
+
+    private static Vec3 sidewaysPoint(Direction.Axis lengthAxis, double[] cross, double along) {
+        double side = cross[0] + 0.5;
+        double up = cross[1] + 0.5;
+        return lengthAxis == Direction.Axis.X ? new Vec3(along, up, side) : new Vec3(side, up, along);
+    }
 
     private static VoxelShape[][] buildAll(BiFunction<Direction.Axis, double[], VoxelShape> build) {
         VoxelShape[][] out = new VoxelShape[2][3];
@@ -143,6 +197,14 @@ public final class BoilerShapes {
 
     public static VoxelShape visual(Direction.Axis axis, boolean big) {
         return VISUAL_SHAPES[big ? 1 : 0][axis.ordinal()];
+    }
+
+    public static VoxelShape fireboxVisual(Direction.Axis axis) {
+        return FIREBOX_VISUAL[axis.ordinal()];
+    }
+
+    public static VoxelShape fireboxCollision(Direction.Axis axis) {
+        return FIREBOX_COLLISION[axis.ordinal()];
     }
 
     public static VoxelShape collision(Direction.Axis axis, boolean big) {
