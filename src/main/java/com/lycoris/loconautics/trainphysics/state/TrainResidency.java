@@ -311,11 +311,20 @@ public final class TrainResidency {
         double speedIn = leader.speed();
         double ds = TrainSpacing.ghostStep(leader);
         boolean end = false;
+        boolean deadEnd = false;
         for (SableTrain member : group) {
-            end |= TrainRailAdvance.anyReachedEnd(member.car()) || TrainRailAdvance.anyPendingPortal(member.car());
+            boolean atPortal = TrainRailAdvance.anyPendingPortal(member.car());
+            deadEnd |= !atPortal && TrainRailAdvance.anyReachedEnd(member.car());
+            end |= atPortal || TrainRailAdvance.anyReachedEnd(member.car());
         }
         if (end) {
             ds = 0.0;
+        }
+        if (deadEnd) {
+            for (SableTrain member : group) {
+                member.setSpeed(0.0);
+                member.setTargetSpeed(0.0);
+            }
         }
         for (int i = 0; i < group.size(); i++) {
             SableTrain member = group.get(i);

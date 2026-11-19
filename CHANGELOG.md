@@ -23,6 +23,7 @@
 - Copycat items no longer drop on the ground when a train crosses a portal.
 - ISSUE 197: Bearing axle bogeys no longer crash the game when their model is not ready.
 - Trains no longer jump or stall when they run off the end of a track.
+- Unloaded trains stop at a dead end instead of running off it when loaded.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
