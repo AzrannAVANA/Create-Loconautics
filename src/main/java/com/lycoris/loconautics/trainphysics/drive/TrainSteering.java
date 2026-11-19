@@ -37,22 +37,22 @@ final class TrainSteering {
         TrainDriveSource steerAxle = TrainPropulsion.driveSourceIn(sub);
         int input = steerAxle == null ? 0 : steerAxle.getSteerInput();
         Direction front = DriveSources.front(steerAxle, sub);
+        SableTrain leader = drivenLeader(train);
+        SableTrain ahead = leaderAhead(train, leader);
 
         for (SableTrain.Bogey bogey : car.bogeys()) {
             SteerTrace.owner(bogey.rail(), car.subLevelId());
         }
-        tagJunctions(train, car.subLevelId() + " mode=" + describeMode(train, input, front));
+        tagJunctions(train, car.subLevelId() + " mode=" + describeMode(train, input, front, leader, ahead));
 
         if (front == null || input == 0) {
-            SableTrain ahead = leaderAhead(train);
-            SableTrain leader = drivenLeader(train);
             boolean isLeader = leader != null && car.subLevelId().equals(leader.car().subLevelId());
             if (ahead != null && followAhead(train, ahead)) {
                 SteerTrace.mode(car.subLevelId(), (isLeader ? "driver" : "car") + " follows " + ahead.car().subLevelId().toString().substring(0, 8));
                 if (isLeader) {
                     train.setSteerIntent(null);
                 }
-                applySteerTarget(car, isLeader ? null : leaderIntent(train));
+                applySteerTarget(car, isLeader || leader == null ? null : leader.steerIntent());
                 return;
             }
             if (ahead == null && leader != null && !car.subLevelId().equals(leader.car().subLevelId())) {
@@ -63,7 +63,7 @@ final class TrainSteering {
             }
         }
 
-        SteerTrace.mode(car.subLevelId(), "own input " + input + " ahead=" + (front == null || input == 0 ? leaderAhead(train) != null : "n/a"));
+        SteerTrace.mode(car.subLevelId(), "own input " + input + " ahead=" + (front == null || input == 0 ? ahead != null : "n/a"));
         train.setSteerIntent(target(front, input));
         clearFollow(car);
         applySteerTarget(car, train.steerIntent());
@@ -71,9 +71,7 @@ final class TrainSteering {
 
     private static final java.util.Map<UUID, String> ISSUE274_MODE = new java.util.HashMap<>();
 
-    private static String describeMode(SableTrain train, int input, Direction front) {
-        SableTrain leader = drivenLeader(train);
-        SableTrain ahead = leaderAhead(train);
+    private static String describeMode(SableTrain train, int input, Direction front, SableTrain leader, SableTrain ahead) {
         boolean isLeader = leader != null && train.car().subLevelId().equals(leader.car().subLevelId());
         return (front == null || input == 0 ? "noinput" : "input" + input) + (isLeader ? " leader" : " other")
                 + (ahead == null ? " ahead=none" : " ahead=" + ahead.car().subLevelId().toString().substring(0, 8))
@@ -108,11 +106,6 @@ final class TrainSteering {
     static Direction target(Direction front, int input) {
         return front == null || input == 0 ? null
                 : input < 0 ? front.getCounterClockWise() : front.getClockWise();
-    }
-
-    static Direction leaderIntent(SableTrain train) {
-        SableTrain leader = drivenLeader(train);
-        return leader == null ? null : leader.steerIntent();
     }
 
     static void applySteerTarget(Car car, Direction target) {
@@ -172,21 +165,20 @@ final class TrainSteering {
         if (level == null || myId == null) {
             return null;
         }
-        java.util.Set<UUID> consist = TrainConsist.connectedSubLevels(level, myId);
+        java.util.Set<UUID> consist = TrainConsist.connectedThisTick(level, myId);
         if (consist.size() <= 1) {
             return null;
         }
         return ConsistTurns.governing(train);
     }
 
-    static SableTrain leaderAhead(SableTrain train) {
-        SableTrain leader = drivenLeader(train);
+    static SableTrain leaderAhead(SableTrain train, SableTrain leader) {
         UUID myId = train.car().subLevelId();
         if (leader == null || myId == null) {
             return null;
         }
         UUID leaderId = leader.car().subLevelId();
-        java.util.List<UUID> chain = TrainConsist.orderedChain(train.level(), leaderId);
+        java.util.List<UUID> chain = TrainConsist.orderedChainThisTick(train.level(), leaderId);
         int idx = chain.indexOf(myId);
         int leaderIdx = chain.indexOf(leaderId);
         if (idx < 0 || leaderIdx < 0) {
