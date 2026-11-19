@@ -268,6 +268,8 @@ public final class SableTrain {
         derailReason = derailed ? statusKey : "";
         if (derailed) {
             TrainStatusChat.derailed(this, statusKey);
+            com.lycoris.loconautics.trainphysics.state.CartLifecycle.fire(this,
+                    com.lycoris.loconautics.trainphysics.state.CartEvent.DERAILED);
         } else {
             TrainStatusChat.backOnTrack(this);
         }
