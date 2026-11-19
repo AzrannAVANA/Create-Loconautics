@@ -233,9 +233,9 @@ public final class BoilerBlocks {
             new com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyBlock(
                     LoconauticsBlockProperties.metallic().noOcclusion()));
 
-    public static final DeferredHolder<Item, BlockItem> BOILER_BOGEY_ITEM =
+    public static final DeferredHolder<Item, com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyItem> BOILER_BOGEY_ITEM =
             LoconauticsRegistries.ITEMS.register("boiler_bogey", () ->
-                    new BlockItem(BOILER_BOGEY.get(), new Item.Properties().stacksTo(64)));
+                    new com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyItem(BOILER_BOGEY.get(), new Item.Properties().stacksTo(64)));
 
     public static final DeferredHolder<BlockEntityType<?>,
             BlockEntityType<com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyBlockEntity>>

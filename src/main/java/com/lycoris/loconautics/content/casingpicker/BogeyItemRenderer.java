@@ -1,5 +1,7 @@
 package com.lycoris.loconautics.content.casingpicker;
 
+import com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyStyles;
+import com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyWheels;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
@@ -12,6 +14,7 @@ import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
@@ -22,6 +25,7 @@ import org.joml.Vector3f;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class BogeyItemRenderer extends CustomRenderedItemModelRenderer {
 
@@ -32,11 +36,21 @@ public class BogeyItemRenderer extends CustomRenderedItemModelRenderer {
 
     private static final Map<BogeyChoice, AABB> BOUNDS = new HashMap<>();
 
+    private final Function<ItemStack, BogeyChoice> choiceOf;
+
+    public BogeyItemRenderer() {
+        this(BogeyItem::choiceOf);
+    }
+
+    public BogeyItemRenderer(Function<ItemStack, BogeyChoice> choiceOf) {
+        this.choiceOf = choiceOf;
+    }
+
     @Override
     protected void render(ItemStack stack, CustomRenderedItemModel model, PartialItemModelRenderer renderer,
                           ItemDisplayContext transformType, PoseStack ms, MultiBufferSource buffer, int light,
                           int overlay) {
-        BogeyChoice choice = BogeyItem.choiceOf(stack);
+        BogeyChoice choice = choiceOf.apply(stack);
         AABB bounds = BOUNDS.computeIfAbsent(choice, BogeyItemRenderer::measure);
         float scale = transformType == ItemDisplayContext.GUI
                 ? Math.max(MIN_GUI_SCALE, guiFit(bounds)) : HELD_SCALE;
@@ -55,7 +69,14 @@ public class BogeyItemRenderer extends CustomRenderedItemModelRenderer {
         Minecraft.getInstance().getBlockRenderer().renderSingleBlock(state, ms, buffer, light, overlay);
         ms.popPose();
         choice.style().render(choice.size(), AnimationTickHolder.getPartialTicks(), ms, buffer, light, overlay,
-                0, null, false);
+                0, previewData(choice), false);
+    }
+
+    private static CompoundTag previewData(BogeyChoice choice) {
+        if (choice.style() != BoilerBogeyStyles.BOILER) return null;
+        CompoundTag data = new CompoundTag();
+        data.putInt(BoilerBogeyWheels.KEY, 1);
+        return data;
     }
 
     private static float guiFit(AABB bounds) {

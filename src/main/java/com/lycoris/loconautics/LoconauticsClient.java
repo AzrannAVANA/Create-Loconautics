@@ -125,6 +125,11 @@ public final class LoconauticsClient {
         event.registerItem(
                 com.lycoris.loconautics.content.casingpicker.BogeyItem.clientExtensions(),
                 LoconauticsRegistries.BOGEY.get());
+        event.registerItem(
+                com.lycoris.loconautics.content.casingpicker.BogeyItem.clientExtensions(
+                        new com.lycoris.loconautics.content.casingpicker.BogeyItemRenderer(
+                                stack -> com.lycoris.loconautics.content.boiler.bogey.BoilerBogeyStyles.CHOICE)),
+                com.lycoris.loconautics.content.boiler.BoilerBlocks.BOILER_BOGEY_ITEM.get());
     }
 
     private void onRegisterSpriteSources(
@@ -187,6 +192,8 @@ public final class LoconauticsClient {
         com.simibubi.create.foundation.item.render.CustomRenderedItems.register(
                 LoconauticsRegistries.CREATIVE_TRAIN_RELOCATOR.get());
         com.simibubi.create.foundation.item.render.CustomRenderedItems.register(LoconauticsRegistries.BOGEY.get());
+        com.simibubi.create.foundation.item.render.CustomRenderedItems.register(
+                com.lycoris.loconautics.content.boiler.BoilerBlocks.BOILER_BOGEY_ITEM.get());
 
         event.enqueueWork(() -> net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(
                 com.lycoris.loconautics.content.cerisene.CeriseneBlocks.CERISENE.get(), net.minecraft.client.renderer.RenderType.translucent()));

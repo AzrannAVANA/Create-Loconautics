@@ -3,6 +3,7 @@ package com.lycoris.loconautics.content.boiler.bogey;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.client.BoilerBogeyClient;
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
+import com.lycoris.loconautics.content.casingpicker.BogeyChoice;
 import com.simibubi.create.content.trains.bogey.BogeySizes;
 import com.simibubi.create.content.trains.bogey.BogeyStyle;
 import net.minecraft.network.chat.Component;
@@ -17,6 +18,8 @@ public final class BoilerBogeyStyles {
             .displayName(Component.translatable("loconautics.bogey.style.boiler"))
             .size(BogeySizes.SMALL, BoilerBlocks.BOILER_BOGEY::get, () -> BoilerBogeyClient::smallRenderer)
             .build();
+
+    public static final BogeyChoice CHOICE = new BogeyChoice(BOILER, BogeySizes.SMALL);
 
     private BoilerBogeyStyles() {
     }

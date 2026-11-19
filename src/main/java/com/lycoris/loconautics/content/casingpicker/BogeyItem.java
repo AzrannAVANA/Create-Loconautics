@@ -136,9 +136,12 @@ public class BogeyItem extends Item implements GuiCroppedItem {
 
     @OnlyIn(Dist.CLIENT)
     public static IClientItemExtensions clientExtensions() {
-        return new IClientItemExtensions() {
-            private final CustomRenderedItemModelRenderer renderer = new BogeyItemRenderer();
+        return clientExtensions(new BogeyItemRenderer());
+    }
 
+    @OnlyIn(Dist.CLIENT)
+    public static IClientItemExtensions clientExtensions(CustomRenderedItemModelRenderer renderer) {
+        return new IClientItemExtensions() {
             @Override
             public CustomRenderedItemModelRenderer getCustomRenderer() {
                 return renderer;
