@@ -88,7 +88,7 @@ public final class SubLevelBlocks {
         return count[0];
     }
 
-    private record Cached(int count, List<BlockEntity> entities) {
+    private record Cached(int count, long checkedTick, List<BlockEntity> entities) {
     }
 
     private static final Map<SubLevel, Cached> CACHE = Collections.synchronizedMap(new WeakHashMap<>());
@@ -101,17 +101,33 @@ public final class SubLevelBlocks {
         for (PlotChunkHolder holder : sub.getPlot().getLoadedChunks()) {
             count += holder.getChunk().getBlockEntities().size();
         }
+        long tick = sub.getLevel().getGameTime();
         Cached cached = CACHE.get(sub);
-        if (cached != null && cached.count() == count && cached.entities().stream().noneMatch(BlockEntity::isRemoved)) {
-            return cached.entities();
+        if (cached != null && cached.count() == count) {
+            if (cached.checkedTick() == tick) {
+                return cached.entities();
+            }
+            if (noneRemoved(cached.entities())) {
+                CACHE.put(sub, new Cached(count, tick, cached.entities()));
+                return cached.entities();
+            }
         }
         List<BlockEntity> out = new ArrayList<>(count);
         for (PlotChunkHolder holder : sub.getPlot().getLoadedChunks()) {
             out.addAll(holder.getChunk().getBlockEntities().values());
         }
         List<BlockEntity> fresh = Collections.unmodifiableList(out);
-        CACHE.put(sub, new Cached(count, fresh));
+        CACHE.put(sub, new Cached(count, tick, fresh));
         return fresh;
+    }
+
+    private static boolean noneRemoved(List<BlockEntity> entities) {
+        for (int i = 0; i < entities.size(); i++) {
+            if (entities.get(i).isRemoved()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Nullable
