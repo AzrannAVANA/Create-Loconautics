@@ -83,6 +83,13 @@
 - The steam release when a train stops comes from the Boiler Bogey.
 - The safety valve hiss is quiet below half open and louder when fully open.
 - Parts on a Railways smokebox sit flush, round bodies lift them.
+- The analog controller arrow points at the axle front and turns with your camera.
+- The boiler bogey item icon shows the real bogey with its wheels.
+- The firebox item icon shows the shell, core and door.
+- The train wheel item icon sits centered in the slot.
+- Unloaded trains now move and keep their car gaps the way Create trains do.
+- Unloaded trains load back in once their track is in a ticking chunk (Create parity).
+- Boiler bodies have new end caps and a reworked shell.
 
 ### Ponder
 #### Instrument Panel
