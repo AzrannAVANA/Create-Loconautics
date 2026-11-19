@@ -2,6 +2,8 @@ package com.lycoris.loconautics.content.analogcontroller;
 
 import com.lycoris.loconautics.common.LinkHolder;
 import com.lycoris.loconautics.registry.LoconauticsRegistries;
+import com.lycoris.loconautics.trainphysics.drive.DriveSources;
+import com.lycoris.loconautics.trainphysics.drive.TrainDriveSource;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.simibubi.create.Create;
 import com.simibubi.create.content.redstone.link.IRedstoneLinkable;
@@ -63,6 +65,7 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
     private boolean raisingSignal;
     private boolean loweringSignal;
     private int steerInput;
+    private int axleFront = -1;
     private boolean spaceSignal;
     private int driveInput;
     private boolean lockSignal;
@@ -159,6 +162,10 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
             expireHeldKeys(level);
         }
 
+        if (currentUser != null && level.getGameTime() % AXLE_TURN_TICKS == 0) {
+            refreshAxleFront();
+        }
+
         int previousPower = currentPower;
 
         if (currentUser == null && !locked && !scheduleControlled && currentPower != 0 && onTrain()) {
@@ -194,6 +201,27 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
             setChanged();
             sendData();
         }
+    }
+
+    private static final int AXLE_TURN_TICKS = 10;
+
+    private void refreshAxleFront() {
+        int front = -1;
+        if (Sable.HELPER.getContaining(level, worldPosition) instanceof ServerSubLevel sub) {
+            TrainDriveSource axle = DriveSources.resolve(sub);
+            if (axle != null) {
+                front = axle.frontLocal().get2DDataValue();
+            }
+        }
+        if (front == axleFront) return;
+        axleFront = front;
+        sendData();
+    }
+
+    // the axle front in the frame of the sub level, null when there is no axle
+    @Nullable
+    public net.minecraft.core.Direction getAxleFront() {
+        return axleFront < 0 ? null : net.minecraft.core.Direction.from2DDataValue(axleFront);
     }
 
     private int decayCounter = RAISE_TICKS;
@@ -259,6 +287,7 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
         spaceSignal    = false;
         driveInput     = 0;
         updateBlockState(level, getBlockState());
+        if (!level.isClientSide) refreshAxleFront();
         setChanged();
         sendData();
         if (!level.isClientSide && player instanceof ServerPlayer sp) {
@@ -726,6 +755,7 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
         if (clientPacket) {
             tag.putBoolean("HasUser", currentUser != null);
             tag.putInt("Steer", steerInput);
+            tag.putInt("AxleFront", axleFront);
         }
 
         writeFrequencies(tag, registries);
@@ -759,6 +789,7 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
         if (clientPacket && tag.contains("HasUser")) {
             currentUser = tag.getBoolean("HasUser") ? java.util.UUID.randomUUID() : null;
             steerInput = tag.getInt("Steer");
+            axleFront = tag.contains("AxleFront") ? tag.getInt("AxleFront") : -1;
         } else {
             currentUser = null; // never restore stale user uuid on server
         }

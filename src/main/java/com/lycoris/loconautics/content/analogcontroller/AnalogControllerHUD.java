@@ -4,14 +4,18 @@ import com.lycoris.loconautics.LoconauticsConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.simibubi.create.foundation.gui.AllGuiTextures;
 import dev.ryanhcode.sable.Sable;
+import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import net.createmod.catnip.animation.LerpedFloat;
+import org.joml.Vector3d;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.LayeredDraw;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
 import net.minecraft.world.level.GameType;
 
 public class AnalogControllerHUD {
@@ -34,6 +38,9 @@ public class AnalogControllerHUD {
 
     private static final int LOCK_W = 8, LOCK_H = 10;
 
+    private static final float SPRITE_STEP = 22.5f;
+    private static final int SPRITE_COUNT = 16;
+
     private static final LerpedFloat displayedSpeed    = LerpedFloat.linear();
     private static final LerpedFloat displayedThrottle = LerpedFloat.linear();
 
@@ -53,6 +60,22 @@ public class AnalogControllerHUD {
                 currentPrompt != null ? (double) (mc.font.width(currentPrompt) + 17) : 0.0,
                 0.5, LerpedFloat.Chaser.EXP);
         displayedPromptSize.tickChaser();
+    }
+
+    private static float spriteAngle(float angle) {
+        return Math.floorMod(Math.round(angle / SPRITE_STEP), SPRITE_COUNT) * SPRITE_STEP;
+    }
+
+    private static float frontAngle(Minecraft mc, AnalogControllerBlockEntity ace) {
+        Direction front = ace.getAxleFront();
+        if (front == null) return 0.0f;
+        Vector3d world = new Vector3d(front.getStepX(), 0.0, front.getStepZ());
+        ClientSubLevel sub = Sable.HELPER.getContainingClient(ace.getBlockPos());
+        if (sub != null) {
+            sub.renderPose().transformNormal(world);
+        }
+        float frontYaw = (float) Math.toDegrees(Math.atan2(-world.x, world.z));
+        return Mth.wrapDegrees(frontYaw - mc.gameRenderer.getMainCamera().getYRot());
     }
 
     private static void render(GuiGraphics graphics, DeltaTracker deltaTracker) {
@@ -111,12 +134,12 @@ public class AnalogControllerHUD {
                 77, 165, 28, 20, 256, 256);
 
         int steer = ace.getSteerInput();
-        float steerAngle = steer < 0 ? -45.0f : steer > 0 ? 45.0f : 0.0f;
+        float steerAngle = frontAngle(mc, ace) + (steer < 0 ? -45.0f : steer > 0 ? 45.0f : 0.0f);
         PoseStack arrowPose = graphics.pose();
         arrowPose.pushPose();
         arrowPose.translate(originX + 91, barY - 9, 0);
         arrowPose.scale(0.925f, 0.925f, 1.0f);
-        net.createmod.catnip.placement.PlacementClient.textured(arrowPose, 0.0f, 0.0f, 1.0f, steerAngle);
+        net.createmod.catnip.placement.PlacementClient.textured(arrowPose, 0.0f, 0.0f, 1.0f, spriteAngle(steerAngle));
         arrowPose.popPose();
 
         int promptSize = (int) displayedPromptSize.getValue(partialTicks);
