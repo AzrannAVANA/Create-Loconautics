@@ -1,5 +1,11 @@
 {
-    "parent": "loconautics:block/boiler/firebox/shell_run",
+    "loader": "neoforge:composite",
+    "parent": "minecraft:block/block",
+    "children": {
+        "shell": {"parent": "loconautics:block/boiler/firebox/shell_run"},
+        "core": {"parent": "loconautics:block/boiler/firebox/core"},
+        "door": {"parent": "loconautics:block/boiler/firebox/door"}
+    },
     "display": {
         "gui": {"rotation": [30, 135, 0], "translation": [0, 0, 0], "scale": [0.38, 0.38, 0.38]},
         "fixed": {"rotation": [0, 90, 0], "translation": [0, 0, 0], "scale": [0.4, 0.4, 0.4]},
