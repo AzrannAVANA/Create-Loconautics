@@ -152,7 +152,7 @@ public final class StationLanding {
             return;
         }
         Vec3 leadForward = SableTrainDriver.scheduleDriveTangent(train);
-        java.util.Set<UUID> mates = train.isGhost() ? train.consistCache() : TrainConsist.connectedSubLevels(level, myId);
+        java.util.Set<UUID> mates = train.isGhost() ? train.consistCache() : TrainConsist.connectedThisTick(level, myId);
         for (UUID id : mates) {
             if (id.equals(myId)) {
                 continue;

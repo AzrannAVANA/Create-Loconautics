@@ -263,7 +263,7 @@ public final class TrainPropulsion {
         if (level == null || train.car() == null) {
             return false;
         }
-        for (UUID id : TrainConsist.connectedSubLevels(level, train.car().subLevelId())) {
+        for (UUID id : TrainConsist.connectedThisTick(level, train.car().subLevelId())) {
             ServerSubLevel sub = SubLevelData.resolve(level, id);
             if (sub != null && ExternalForceDerail.staffHolds(sub)) {
                 return true;

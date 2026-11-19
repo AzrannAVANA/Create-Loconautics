@@ -17,12 +17,15 @@ import org.joml.Vector3dc;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -30,7 +33,57 @@ public final class TrainConsist {
 
     private static final List<CouplingProvider> PROVIDERS = new CopyOnWriteArrayList<>();
 
+    private record ConsistHit(ServerLevel level, Set<UUID> consist) {
+    }
+
+    private record ChainHit(ServerLevel level, List<UUID> chain) {
+    }
+
+    private static final Map<UUID, ConsistHit> CONSIST_HITS = new ConcurrentHashMap<>();
+    private static final Map<UUID, ChainHit> CHAIN_HITS = new ConcurrentHashMap<>();
+    private static volatile long hitsTick = Long.MIN_VALUE;
+
     private TrainConsist() {
+    }
+
+    private static void sweepHits(long tick) {
+        if (tick != hitsTick) {
+            CONSIST_HITS.clear();
+            CHAIN_HITS.clear();
+            hitsTick = tick;
+        }
+    }
+
+    // read only, valid for the rest of this game tick, so use it only where a coupling made this tick can wait one tick
+    public static Set<UUID> connectedThisTick(ServerLevel level, UUID start) {
+        if (start == null) {
+            return Set.of();
+        }
+        sweepHits(level.getGameTime());
+        ConsistHit hit = CONSIST_HITS.get(start);
+        if (hit != null && hit.level() == level) {
+            return hit.consist();
+        }
+        Set<UUID> fresh = Collections.unmodifiableSet(connectedSubLevels(level, start));
+        ConsistHit shared = new ConsistHit(level, fresh);
+        for (UUID id : fresh) {
+            CONSIST_HITS.put(id, shared);
+        }
+        return fresh;
+    }
+
+    public static List<UUID> orderedChainThisTick(ServerLevel level, UUID start) {
+        if (start == null) {
+            return List.of();
+        }
+        sweepHits(level.getGameTime());
+        ChainHit hit = CHAIN_HITS.get(start);
+        if (hit != null && hit.level() == level) {
+            return hit.chain();
+        }
+        List<UUID> fresh = Collections.unmodifiableList(orderedChain(level, start));
+        CHAIN_HITS.put(start, new ChainHit(level, fresh));
+        return fresh;
     }
 
     public static void registerProvider(CouplingProvider provider) {

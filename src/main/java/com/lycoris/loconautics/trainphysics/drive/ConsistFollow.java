@@ -24,7 +24,7 @@ public final class ConsistFollow {
             return;
         }
         SableTrain leader = null;
-        for (UUID id : TrainConsist.connectedSubLevels(level, myId)) {
+        for (UUID id : TrainConsist.connectedThisTick(level, myId)) {
             SableTrain other = id.equals(myId) ? null : SableTrainRegistry.bySubLevel(id);
             if (other != null && other.servoBrake() && !other.isFollowing() && !other.isDerailed()
                     && other.car() != null && other.level() == level) {

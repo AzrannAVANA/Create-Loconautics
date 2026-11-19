@@ -199,7 +199,7 @@ public final class TrainResidency {
         }
         train.setBodyChunk(chunkOf(sub.logicalPose().position()));
         train.setLastKnownPos(sub.logicalPose().position());
-        train.setConsistCache(TrainConsist.connectedSubLevels(train.level(), train.car().subLevelId()));
+        train.setConsistCache(TrainConsist.connectedThisTick(train.level(), train.car().subLevelId()));
         if (train.extent() == null || (train.level().getGameTime() & EXTENT_REFRESH_MASK) == (train.id().hashCode() & EXTENT_REFRESH_MASK)) {
             refreshExtent(train);
         }

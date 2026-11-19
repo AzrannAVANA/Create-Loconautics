@@ -25,7 +25,7 @@ public final class ConsistBrake {
         if (level == null || myId == null) {
             return NONE;
         }
-        Set<UUID> consist = TrainConsist.connectedSubLevels(level, myId);
+        Set<UUID> consist = TrainConsist.connectedThisTick(level, myId);
         if (consist.size() <= 1) {
             return NONE;
         }

@@ -170,7 +170,7 @@ public final class ConsistPower {
         ServerLevel level = seed.level();
         UUID seedId = seed.car().subLevelId();
         List<UUID> members = new ArrayList<>();
-        for (UUID id : TrainConsist.connectedSubLevels(level, seedId)) {
+        for (UUID id : TrainConsist.connectedThisTick(level, seedId)) {
             SableTrain member = bySubLevel.get(id);
             if (member != null && member.level() == level) {
                 members.add(id);
@@ -408,7 +408,7 @@ public final class ConsistPower {
     private static Map<UUID, Integer> orientations(ServerLevel level, UUID seedId, List<UUID> members,
                                                    Map<UUID, SableTrain> bySubLevel) {
         Map<UUID, Integer> out = new HashMap<>();
-        List<UUID> order = TrainConsist.orderedChain(level, seedId);
+        List<UUID> order = TrainConsist.orderedChainThisTick(level, seedId);
         Vec3 previous = null;
         int previousFlip = 1;
         for (UUID id : order) {

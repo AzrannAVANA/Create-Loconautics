@@ -210,7 +210,7 @@ public final class ConsistNose {
     }
 
     private static int walkRelation(ServerLevel level, UUID fromId, UUID toId) {
-        List<UUID> chain = TrainConsist.orderedChain(level, fromId);
+        List<UUID> chain = TrainConsist.orderedChainThisTick(level, fromId);
         int start = chain.indexOf(fromId);
         int end = chain.indexOf(toId);
         SableTrain first = SableTrainRegistry.bySubLevel(fromId);
@@ -426,7 +426,7 @@ public final class ConsistNose {
     }
 
     private static List<SableTrain> endCars(ServerLevel level, UUID id, List<SableTrain> cars) {
-        List<UUID> chain = TrainConsist.orderedChain(level, id);
+        List<UUID> chain = TrainConsist.orderedChainThisTick(level, id);
         if (chain.size() < 3) {
             return List.of();
         }
@@ -460,7 +460,7 @@ public final class ConsistNose {
             members.addAll(train.consistCache());
             members.add(idOf(train));
         } else {
-            members.addAll(TrainConsist.connectedSubLevels(train.level(), idOf(train)));
+            members.addAll(TrainConsist.connectedThisTick(train.level(), idOf(train)));
         }
         List<SableTrain> cars = new ArrayList<>();
         for (UUID other : members) {
@@ -473,7 +473,7 @@ public final class ConsistNose {
     }
 
     private static Nose frontOfChain(ServerLevel level, UUID id, List<SableTrain> cars, Heading heading, Vec3 look) {
-        List<UUID> chain = TrainConsist.orderedChain(level, id);
+        List<UUID> chain = TrainConsist.orderedChainThisTick(level, id);
         int at = chain.indexOf(heading.ref().car().subLevelId());
         if (chain.size() < 2 || at < 0) {
             return null;

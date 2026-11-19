@@ -362,7 +362,7 @@ public final class TrainStations {
             return known;
         }
         List<SableTrain> cars = new ArrayList<>();
-        for (UUID other : TrainConsist.connectedSubLevels(level, id)) {
+        for (UUID other : TrainConsist.connectedThisTick(level, id)) {
             SableTrain candidate = SableTrainRegistry.bySubLevel(other);
             if (candidate != null && candidate.car() != null && candidate.car().subLevelId() != null
                     && !candidate.isDerailed()) {

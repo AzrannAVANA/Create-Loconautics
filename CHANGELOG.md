@@ -38,6 +38,7 @@
 - A rope to a body left behind is cut and dropped when a car crosses a portal.
 - A car that cannot load after a portal crossing no longer leaves a ghost train behind.
 - A rake with an unloaded coupled car is refused at a portal, not split.
+- Long trains no longer slow the server down.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
