@@ -43,9 +43,10 @@ public final class SableTeleportation {
 
     public record PlotSlot(int x, int z) {}
 
-    public record Result(@Nullable ServerSubLevel moved, @Nullable String failure, boolean lost) {
+    public record Result(@Nullable ServerSubLevel moved, @Nullable String failure, boolean lost,
+                         Vector3dc plotShift) {
         public Result(@Nullable ServerSubLevel moved, @Nullable String failure) {
-            this(moved, failure, false);
+            this(moved, failure, false, new Vector3d());
         }
 
         public boolean ok() {
@@ -87,11 +88,13 @@ public final class SableTeleportation {
                 sub.getPlot().plotPos.z - container.getOrigin().y);
     }
 
+    // a pose y is the center of mass, so a commanded y needs this added to keep the bottom of the body on it
     // a pose position is the bodys center of mass, so a commanded y buries the bottom half of it unless the
     public static double baseOffsetY(ServerSubLevel sub) {
         return sub.logicalPose().position().y() - sub.boundingBox().minY();
     }
 
+    // fullyload takes the slot the tag names, so that slot has to be free
     // block entity tags hold absolute coordinates and load never rebases them
     public static boolean plotSlotFree(ServerLevel destLevel, PlotSlot slot) {
         ServerSubLevelContainer container = SubLevelContainer.getContainer(destLevel);
@@ -121,7 +124,7 @@ public final class SableTeleportation {
         return null;
     }
 
-    // fullyload takes the slot plotx and plotz name, so that index must be free in the destination, y stays put the far side copy takes a plot of its own in the destination, so it needs the same rebase a crossing does
+    // block entity tags hold absolute coordinates and load never rebases them, so a moved slot shifts them
     @Nullable
     public static String repot(CompoundTag tag, ServerLevel srcLevel, ServerLevel destLevel, PlotSlot from,
                                PlotSlot to) {
@@ -305,9 +308,8 @@ public final class SableTeleportation {
         Pose3d target = new Pose3d(sub.logicalPose());
         target.position().set(position);
         target.orientation().set(orient);
-        if (targetSlot != null) {
-            target.rotationPoint().add(plotShift(srcLevel, destLevel, fromSlot, targetSlot));
-        }
+        Vector3d plotDelta = targetSlot == null ? new Vector3d() : plotShift(srcLevel, destLevel, fromSlot, targetSlot);
+        target.rotationPoint().add(plotDelta);
         tag.put("pose", SableNBTUtils.writePose3d(target));
         tag.remove("linear_velocity");
         tag.remove("angular_velocity");
@@ -338,7 +340,7 @@ public final class SableTeleportation {
                     LoconauticsConstants.LOGGER.error("[teleport] lost body {}, it loaded into neither {} nor {}",
                             subLevelId, destLevel.dimension().location(), srcLevel.dimension().location());
                     return new Result(null, "body " + subLevelId + " would not load into "
-                            + destLevel.dimension().location() + " and could not be put back", true);
+                            + destLevel.dimension().location() + " and could not be put back", true, new Vector3d());
                 }
                 SubLevelGlue.put(moved, glue);
                 SubLevelPassengers.restore(srcLevel, moved, riders);
@@ -361,7 +363,7 @@ public final class SableTeleportation {
         SubLevelGlue.put(moved, glue);
         SubLevelPassengers.restore(destLevel, moved, riders);
         relockStaff(destLevel, subLevelId, staffLocked);
-        return new Result(moved, null);
+        return new Result(moved, null, false, plotDelta);
     }
 
     private static void relockStaff(ServerLevel level, UUID subLevelId, boolean staffLocked) {

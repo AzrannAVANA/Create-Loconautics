@@ -51,14 +51,14 @@ import java.util.UUID;
 
 public final class TeleportStrands {
 
-    public record Shift(BlockPos from, BlockPos to) {
+    public record Shift(int dx, int dz) {
 
         public BlockPos apply(BlockPos pos) {
-            return new BlockPos(pos.getX() - from.getX() + to.getX(), pos.getY(), pos.getZ() - from.getZ() + to.getZ());
+            return new BlockPos(pos.getX() + dx, pos.getY(), pos.getZ() + dz);
         }
 
         public Vector3d apply(Vector3d local) {
-            return local.add(to.getX() - from.getX(), 0.0, to.getZ() - from.getZ());
+            return local.add(dx, 0.0, dz);
         }
     }
 
@@ -138,12 +138,6 @@ public final class TeleportStrands {
                         && smart.getBehaviour(RopeStrandHolderBehavior.TYPE) instanceof RopeStrandHolderBehavior holder) {
                     if (holder.ownsRope() && holder.getOwnedStrand() != null) {
                         found.putIfAbsent(holder.getOwnedStrand().getUUID(), holder.getOwnedStrand());
-                    }
-                    ServerLevelRopeManager holderManager = ServerLevelRopeManager.getOrCreate(be.getLevel());
-                    if (holderManager != null) {
-                        for (ServerRopeStrand strand : holderManager.getAllStrands()) {
-                            found.putIfAbsent(strand.getUUID(), strand);
-                        }
                     }
                 }
             }
