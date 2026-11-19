@@ -243,8 +243,8 @@ public final class CarriageRoll {
             return "docked";
         }
         var chain = group.chain();
-        if (chain.size() < 2) {
-            return "single_bogey";
+        if (chain.isEmpty()) {
+            return "no_bogey";
         }
         if (group.carriage().isOnMonorail()) {
             return "monorail";
@@ -318,7 +318,7 @@ public final class CarriageRoll {
     public static Ready rollReady(ServerSubLevel sub, Car car, RollFrame frame, PoseTweak.Applied seated) {
         MassData md = sub.getMassTracker();
         if (frame == null || md == null || md.isInvalid() || RigidBodyHandle.of(sub) == null
-                || car.chain().size() < 2) {
+                || car.chain().isEmpty()) {
             return new Ready("no_geometry", null);
         }
         WheelSupports.Prepared prepared = WheelSupports.prepare(sub, car.chain(), frame, seated);

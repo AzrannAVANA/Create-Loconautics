@@ -62,6 +62,7 @@
 - A boiler that overpressures gives the Too Much Pressure advancement.
 - Smokestacks show a placement ghost when you click a smokestack or boiler host.
 - Hold Alt over a boiler body or firebox to see its water capacity.
+- Single bogey cars lift their wheels on one side like other cars.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
