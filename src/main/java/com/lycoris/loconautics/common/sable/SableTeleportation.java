@@ -35,6 +35,9 @@ public final class SableTeleportation {
     // a dimension change removes the body then adds it back, and watchers drop it in between
     private static final Set<UUID> IN_FLIGHT = new HashSet<>();
 
+    private static final List<String> ABSOLUTE_POS_KEYS = List.of("Source", "Controller", "LastKnownPos", "EnginePos",
+            "Breaking", "MirrorParent");
+
     private SableTeleportation() {
     }
 
@@ -174,25 +177,36 @@ public final class SableTeleportation {
                 CompoundTag be = blockEntities.getCompound(i);
                 be.putInt("x", be.getInt("x") + dx);
                 be.putInt("z", be.getInt("z") + dz);
-                shiftKinetics(be, dx, dz);
+                shiftAbsolutePositions(be, dx, dz);
             }
         }
         return null;
     }
 
-    // create saves the kinetic source as an absolute position and the network id as the generator position
-    private static void shiftKinetics(CompoundTag be, int dx, int dz) {
-        if (be.contains("Source", Tag.TAG_INT_ARRAY)) {
-            int[] source = be.getIntArray("Source");
-            if (source.length == 3) {
-                source[0] += dx;
-                source[2] += dz;
-                be.putIntArray("Source", source);
-            }
+    // create saves the kinetic source, multiblock controllers, engines and pulley links as absolute positions
+    private static void shiftAbsolutePositions(CompoundTag be, int dx, int dz) {
+        for (String key : ABSOLUTE_POS_KEYS) {
+            shiftPos(be, key, dx, dz);
+        }
+        ListTag mirrorChildren = be.getList("MirrorChildren", Tag.TAG_COMPOUND);
+        for (int i = 0; i < mirrorChildren.size(); i++) {
+            shiftPos(mirrorChildren.getCompound(i), "Pos", dx, dz);
         }
         if (be.contains("Network", Tag.TAG_COMPOUND)) {
             CompoundTag network = be.getCompound("Network");
             network.putLong("Id", BlockPos.of(network.getLong("Id")).offset(dx, 0, dz).asLong());
+        }
+    }
+
+    private static void shiftPos(CompoundTag tag, String key, int dx, int dz) {
+        if (!tag.contains(key, Tag.TAG_INT_ARRAY)) {
+            return;
+        }
+        int[] pos = tag.getIntArray(key);
+        if (pos.length == 3) {
+            pos[0] += dx;
+            pos[2] += dz;
+            tag.putIntArray(key, pos);
         }
     }
 

@@ -26,6 +26,14 @@
 - Unloaded trains stop at a dead end instead of running off it when loaded.
 - Chat now says a car could not grip its track instead of no track.
 - Parts on top of an upright boiler no longer float 8 pixels up.
+- Cars no longer sway on their own over rail seams and junctions.
+- Cars lean outward in curves and keep every wheel on the rail.
+- Steady pushes no longer float a car above the rail.
+- Bogey wheels no longer pull a leaning car back and forth.
+- Bogeys roll with the car in both driving directions.
+- Bogeys level out when the car stops leaning, with no sudden step.
+- A rake that fails a portal crossing returns every car home, still coupled.
+- Tanks, vaults and belts on a car keep their contents after a portal crossing.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
