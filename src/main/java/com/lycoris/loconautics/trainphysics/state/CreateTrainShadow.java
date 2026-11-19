@@ -4,9 +4,12 @@ import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.compat.crn.CrnTrainEvents;
 import com.lycoris.loconautics.content.schedule.RouteDistance;
 import com.lycoris.loconautics.content.schedule.SableScheduleRuntime;
+import com.lycoris.loconautics.mixin.create.train.TrainStressAccessor;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.TrainConsist;
+import com.lycoris.loconautics.trainphysics.TrainLength;
+import com.lycoris.loconautics.trainphysics.spacing.CarExtent;
 import com.lycoris.loconautics.trainphysics.signal.TrainSignals;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner;
@@ -21,17 +24,22 @@ import com.simibubi.create.content.trains.entity.RemoveTrainPacket;
 import com.simibubi.create.content.trains.entity.Train;
 import com.simibubi.create.content.trains.entity.TrainIconType;
 import com.simibubi.create.content.trains.entity.TravellingPoint;
+import com.simibubi.create.content.trains.graph.TrackEdge;
+import com.simibubi.create.content.trains.graph.TrackNode;
 import com.simibubi.create.content.trains.schedule.Schedule;
 import com.simibubi.create.content.trains.schedule.ScheduleRuntime;
 import com.simibubi.create.content.trains.station.GlobalStation;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import net.createmod.catnip.data.Couple;
 import net.createmod.catnip.platform.CatnipServices;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -92,7 +100,8 @@ public final class CreateTrainShadow {
             if (placed.contains(train.id())) {
                 continue;
             }
-            List<SableTrain> cars = consistOf(train, bySubLevel);
+            List<SableTrain> ghosts = ghostConsistOf(train, bySubLevel);
+            List<SableTrain> cars = ghosts != null ? ghosts : consistOf(train, bySubLevel);
             cars.forEach(car -> placed.add(car.id()));
             SableTrain head = cars.stream().min(HEAD_FIRST).orElse(train);
             live.add(head.id());
@@ -133,6 +142,166 @@ public final class CreateTrainShadow {
     public static List<Member> membersOf(Train shadow) {
         List<Member> layout = LAYOUTS.get(shadow.id);
         return layout == null || !isShadow(shadow) ? List.of() : layout;
+    }
+
+    public static List<SableTrain> carsOf(Train shadow) {
+        List<Member> layout = membersOf(shadow);
+        if (layout.isEmpty() || layout.size() != shadow.carriages.size()) {
+            return List.of();
+        }
+        List<SableTrain> cars = new ArrayList<>(layout.size());
+        for (Member member : layout) {
+            SableTrain car = SableTrainRegistry.get(member.cart());
+            if (car == null || car.car() == null) {
+                return List.of();
+            }
+            cars.add(car);
+        }
+        return cars;
+    }
+
+    // which way the shadow moves for a positive step of this cars own rail frame
+    public static double senseOf(SableTrain car, boolean reversed) {
+        double side = reversed ? -1.0 : 1.0;
+        if (car.car().bogeys().size() >= 2) {
+            return side;
+        }
+        RailCarriage rail = railOf(car);
+        Vec3 lead = rail.leadingPos();
+        Vec3 trail = rail.trailingPos();
+        Vec3 forward = rail.forward();
+        if (lead == null || trail == null || forward == null) {
+            return side;
+        }
+        return lead.subtract(trail).dot(forward) >= 0.0 ? side : -side;
+    }
+
+    // puts the cars current rail points into the shadow again, after the rails had a chance to rebind
+    public static void refreshFromCars(Train shadow, List<SableTrain> cars) {
+        List<Member> layout = LAYOUTS.get(shadow.id);
+        for (int i = 0; i < cars.size(); i++) {
+            SableTrain car = cars.get(i);
+            boolean reversed = layout.get(i).reversed();
+            seedDimensional(shadow.carriages.get(i), car, railOf(car), reversed);
+            copyPoints(shadow.carriages.get(i), car, railOf(car), reversed);
+            shadow.carriages.get(i).updateContraptionAnchors();
+        }
+        shadow.graph = railOf(cars.get(0)).graph();
+    }
+
+    // creates spring pulls every gap toward its target, so the target is the gap the cars have right now
+    public static void holdSpacing(Train shadow, double[] gaps) {
+        for (int i = 0; i < gaps.length; i++) {
+            if (!Double.isNaN(gaps[i])) {
+                shadow.carriageSpacing.set(i, (int) Math.max(0L, Math.round(gaps[i])));
+            }
+        }
+    }
+
+    // the gap two cars have when their bodies just touch at the coupler rest length, the smaller reach of each car keeps it lenient
+    public static double nominalGap(List<SableTrain> cars, List<Member> layout, int pair) {
+        SableTrain back = cars.get(pair);
+        SableTrain front = cars.get(pair + 1);
+        CarExtent backExtent = back.extent();
+        CarExtent frontExtent = front.extent();
+        if (backExtent == null || frontExtent == null || !onRails(back) || !onRails(front)) {
+            return Double.NaN;
+        }
+        return Math.min(backExtent.forward(), backExtent.backward()) + Math.min(frontExtent.forward(), frontExtent.backward())
+                + TrainLength.COUPLING_GAP - halfSpan(layout.get(pair), back) - halfSpan(layout.get(pair + 1), front);
+    }
+
+    private static double halfSpan(Member member, SableTrain car) {
+        return member.twoBogeys() ? railOf(car).bogeySpacing() / 2.0 : 0.0;
+    }
+
+    public static double gap(Train shadow, int index) {
+        Carriage carriage = shadow.carriages.get(index);
+        Carriage previous = shadow.carriages.get(index - 1);
+        TravellingPoint leading = carriage.getLeadingPoint();
+        TravellingPoint trailing = previous.getTrailingPoint();
+        if (leading.node1 == null || trailing.node1 == null) {
+            return Double.NaN;
+        }
+        ResourceKey<Level> dimension = leading.node1.getLocation().dimension;
+        if (!dimension.equals(trailing.node1.getLocation().dimension)) {
+            return Double.NaN;
+        }
+        Carriage.DimensionalCarriageEntity front = carriage.getDimensionalIfPresent(dimension);
+        Carriage.DimensionalCarriageEntity back = previous.getDimensionalIfPresent(dimension);
+        if (front == null || back == null || front.leadingAnchor() == null || back.trailingAnchor() == null) {
+            return Double.NaN;
+        }
+        double squared = front.leadingAnchor().distanceToSqr(back.trailingAnchor());
+        boolean flipped = carriage.leadingBogey().isUpsideDown() != previous.trailingBogey().isUpsideDown();
+        return Math.sqrt(flipped ? squared - 4.0 : squared);
+    }
+
+    // the inverse of copypoints, the shadow moved and the rails have to follow it
+    public static void copyBack(Train shadow, List<SableTrain> cars) {
+        List<Member> layout = LAYOUTS.get(shadow.id);
+        for (int i = 0; i < cars.size(); i++) {
+            SableTrain car = cars.get(i);
+            boolean reversed = layout.get(i).reversed();
+            Carriage carriage = shadow.carriages.get(i);
+            List<SableTrain.Bogey> bogeys = car.car().bogeys();
+            RailCarriage span = car.car().carriage();
+            if (carriage.bogeys.getSecond() != null && bogeys.size() >= 2) {
+                seatBogey(bogeys.get(reversed ? 0 : bogeys.size() - 1).rail(), carriage.leadingBogey(), reversed);
+                seatBogey(bogeys.get(reversed ? bogeys.size() - 1 : 0).rail(), carriage.trailingBogey(), reversed);
+                reseatSpan(span, bogeys.get(0).rail(), bogeys.get(bogeys.size() - 1).rail());
+                continue;
+            }
+            RailCarriage rail = railOf(car);
+            seatBogey(rail, carriage.leadingBogey(), reversed);
+            if (rail != span) {
+                span.recenterOn(rail.leading(), rail.graph());
+            }
+        }
+    }
+
+    private static void seatBogey(RailCarriage rail, CarriageBogey bogey, boolean reversed) {
+        if (rail == null || bogey == null) {
+            return;
+        }
+        if (reversed) {
+            rail.seatPoints(bogey.trailing(), bogey.leading());
+        } else {
+            rail.seatPoints(bogey.leading(), bogey.trailing());
+        }
+    }
+
+    // the span of a two bogey car is only a reference, it goes midway between its bogeys
+    private static void reseatSpan(RailCarriage span, RailCarriage rear, RailCarriage front) {
+        TravellingPoint seed = rear.seedPoint();
+        if (seed == null) {
+            return;
+        }
+        seed.travel(rear.graph(), span.bogeySpacing() / 2.0, seed.follow(front.leading()), seed.ignoreEdgePoints(),
+                seed.ignoreTurns(), seed.ignorePortals());
+        span.recenterOn(seed, rear.graph());
+    }
+
+    // the junction pick of a ghost follows the route its schedule already planned for the lead rail
+    public static TravellingPoint.ITrackSelector ghostSelector(Train shadow, TravellingPoint point) {
+        List<Couple<TrackNode>> route = routeOf(shadow);
+        if (route == null || route.isEmpty()) {
+            return point.steer(shadow.manualSteer, new Vec3(0.0, 1.0, 0.0));
+        }
+        return (graph, pair) -> {
+            List<Map.Entry<TrackNode, TrackEdge>> options = pair.getSecond();
+            Map.Entry<TrackNode, TrackEdge> picked = RailCarriage.pickAlong(route, graph, options);
+            return picked != null ? picked : options.get(0);
+        };
+    }
+
+    private static List<Couple<TrackNode>> routeOf(Train shadow) {
+        List<SableTrain> cars = carsOf(shadow);
+        if (cars.isEmpty()) {
+            return null;
+        }
+        SableScheduleRuntime runtime = SableScheduleRuntime.forConsist(cars.get(0));
+        return runtime == null || runtime.train() == null ? null : runtime.leadRail().remainingPath();
     }
 
     public static SableTrain cartAt(Train shadow, Vec3 at) {
@@ -212,6 +381,59 @@ public final class CreateTrainShadow {
         return cars;
     }
 
+    // a ghost cannot ask its couplers, so its rake is the frozen body set ordered along the rails
+    private static List<SableTrain> ghostConsistOf(SableTrain train, Map<UUID, SableTrain> bySubLevel) {
+        Set<UUID> frozen = train.consistCache();
+        if (!train.isGhost() || frozen.size() < 2 || train.car() == null) {
+            return null;
+        }
+        List<SableTrain> cars = new ArrayList<>(frozen.size());
+        for (UUID subLevel : frozen) {
+            SableTrain car = bySubLevel.get(subLevel);
+            if (car == null) {
+                continue;
+            }
+            if (!car.isGhost() || car.level() != train.level() || !onRails(car)) {
+                return null;
+            }
+            cars.add(car);
+        }
+        return cars.size() < 2 || !cars.contains(train) ? null : alongRails(cars);
+    }
+
+    private static List<SableTrain> alongRails(List<SableTrain> cars) {
+        Map<SableTrain, Vec3> at = new HashMap<>();
+        Vec3 sum = Vec3.ZERO;
+        for (SableTrain car : cars) {
+            Vec3 center = centerOf(railOf(car));
+            if (center == null) {
+                return null;
+            }
+            at.put(car, center);
+            sum = sum.add(center);
+        }
+        SableTrain first = farthestFrom(cars, at, sum.scale(1.0 / cars.size()));
+        SableTrain second = farthestFrom(cars, at, at.get(first));
+        List<SableTrain> rest = new ArrayList<>(cars);
+        SableTrain next = first.id().compareTo(second.id()) <= 0 ? first : second;
+        List<SableTrain> ordered = new ArrayList<>(cars.size());
+        while (true) {
+            ordered.add(next);
+            rest.remove(next);
+            if (rest.isEmpty()) {
+                return ordered;
+            }
+            Vec3 here = at.get(next);
+            next = rest.stream().min(Comparator.<SableTrain>comparingDouble(car -> at.get(car).distanceToSqr(here))
+                    .thenComparing(SableTrain::id)).orElseThrow();
+        }
+    }
+
+    private static SableTrain farthestFrom(List<SableTrain> cars, Map<SableTrain, Vec3> at, Vec3 origin) {
+        return cars.stream().max(Comparator.<SableTrain>comparingDouble(car -> at.get(car).distanceToSqr(origin))
+                .thenComparing(SableTrain::id)).orElseThrow();
+    }
+
     private static List<SableTrain> frontFirst(List<SableTrain> cars, SableTrain head) {
         if (2 * cars.indexOf(head) > cars.size() - 1) {
             List<SableTrain> reversed = new ArrayList<>(cars);
@@ -242,8 +464,13 @@ public final class CreateTrainShadow {
         return rail != null && rail.graph() != null && rail.leading() != null && rail.trailing() != null;
     }
 
+    // a one bogey car sits on its bogey rail, the span is only recentered on it
     private static RailCarriage railOf(SableTrain car) {
-        return car.car() == null ? null : car.car().carriage();
+        if (car.car() == null) {
+            return null;
+        }
+        List<SableTrain.Bogey> bogeys = car.car().bogeys();
+        return bogeys.size() == 1 && bogeys.get(0).rail() != null ? bogeys.get(0).rail() : car.car().carriage();
     }
 
     private static List<Member> layoutOf(List<SableTrain> railed) {
@@ -294,6 +521,7 @@ public final class CreateTrainShadow {
         shadow.carriages = buildCarriages(railed, layout);
         shadow.carriages.forEach(carriage -> carriage.setTrain(shadow));
         shadow.carriageSpacing = spacingsOf(railed, layout);
+        ((TrainStressAccessor) (Object) shadow).loconautics$setStress(new double[shadow.carriageSpacing.size()]);
         LAYOUTS.put(shadow.id, layout);
         CatnipServices.NETWORK.sendToAllClients(new AddTrainPacket(shadow));
     }

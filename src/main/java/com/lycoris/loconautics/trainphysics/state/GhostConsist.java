@@ -1,8 +1,6 @@
 package com.lycoris.loconautics.trainphysics.state;
 
 import com.lycoris.loconautics.trainphysics.SableTrain;
-import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,11 +35,5 @@ final class GhostConsist {
             }
         }
         return group.get(0);
-    }
-
-    static double senseAgainst(SableTrain train, SableTrain leader) {
-        Vec3 mine = SableTrainDriver.scheduleDriveTangent(train);
-        Vec3 theirs = SableTrainDriver.scheduleDriveTangent(leader);
-        return mine == null || theirs == null || mine.dot(theirs) >= 0.0 ? 1.0 : -1.0;
     }
 }

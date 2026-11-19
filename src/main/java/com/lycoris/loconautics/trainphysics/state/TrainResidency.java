@@ -12,13 +12,11 @@ import com.lycoris.loconautics.trainphysics.SableTrain.Residency;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import com.lycoris.loconautics.trainphysics.TrainConsist;
 import com.lycoris.loconautics.trainphysics.TrainLength;
-import com.lycoris.loconautics.trainphysics.debug.CartMoveTrace;
 import com.lycoris.loconautics.trainphysics.debug.GhostConsistTrace;
 import com.lycoris.loconautics.trainphysics.debug.HostThrashTrace;
 import com.lycoris.loconautics.trainphysics.drive.ConsistPower;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
 import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
-import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
 import com.lycoris.loconautics.trainphysics.rail.RailFrame;
 import com.lycoris.loconautics.trainphysics.signal.TrainSignals;
 import com.lycoris.loconautics.trainphysics.station.StationLanding;
@@ -140,6 +138,7 @@ public final class TrainResidency {
         EMBODIED_AT.clear();
         PULL_BLOCKED_UNTIL.clear();
         TrainSpacing.clear();
+        GhostCreateStep.clear();
     }
 
     private TrainResidency() {
@@ -187,6 +186,7 @@ public final class TrainResidency {
         }
         RECONCILE.remove(train.id());
         CartLifecycle.fire(train, CartEvent.GHOSTED);
+        GhostCreateStep.noteFromLive(train);
         if (train.level().getServer() != null && train.level().getServer().isRunning()) {
             SableTrainPersistence.persist(train);
         }
@@ -220,9 +220,10 @@ public final class TrainResidency {
 
     public static void tick(SableTrain train) {
         if (RECONCILE.contains(train.id())) {
-            if (TrainSpacing.mayEmbody(train)) {
+            if (TrainSpacing.mayEmbody(train) && matesLoaded(train)) {
                 RECONCILE.remove(train.id());
                 if (embody(train) && !train.isGhost()) {
+                    embodyMates(train);
                     return;
                 }
             }
@@ -292,56 +293,13 @@ public final class TrainResidency {
         if (GHOST_STEPPED.getOrDefault(train.id(), -1L) == now) {
             return;
         }
-        List<SableTrain> group = GhostConsist.ghosts(train, true);
-        SableTrain leader = GhostConsist.leader(group);
-        if (split) {
-            leader.setTargetSpeed(0.0);
-        }
-        com.lycoris.loconautics.content.boiler.BoilerGhost.step(leader, group);
-        leader.tickMotion();
-        double[] sense = new double[group.size()];
-        for (int i = 0; i < group.size(); i++) {
-            SableTrain member = group.get(i);
-            sense[i] = member == leader ? 1.0 : GhostConsist.senseAgainst(member, leader);
-            if (member != leader) {
-                member.setTargetSpeed(leader.targetSpeed() * sense[i]);
-                member.setSpeed(leader.speed() * sense[i]);
-            }
-        }
-        double speedIn = leader.speed();
-        double ds = TrainSpacing.ghostStep(leader);
-        boolean end = false;
-        boolean deadEnd = false;
-        for (SableTrain member : group) {
-            boolean atPortal = TrainRailAdvance.anyPendingPortal(member.car());
-            deadEnd |= !atPortal && TrainRailAdvance.anyReachedEnd(member.car());
-            end |= atPortal || TrainRailAdvance.anyReachedEnd(member.car());
-        }
-        if (end) {
-            ds = 0.0;
-        }
-        if (deadEnd) {
-            for (SableTrain member : group) {
-                member.setSpeed(0.0);
-                member.setTargetSpeed(0.0);
-            }
-        }
-        for (int i = 0; i < group.size(); i++) {
-            SableTrain member = group.get(i);
-            if (end) {
+        GhostCreateStep.Outcome outcome = GhostCreateStep.step(train, split);
+        for (SableTrain member : outcome.cars()) {
+            if (outcome.held()) {
                 RAILHEAD_HELD.add(member.id());
             } else {
                 RAILHEAD_HELD.remove(member.id());
             }
-            if (member != leader) {
-                member.setSpeed(leader.speed() * sense[i]);
-            }
-            GhostConsistTrace.noteStep(member, speedIn * sense[i], ds * sense[i], split, end, group.size(),
-                    member == leader ? null : leader);
-            if (ds != 0.0) {
-                TrainRailAdvance.advanceRail(member.car(), ds * sense[i]);
-            }
-            CartMoveTrace.step(member, ds * sense[i]);
             GHOST_STEPPED.put(member.id(), now);
         }
     }
@@ -405,6 +363,10 @@ public final class TrainResidency {
             return;
         }
         if (resolve(train) != null) {
+            if (!matesLoaded(train)) {
+                GhostConsistTrace.noteSnatch(train, "a mate body is not loaded yet");
+                return;
+            }
             RECONCILE.remove(train.id());
             embody(train);
             embodyMates(train);
@@ -471,14 +433,35 @@ public final class TrainResidency {
         return null;
     }
 
+    // a consist comes back all or nothing, so one car never goes live while a mate body is still on disk
+    private static boolean matesLoaded(SableTrain train) {
+        for (SableTrain mate : GhostConsist.ghosts(train, true)) {
+            if (mate != train && !bodyLost(mate) && resolve(mate) == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private static void embodyMates(SableTrain train) {
         if (train.isGhost()) {
             return;
         }
+        List<SableTrain> back = new ArrayList<>();
+        back.add(train);
         for (SableTrain mate : GhostConsist.ghosts(train, false)) {
             if (mate != train && resolve(mate) != null) {
                 RECONCILE.remove(mate.id());
                 embody(mate);
+                if (!mate.isGhost()) {
+                    back.add(mate);
+                }
+            }
+        }
+        for (SableTrain car : back) {
+            ServerSubLevel sub = resolve(car);
+            if (sub != null) {
+                GhostKnuckles.reengage(car, sub);
             }
         }
     }
@@ -563,6 +546,7 @@ public final class TrainResidency {
         if (sub == null) {
             return true;
         }
+        GhostCreateStep.settle(train);
         HostThrashTrace.embody(train, train.car().carriage().railHostMissing(),
                 footprintLoaded(train.level(), railCursor(train.car())));
         Vector3d origin = new Vector3d();

@@ -342,6 +342,16 @@ public class KnuckleBlockEntity extends SmartBlockEntity implements PartialSafeN
         return hingeLocal(getBlockPos(), getBlockState().getValue(KnuckleBlock.FACING));
     }
 
+    // negative once the two cars have passed through each other, where a plain distance still reads as coupled
+    public double signedHingeGap(ServerSubLevel own, ServerSubLevel partner, KnuckleBlockEntity mate) {
+        Direction facing = getBlockState().getValue(KnuckleBlock.FACING);
+        Vector3d outward = own.logicalPose().transformNormal(
+                new Vector3d(facing.getStepX(), facing.getStepY(), facing.getStepZ()), new Vector3d());
+        Vector3d here = own.logicalPose().transformPosition(hingePlot());
+        Vector3d there = partner.logicalPose().transformPosition(mate.hingePlot());
+        return there.sub(here).dot(outward);
+    }
+
     @Nullable
     public TwistLink twistLink(ServerSubLevel own) {
         if (!isConnected() || level == null || partnerLocalPos == null || !isController(own.getUniqueId())

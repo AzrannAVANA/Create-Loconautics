@@ -656,21 +656,28 @@ public final class RailCarriage {
     private ITrackSelector pathSelector() {
         return (g, pair) -> {
             java.util.List<java.util.Map.Entry<TrackNode, TrackEdge>> options = pair.getSecond();
-            if (path == null || path.isEmpty()) {
-                return recordTurn(options.get(0));
-            }
-            // the selector only fires at real junctions, so the head of the route is stale by every straight hop since
-            for (int i = 0; i < path.size(); i++) {
-                TrackEdge targetEdge = g.getConnection(path.get(i));
-                for (java.util.Map.Entry<TrackNode, TrackEdge> entry : options) {
-                    if (entry.getValue() == targetEdge) {
-                        path.subList(0, i + 1).clear();
-                        return recordTurn(entry);
-                    }
+            java.util.Map.Entry<TrackNode, TrackEdge> picked = pickAlong(path, g, options);
+            return recordTurn(picked != null ? picked : options.get(0));
+        };
+    }
+
+    // the selector only fires at real junctions, so the head of the route is stale by every straight hop since
+    public static java.util.Map.Entry<TrackNode, TrackEdge> pickAlong(
+            List<net.createmod.catnip.data.Couple<TrackNode>> route, TrackGraph g,
+            java.util.List<java.util.Map.Entry<TrackNode, TrackEdge>> options) {
+        if (route == null || route.isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < route.size(); i++) {
+            TrackEdge targetEdge = g.getConnection(route.get(i));
+            for (java.util.Map.Entry<TrackNode, TrackEdge> entry : options) {
+                if (entry.getValue() == targetEdge) {
+                    route.subList(0, i + 1).clear();
+                    return entry;
                 }
             }
-            return recordTurn(options.get(0));
-        };
+        }
+        return null;
     }
 
     public List<net.createmod.catnip.data.Couple<TrackNode>> remainingPath() {
@@ -690,6 +697,15 @@ public final class RailCarriage {
             return;
         }
         seatSpan(seed, seedGraph, bogeySpacing / 2.0);
+        stopped = false;
+        reachedEnd = false;
+        pendingPortal = null;
+    }
+
+    // a ghost moved by create hands its points back here, so the live code resumes from the same spot
+    public void seatPoints(TravellingPoint lead, TravellingPoint trail) {
+        copyPoint(leading, lead);
+        copyPoint(trailing, trail);
         stopped = false;
         reachedEnd = false;
         pendingPortal = null;

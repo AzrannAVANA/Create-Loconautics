@@ -17,6 +17,24 @@ public final class LoconauticsConstants {
 
     public static final String CARRIAGE_NAME_INFIX = " Carriage ";
 
+    public static final int CREATE_CARRIAGE_MIDDLE = 1;
+
+    public static final String GHOSTCREATE_TAG = "[ghost]";
+
+    public static final int GHOSTCREATE_WARN_TICKS = 200;
+
+    public static final int GHOSTCREATE_PORTAL_RETRY_TICKS = 20;
+
+    public static final double GHOSTCREATE_GAP_TOLERANCE_BLOCKS = 0.75;
+
+    public static final double GHOSTCREATE_NOMINAL_SLACK_BLOCKS = 1.5;
+
+    public static final double GHOSTCREATE_REPAIR_EPSILON_BLOCKS = 0.02;
+
+    public static final int GHOSTCREATE_REPAIR_STEPS = 8;
+
+    public static final double GHOSTCREATE_HINGE_TOLERANCE_BLOCKS = 0.75;
+
     public static final int MANEUVER_DEAD_END_RETRY_TICKS = 100;
 
     public static final int MANEUVER_DEFAULT_PERCENT = 10;

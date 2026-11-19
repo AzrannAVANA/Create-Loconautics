@@ -310,7 +310,7 @@ public final class TrainRailAdvance {
                 (first.getZ() + last.getZ()) * 0.5 + 0.5);
     }
 
-    static boolean railsValid(SableTrain train) {
+    public static boolean railsValid(SableTrain train) {
         Car car = train.car();
         if (car.bogeys().isEmpty()) {
             return car.carriage().edgesValid();

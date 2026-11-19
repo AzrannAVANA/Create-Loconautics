@@ -134,7 +134,8 @@ public final class Loconautics {
                 com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail.STORE,
                 com.lycoris.loconautics.trainphysics.drive.TrainDerailment.STORE,
                 com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.STORE,
-                new com.lycoris.loconautics.trainphysics.state.TravelSignSeed());
+                new com.lycoris.loconautics.trainphysics.state.TravelSignSeed(),
+                com.lycoris.loconautics.trainphysics.state.GhostCreateStep.STORE);
         com.lycoris.loconautics.common.strand.StrandRemap.register(
                 com.lycoris.loconautics.content.steelcable.SteelCableStrandRemap.INSTANCE);
         com.lycoris.loconautics.common.strand.StrandRemap.register(
