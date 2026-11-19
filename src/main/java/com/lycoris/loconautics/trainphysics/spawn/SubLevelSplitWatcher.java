@@ -884,6 +884,10 @@ public final class SubLevelSplitWatcher {
         if (com.lycoris.loconautics.trainphysics.portal.TrainPortalCrossing.isCrossing(removedId)) {
             return;
         }
+        forgetRemoved(removedId);
+    }
+
+    public static void forgetRemoved(UUID removedId) {
         com.lycoris.loconautics.common.sable.TrackHostFrameSync.onRemoved(removedId);
         for (SableTrain train : SableTrainRegistry.all()) {
             if (removedId.equals(train.car().subLevelId())) {

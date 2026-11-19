@@ -36,6 +36,7 @@
 - Tanks, vaults and belts on a car keep their contents after a portal crossing.
 - A rope with no holder drops as an item when a car crosses a portal.
 - A rope to a body left behind is cut and dropped when a car crosses a portal.
+- A car that cannot load after a portal crossing no longer leaves a ghost train behind.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

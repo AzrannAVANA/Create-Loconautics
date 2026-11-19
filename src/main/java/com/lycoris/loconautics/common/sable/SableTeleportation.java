@@ -43,7 +43,11 @@ public final class SableTeleportation {
 
     public record PlotSlot(int x, int z) {}
 
-    public record Result(@Nullable ServerSubLevel moved, @Nullable String failure) {
+    public record Result(@Nullable ServerSubLevel moved, @Nullable String failure, boolean lost) {
+        public Result(@Nullable ServerSubLevel moved, @Nullable String failure) {
+            this(moved, failure, false);
+        }
+
         public boolean ok() {
             return failure == null;
         }
@@ -334,7 +338,7 @@ public final class SableTeleportation {
                     LoconauticsConstants.LOGGER.error("[teleport] lost body {}, it loaded into neither {} nor {}",
                             subLevelId, destLevel.dimension().location(), srcLevel.dimension().location());
                     return new Result(null, "body " + subLevelId + " would not load into "
-                            + destLevel.dimension().location() + " and could not be put back");
+                            + destLevel.dimension().location() + " and could not be put back", true);
                 }
                 SubLevelGlue.put(moved, glue);
                 SubLevelPassengers.restore(srcLevel, moved, riders);

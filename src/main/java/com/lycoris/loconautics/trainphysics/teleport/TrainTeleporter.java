@@ -270,6 +270,9 @@ public final class TrainTeleporter {
             if (!result.ok()) {
                 LoconauticsConstants.LOGGER.error("[teleport] train {} stopped: {}", landing.train().id(),
                         result.failure());
+                if (result.lost()) {
+                    SubLevelSplitWatcher.forgetRemoved(landing.sub().getUniqueId());
+                }
                 return rollBack(plan, homes, arrived, destLevel, strands, where, shifts, moving, result.failure(), mode,
                         trace);
             }
