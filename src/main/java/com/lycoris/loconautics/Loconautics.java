@@ -279,12 +279,16 @@ public final class Loconautics {
                 HoseSprayLoader.loadedColors());
         var families = new com.lycoris.loconautics.network.packets.variantpicker.VariantFamilySyncPacket(
                 com.lycoris.loconautics.content.variantpicker.data.VariantFamilyLoader.loaded());
+        var boilerStats = new com.lycoris.loconautics.network.packets.boiler.BoilerContributionsSyncPacket(
+                BoilerContributions.snapshot());
         if (event.getPlayer() != null) {
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(event.getPlayer(), sprayColors);
             net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(event.getPlayer(), families);
+            net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(event.getPlayer(), boilerStats);
         } else {
             net.neoforged.neoforge.network.PacketDistributor.sendToAllPlayers(sprayColors);
             net.neoforged.neoforge.network.PacketDistributor.sendToAllPlayers(families);
+            net.neoforged.neoforge.network.PacketDistributor.sendToAllPlayers(boilerStats);
         }
     }
 }

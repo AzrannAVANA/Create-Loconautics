@@ -56,6 +56,9 @@ public final class LoconauticsNetwork {
         r.playToServer(com.lycoris.loconautics.network.packets.casingpicker.CasingSwapPacket.TYPE,
                 com.lycoris.loconautics.network.packets.casingpicker.CasingSwapPacket.STREAM_CODEC,
                 com.lycoris.loconautics.network.packets.casingpicker.CasingSwapPacket::handle);
+        r.playToClient(com.lycoris.loconautics.network.packets.boiler.BoilerContributionsSyncPacket.TYPE,
+                com.lycoris.loconautics.network.packets.boiler.BoilerContributionsSyncPacket.STREAM_CODEC,
+                com.lycoris.loconautics.network.packets.boiler.BoilerContributionsSyncPacket::handle);
         r.playToClient(com.lycoris.loconautics.network.packets.variantpicker.VariantFamilySyncPacket.TYPE,
                 com.lycoris.loconautics.network.packets.variantpicker.VariantFamilySyncPacket.STREAM_CODEC,
                 com.lycoris.loconautics.network.packets.variantpicker.VariantFamilySyncPacket::handle);

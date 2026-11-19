@@ -73,6 +73,7 @@ public final class LoconauticsClient {
         NeoForge.EVENT_BUS.addListener(this::onClientDisconnect);
         NeoForge.EVENT_BUS.addListener(this::onClientLevelUnload);
         NeoForge.EVENT_BUS.addListener(this::onUseItem);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, com.lycoris.loconautics.client.BoilerStatsTooltip::onTooltip);
         NeoForge.EVENT_BUS.addListener(this::onRenderLevelStage);
         NeoForge.EVENT_BUS.addListener(this::onRenderGuiLayer);        NeoForge.EVENT_BUS.addListener(net.neoforged.bus.api.EventPriority.LOWEST, this::onCalculatePlayerTurn);
         NeoForge.EVENT_BUS.addListener(com.lycoris.loconautics.client.gui.CreateConfigRedirect::onScreenInit);

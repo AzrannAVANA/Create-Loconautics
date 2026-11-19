@@ -36,6 +36,40 @@ public final class BoilerContributions extends SimpleJsonResourceReloadListener 
         return boilerCapacity.getOrDefault(state.getBlock(), 1.0f);
     }
 
+    public record Stats(Float fireboxHeat, Float boilerCapacity, Integer waterCapacity) {
+
+        public boolean isEmpty() {
+            return fireboxHeat == null && boilerCapacity == null && waterCapacity == null;
+        }
+    }
+
+    public static Stats statsOf(Block block) {
+        return new Stats(fireboxHeat.get(block), boilerCapacity.get(block), waterCapacity.get(block));
+    }
+
+    public static Map<ResourceLocation, Stats> snapshot() {
+        Map<ResourceLocation, Stats> out = new LinkedHashMap<>();
+        for (Block block : BuiltInRegistries.BLOCK) {
+            Stats stats = statsOf(block);
+            if (!stats.isEmpty()) out.put(BuiltInRegistries.BLOCK.getKey(block), stats);
+        }
+        return out;
+    }
+
+    public static void replaceFromSync(Map<ResourceLocation, Stats> synced) {
+        Map<Block, Float> heat = new LinkedHashMap<>();
+        Map<Block, Float> capacity = new LinkedHashMap<>();
+        Map<Block, Integer> water = new LinkedHashMap<>();
+        synced.forEach((id, stats) -> BuiltInRegistries.BLOCK.getOptional(id).ifPresent(block -> {
+            if (stats.fireboxHeat() != null) heat.put(block, stats.fireboxHeat());
+            if (stats.boilerCapacity() != null) capacity.put(block, stats.boilerCapacity());
+            if (stats.waterCapacity() != null) water.put(block, stats.waterCapacity());
+        }));
+        fireboxHeat = Map.copyOf(heat);
+        boilerCapacity = Map.copyOf(capacity);
+        waterCapacity = Map.copyOf(water);
+    }
+
     public static int waterCapacityOf(BlockState state) {
         return waterCapacity.getOrDefault(state.getBlock(),
                 com.lycoris.loconautics.config.LoconauticsConfig.BODY_WATER_CAPACITY.get());

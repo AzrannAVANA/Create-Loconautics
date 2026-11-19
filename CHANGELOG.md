@@ -61,6 +61,7 @@
 - Railways smokeboxes hold water in a boiler, untested.
 - A boiler that overpressures gives the Too Much Pressure advancement.
 - Smokestacks show a placement ghost when you click a smokestack or boiler host.
+- Hold Alt over a boiler body or firebox to see its water capacity.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
