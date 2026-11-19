@@ -43,6 +43,7 @@ public final class LoconauticsCommands {
         com.lycoris.loconautics.trainphysics.debug.GraphDump.addBranch(debug);
         com.lycoris.loconautics.trainphysics.debug.PurgeTrainCommand.addBranch(debug);
         com.lycoris.loconautics.trainphysics.debug.IsTrainCommand.addBranch(debug);
+        com.lycoris.loconautics.trainphysics.debug.CartStateCommand.addBranch(debug);
         com.lycoris.loconautics.trainphysics.debug.PoseTweakCommand.addBranch(debug);
         com.lycoris.loconautics.trainphysics.debug.LengthTrace.addBranch(debug);
         com.lycoris.loconautics.trainphysics.debug.GhostGapTrace.addBranch(debug);

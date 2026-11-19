@@ -5,6 +5,8 @@ import com.lycoris.loconautics.common.sable.BodyRef;
 import com.lycoris.loconautics.foundation.debug.DebugLines;
 import com.lycoris.loconautics.trainphysics.PoseTweak;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.SableTrain.Car;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import dev.ryanhcode.sable.api.physics.PhysicsPipeline;
@@ -37,7 +39,31 @@ public final class WheelSupports {
     private WheelSupports() {
     }
 
-    // side is 1 on the left of the chord and 1 on the right, host is null on a rail in the world
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (clears(event)) {
+                release(subId);
+            }
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            WheelSupports.retain(liveSubs);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return SUPPORTS.containsKey(subId) ? "supports held" : "";
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.GHOSTED
+                    || event == CartEvent.REMOVED;
+        }
+    };
+
     public record Wheel(Vector3d rail, Vector3d seatPoint, Vector3d local, Vector3d normal, Vector3d tangent,
                         int side, ServerSubLevel host) {
     }

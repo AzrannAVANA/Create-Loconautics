@@ -5,6 +5,8 @@ import com.lycoris.loconautics.common.SubLevelAssemblyUtil;
 import com.lycoris.loconautics.common.sable.SableTeleportation;
 import com.lycoris.loconautics.trainphysics.PoseTweak;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.spawn.SubLevelSplitWatcher;
 import com.lycoris.loconautics.trainphysics.spawn.WheelColliders;
@@ -54,7 +56,6 @@ public final class GhostWheelBodies {
 
     private static final double DANGLE_DAMPING = 4.0;
 
-    // the plate hangs off the bogey pivot, it turns and tips within the limits but never slides
     private static final List<ConstraintJointAxis> LOCKED_AXES = List.of(
             ConstraintJointAxis.LINEAR_X, ConstraintJointAxis.LINEAR_Y, ConstraintJointAxis.LINEAR_Z);
 
@@ -80,7 +81,6 @@ public final class GhostWheelBodies {
 
     private static final Map<UUID, ServerLevel> ARRIVED = new LinkedHashMap<>();
 
-    // carving out of a body that was swapped a tick ago gives the plate a plot coordinate pose
     private static final int SETTLE_TICKS = 2;
 
     private static final double ALIGN_STEP = 0.25;
@@ -94,7 +94,37 @@ public final class GhostWheelBodies {
     private GhostWheelBodies() {
     }
 
-    // every server has its own rapier scene, and a handle from the last one is a crash waiting for the next tick
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (event == CartEvent.GHOSTED || event == CartEvent.REMOVED) {
+                releaseAll(train);
+            } else if (event == CartEvent.REERAILED || event == CartEvent.RESEATED_IN_PLACE) {
+                clearAlign(train);
+            } else if (event.moved()) {
+                clearAlign(train);
+                rebuild(train);
+            }
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            SETTLING.keySet().retainAll(liveTrains);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            long rigs = RIGS.keySet().stream().filter(key -> key.carSub().equals(subId)).count();
+            long aligning = ALIGNING.keySet().stream().filter(key -> key.carSub().equals(subId)).count();
+            return rigs == 0 && aligning == 0 ? "" : "rigs=" + rigs + " aligning=" + aligning;
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.GHOSTED || event == CartEvent.REMOVED;
+        }
+    };
+
     public static void clear() {
         RIGS.clear();
         DANGLING.clear();
@@ -153,7 +183,6 @@ public final class GhostWheelBodies {
         }
     }
 
-    // runs from the server tick, which is after every level has ticked, so sables unload walk is over by now
     private static void drainPendingWipes() {
         if (PENDING_WIPE.isEmpty()) {
             return;
@@ -303,7 +332,6 @@ public final class GhostWheelBodies {
                 + ",dangle=" + DANGLING.contains(key) + ",align=" + ALIGNING.get(key);
     }
 
-    // sable deletes a body on its own for a bad bounding box, and the joint we left on it panics rapier
     private static boolean wheelAlive(ServerLevel level, Rig rig) {
         ServerSubLevelContainer container = SubLevelContainer.getContainer(level);
         if (container == null) {
@@ -331,7 +359,6 @@ public final class GhostWheelBodies {
                         new Quaterniond(wheel.logicalPose().orientation())));
     }
 
-    // the plate is welded at the bogey pivot, so a teleported body has to carry it the same way the joint would have
     public static void carryWheels(SableTrain train, Vector3d fromPos, Quaterniond fromQ, Vector3d toPos,
                                    Quaterniond toQ) {
         Quaterniond turn = new Quaterniond(toQ).mul(new Quaterniond(fromQ).conjugate()).normalize();
@@ -349,7 +376,6 @@ public final class GhostWheelBodies {
 
     private static final double PIVOT_SLIP_LIMIT = 0.35;
 
-    // a pinned car is teleported, and a teleport is no force, so the joint never pulls back a plate something dragged off
     public static void holdPivots(ServerSubLevel carSub, SableTrain train) {
         if (!ENABLED || train.car() == null) {
             return;
@@ -415,7 +441,6 @@ public final class GhostWheelBodies {
             openDangleCone(carSub, train, rig);
             DANGLING.add(key);
         } else {
-            // a zero width limit, not lockaxes, since a locked axis never came back when the limits were set again
             for (ConstraintJointAxis axis : SWING_AXES) {
                 rig.constraint().setLimit(axis, 0.0, 0.0);
             }
@@ -452,7 +477,6 @@ public final class GhostWheelBodies {
                 continue;
             }
             boolean carLoaded = container.getSubLevel(entry.getKey().carSub()) != null;
-            // unloaded still has an owner and comes back on its own, a car nobody owns any more never will
             if (!carLoaded && SableTrainRegistry.bySubLevel(entry.getKey().carSub()) != null) {
                 continue;
             }
@@ -478,7 +502,7 @@ public final class GhostWheelBodies {
             return;
         }
         if (train.isDerailed() || train.isPhysics()) {
-            return; // weld stays, it just freezes on the last chord since the rail data is stale now
+            return;
         }
         UUID carId = carSub.getUniqueId();
         Quaterniond carQ = new Quaterniond(carSub.logicalPose().orientation());
@@ -488,7 +512,6 @@ public final class GhostWheelBodies {
                 continue;
             }
             Rig rig = RIGS.get(new Key(carId, bogey.localPos()));
-            // sable can take the plate away mid substep loop, and sync only catches that at the end of the tick
             if (rig == null || !rig.constraint().isValid() || !wheelAlive(carSub.getLevel(), rig)) {
                 continue;
             }
@@ -504,7 +527,6 @@ public final class GhostWheelBodies {
         }
     }
 
-    // a rolling car carries its plates over with it, the roll the last post step wrote about the chord
     private static Quaterniond rollTurnOf(ServerSubLevel carSub, SableTrain train) {
         if (!com.lycoris.loconautics.trainphysics.glue.CarriageRoll.isRolling(carSub.getUniqueId())) {
             return null;
@@ -554,7 +576,6 @@ public final class GhostWheelBodies {
                 .normalize();
     }
 
-    // twist of each plate against the car about the rail, should stay under a degree on a rolling car
     public static String plateRollLine(ServerSubLevel carSub, SableTrain train) {
         ServerSubLevelContainer container = SubLevelContainer.getContainer(carSub.getLevel());
         var carriage = train.car() == null ? null : train.car().carriage();
@@ -748,7 +769,6 @@ public final class GhostWheelBodies {
             container.removeSubLevel(wheelSub, SubLevelRemovalReason.REMOVED);
             return;
         }
-        // the whole point the wheels are landing gear against the world, never against the car they hang under
         handle.setContactsEnabled(false);
         for (ConstraintJointAxis axis : SWING_AXES) {
             handle.setLimit(axis, 0.0, 0.0);

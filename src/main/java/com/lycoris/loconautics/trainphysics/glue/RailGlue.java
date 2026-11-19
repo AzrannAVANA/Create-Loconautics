@@ -3,6 +3,9 @@ package com.lycoris.loconautics.trainphysics.glue;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.sable.BodyRef;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
+import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
 import com.lycoris.loconautics.trainphysics.spawn.SubLevelMergeWatcher;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import dev.ryanhcode.sable.api.physics.PhysicsPipeline;
@@ -30,6 +33,39 @@ public final class RailGlue {
     private RailGlue() {
     }
 
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (!clears(event)) {
+                return;
+            }
+            if (event == CartEvent.REERAILED) {
+                releaseConstraint(subId);
+                return;
+            }
+            SableTrainDriver.forgetBodyState(train);
+        }
+
+        @Override
+        public void retain(java.util.Set<UUID> liveTrains, java.util.Set<UUID> liveSubs) {
+            GLUE_MODE.keySet().retainAll(liveSubs);
+            LAST_GLUE_Q.keySet().retainAll(liveSubs);
+            GLUE_BODY_A_ID.keySet().retainAll(liveSubs);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return CONSTRAINTS.containsKey(subId) || GLUE_MODE.containsKey(subId)
+                    ? "constraint=" + CONSTRAINTS.containsKey(subId) + " mode=" + GLUE_MODE.get(subId) : "";
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.GHOSTED
+                    || event == CartEvent.REMOVED;
+        }
+    };
+
     public enum GlueMode {
         RIGID, PIVOT, ROLLING, ROLLING_HELD;
 
@@ -51,7 +87,6 @@ public final class RailGlue {
         return glueBody(pipeline, sub, localAnchor, railPoint, tangent, null, q, mode, trackSub);
     }
 
-    // a null up means the world up, a rolling car passes its track normal so the guide follows a banked rail
     public static boolean glueBody(PhysicsPipeline pipeline, ServerSubLevel sub, Vector3dc localAnchor,
                                    Vector3d railPoint, Vector3d tangent, Vector3d trackUp, Quaterniond q,
                                    GlueMode mode, ServerSubLevel trackSub) {
@@ -60,7 +95,6 @@ public final class RailGlue {
             releaseConstraint(id);
             return true;
         }
-        // a removed track body still arrives as a live reference, and a joint left on it panics rapier
         if (BodyRef.ofBody(trackSub).absent()) {
             releaseConstraint(id);
             return true;
@@ -128,7 +162,6 @@ public final class RailGlue {
         return true;
     }
 
-    // sable refuses to pin a world body to a rail left in a dead plot
     static boolean railInDeadPlot(ServerSubLevel sub, Vector3d railPoint) {
         if (!(sub.getLevel() instanceof ServerLevel level)) {
             return false;
@@ -168,7 +201,6 @@ public final class RailGlue {
         return mode == null ? "none" : mode.name();
     }
 
-    // a rolling guide that only moved to another track body or toggled the staff hold keeps its supports and roll state
     private static void rebuildGuide(UUID id, GlueMode next) {
         GlueMode previous = GLUE_MODE.get(id);
         if (!next.rolls() || previous == null || !previous.rolls()) {
@@ -196,7 +228,6 @@ public final class RailGlue {
         }
     }
 
-    // the live ids come back so the caller trims its own per car state to the same set
     public static java.util.Set<UUID> sweepStaleConstraints() {
         java.util.Set<UUID> live = new java.util.HashSet<>();
         java.util.Map<UUID, ServerLevel> levels = new java.util.HashMap<>();
@@ -209,7 +240,6 @@ public final class RailGlue {
         }
         java.util.List<UUID> stale = new java.util.ArrayList<>();
         for (UUID id : CONSTRAINTS.keySet()) {
-            // a live car says nothing about the body it is glued to, and some driver paths never reach gluebody
             if (!live.contains(id) || BodyRef.of(levels.get(id), GLUE_BODY_A_ID.get(id)).absent()) {
                 stale.add(id);
             }

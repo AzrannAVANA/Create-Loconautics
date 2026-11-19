@@ -3,6 +3,8 @@ package com.lycoris.loconautics.trainphysics.glue;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.trainphysics.PoseTweak;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.SableTrain.Car;
 import com.lycoris.loconautics.trainphysics.coupling.CouplerTwist;
 import com.lycoris.loconautics.trainphysics.spawn.WheelColliders;
@@ -32,7 +34,31 @@ public final class CarriageRoll {
     private CarriageRoll() {
     }
 
-    // creates rail model spans 0 to 0.2836 above the bezier point, the car anchor sits one block above it
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (clears(event)) {
+                release(subId);
+            }
+        }
+
+        @Override
+        public void retain(java.util.Set<UUID> liveTrains, java.util.Set<UUID> liveSubs) {
+            CarriageRoll.retain(liveSubs);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return STATE.containsKey(subId) || ROLLING_THIS_STEP.containsKey(subId) ? "roll state held" : "";
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.GHOSTED
+                    || event == CartEvent.REMOVED;
+        }
+    };
+
     public static final double RAIL_TOP = 0.2836;
     public static final double SEAT_DROP = 1.0 - RAIL_TOP;
     public static final double FLANGE = 0.125;
@@ -49,7 +75,6 @@ public final class CarriageRoll {
     public static final TagKey<Block> NO_WHEEL_LIFT = TagKey.create(Registries.BLOCK,
             ResourceLocation.fromNamespaceAndPath(LoconauticsConstants.MOD_ID, "no_wheel_lift"));
 
-    // one condition that has to hold on unglueticks game ticks in a row, counted once per tick
     public static final class Hold {
         private int count;
         private long tick = Long.MIN_VALUE;
@@ -169,7 +194,6 @@ public final class CarriageRoll {
         return id == null ? null : STATE.get(id);
     }
 
-    // wheellift is temporary, it goes with the fix confirmation
     public static final boolean TRACE = true;
     private static final ConcurrentHashMap<UUID, Long> LAST_TRACE = new ConcurrentHashMap<>();
 
@@ -263,7 +287,6 @@ public final class CarriageRoll {
         }
     }
 
-    // a car that was not rolling on the last substep, or whose last substep is more than a tick old, starts settling
     public static void beginStep(Roll roll, long gameTime) {
         boolean fresh = !roll.rolling || gameTime - roll.lastDriveTick > 1L;
         roll.lastDriveTick = gameTime;
@@ -276,7 +299,6 @@ public final class CarriageRoll {
         }
     }
 
-    // the hinge side keeps its sign until the roll crosses to the other side by more than phieps
     public static int updateSide(Roll roll, double phi) {
         int side = roll.side;
         if (side == 0) {
@@ -293,7 +315,6 @@ public final class CarriageRoll {
     public record Ready(String reason, WheelSupports.Prepared prepared) {
     }
 
-    // everything the rolling glue needs, checked before any glue call so a substep never switches mode twice
     public static Ready rollReady(ServerSubLevel sub, Car car, RollFrame frame, PoseTweak.Applied seated) {
         MassData md = sub.getMassTracker();
         if (frame == null || md == null || md.isInvalid() || RigidBodyHandle.of(sub) == null
@@ -311,7 +332,6 @@ public final class CarriageRoll {
         return new Ready(null, prepared);
     }
 
-    // swing and twist split about the bodys own forward axis, positive is a right hand turn about the chord
     public static double twist(org.joml.Quaterniond seat, org.joml.Quaterniond body, Vector3d forward0) {
         org.joml.Quaterniond r = new org.joml.Quaterniond(seat).invert().mul(body);
         double p = r.x * forward0.x + r.y * forward0.y + r.z * forward0.z;
@@ -324,18 +344,14 @@ public final class CarriageRoll {
         return phi;
     }
 
-    // where gravity alone would tip the car, for the log and cc only, nothing derails on it
     public static double tippingAngle(double halfGauge, double offset, double height, double lean, double cant) {
         return Math.atan2(halfGauge - lean * offset, Math.max(height, 1.0e-3)) - cant;
     }
 
-    // the most the hinge holds, in radians
     public static double holdAngle() {
         return Math.toRadians(WHEEL_LIFT_MAX_DEGREES);
     }
 
-    // steady curve lean is m v2 k h less the gravity hold, over the hinge stiffness, so mass cancels
-    // and the speed that keeps it under a share of the fast unglue angle is the root of hold plus hinge over k h
     public static double safeCurveSpeed(Roll roll, double gN, double curvature, double share) {
         double k = Math.abs(curvature);
         if (k < 1.0e-6 || roll.height < 0.05 || roll.half <= 0.0) {
@@ -349,7 +365,6 @@ public final class CarriageRoll {
         return Math.sqrt((hold + hinge) / (k * roll.height));
     }
 
-    // 0 at the slow roll speed and below, 1 at the fast one and above, smooth between
     public static double speedBlend(double speed) {
         double slow = ROLL_SLOW_SPEED;
         double fast = Math.max(slow + 1.0e-3, ROLL_FAST_SPEED);
@@ -357,7 +372,6 @@ public final class CarriageRoll {
         return t * t * (3.0 - 2.0 * t);
     }
 
-    // slow cars come off only past the hinge ceiling plus a margin, fast cars at the flange limit
     public static double unglueAngle(double speed) {
         double blend = speedBlend(speed);
         double slowLimit = holdAngle() + FALL_MARGIN;
@@ -365,7 +379,6 @@ public final class CarriageRoll {
         return slowLimit + blend * (fastLimit - slowLimit);
     }
 
-    // static lean on one hinge side, infinite when the car cannot stand on that rail
     public static double predictedLift(double gN, double gSide, double halfGauge, double offset, double height,
                                        double phiRef, int side) {
         double moment = gN * (side * offset - halfGauge) + gSide * height;
@@ -376,7 +389,6 @@ public final class CarriageRoll {
         return phiRef * Math.max(0.0, moment) / den;
     }
 
-    // the worst of both hinge sides for a car at rest, using the shared formula
     public static double predictedLift(Vector3d gravity, Vector3d up, Vector3d lateral, double halfGauge,
                                        double offset, double height) {
         double gN = -gravity.dot(up);
@@ -389,7 +401,6 @@ public final class CarriageRoll {
         return worst;
     }
 
-    // body lean on the springs, a spring damper toward a share of the max lean set by how far the load sits off center
     public static void stepSuspension(Roll roll, double halfGauge, double dt) {
         double max = Math.toRadians(SUSPENSION_LEAN_DEGREES);
         double target = max * Math.max(-1.0, Math.min(1.0, roll.offset / Math.max(halfGauge, 1.0e-3)));

@@ -5,6 +5,8 @@ import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.glue.CarriageRoll;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.SableTrain.Car;
 import com.lycoris.loconautics.trainphysics.station.TrainStations;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner;
@@ -18,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Set;
 import java.util.UUID;
 
 import static com.lycoris.loconautics.foundation.LogFormat.shortId;
@@ -25,6 +28,34 @@ import static com.lycoris.loconautics.foundation.LogFormat.shortId;
 public final class TrainDerailment {
     private TrainDerailment() {
     }
+
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (!clears(event)) {
+                return;
+            }
+            RAILS_GONE.remove(train.id());
+            TILT_OVER.remove(train.id());
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            TrainDerailment.retain(liveTrains);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return RAILS_GONE.containsKey(trainId) || TILT_OVER.containsKey(trainId)
+                    ? "railsGone=" + RAILS_GONE.get(trainId) + " tiltOver=" + TILT_OVER.get(trainId) : "";
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.RESEATED_IN_PLACE
+                    || event == CartEvent.REMOVED;
+        }
+    };
 
     static void retain(java.util.Set<UUID> live) {
         RAILS_GONE.keySet().retainAll(live);
@@ -52,7 +83,6 @@ public final class TrainDerailment {
             }
             return;
         }
-        // a car with one bogey loose never went through the full derail path, so nothing was putting it back
         if (train.hasOffTrackBogey() && !ExternalForceDerail.holdsRerail(train)
                 && SableTrainSpawner.tryRerailOffTrackBogeys(train)
                 && !train.hasOffTrackBogey()) {
@@ -109,7 +139,6 @@ public final class TrainDerailment {
 
     static final java.util.Map<UUID, Integer> RAILS_GONE = new java.util.HashMap<>();
 
-    // false means stop here
     static boolean checkRailsGone(SableTrain train, ServerSubLevel sub) {
         if (TrainRailAdvance.railsValid(train)) {
             RAILS_GONE.remove(train.id());
@@ -132,7 +161,6 @@ public final class TrainDerailment {
         return false;
     }
 
-    // an overturned rail has to hold the angle rather than catch one bad frame while a weld or a remap lands
     static final int TILT_DERAIL_TICKS = 5;
 
     static final java.util.Map<UUID, Integer> TILT_OVER = new java.util.HashMap<>();
@@ -188,7 +216,6 @@ public final class TrainDerailment {
         return onRail.isEmpty() ? null : TrainStations.frontBogey(train, onRail);
     }
 
-    // create gives up at 4, we shed the one bogey being dragged apart well before that
     static final double MAX_COUPLING_STRESS = 1.5;
 
     static boolean checkCouplingStress(SableTrain train, ServerSubLevel sub) {

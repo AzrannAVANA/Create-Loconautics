@@ -4,6 +4,8 @@ import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.network.packets.train.SableTrainSyncPacket;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.common.sable.SubLevelData;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartLifecycle;
 import com.lycoris.loconautics.trainphysics.state.SableTrainPersistence;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies;
@@ -58,7 +60,6 @@ public final class SubLevelMergeWatcher {
         if (sub == null) {
             return;
         }
-        // a plain piece with no bogey only adds weight, so the car stays glued and is not seated again
         if (gone == null && !host.isTrackless()
                 && SubLevelSplitWatcher.scanBogeyPlotPositions(sub.getPlot()).size() <= host.car().bogeys().size()) {
             releaseStaffLock(level, sub);
@@ -80,7 +81,7 @@ public final class SubLevelMergeWatcher {
             SableTrain.Car rebuilt = TracklessCars.build(sub);
             if (rebuilt != null) {
                 host.replaceCar(rebuilt);
-                SubLevelSplitWatcher.settleAfterSplit(host);
+                CartLifecycle.fire(host, CartEvent.MERGED);
                 SableTrainPersistence.persist(host);
                 SableTrainSyncPacket.broadcast(host);
             }
@@ -97,7 +98,7 @@ public final class SubLevelMergeWatcher {
             host.relocate(rebuilt);
             host.setSpeed(speed);
             host.setTargetSpeed(target);
-            SubLevelSplitWatcher.settleAfterSplit(host);
+            CartLifecycle.fire(host, CartEvent.MERGED);
             SableTrainPersistence.persist(host);
             SableTrainSyncPacket.broadcast(host);
             LoconauticsConstants.LOGGER.info("[sabletrain] train {} absorbed sub level {}, now {} bogey(s)",
@@ -139,7 +140,7 @@ public final class SubLevelMergeWatcher {
             adopted.setDerailedQuiet(true);
         }
         SableTrainRegistry.register(adopted);
-        SubLevelSplitWatcher.settleAfterSplit(adopted);
+        CartLifecycle.fire(adopted, CartEvent.MERGED);
         SableTrainPersistence.persist(adopted);
         SableTrainSyncPacket.broadcast(adopted);
         LoconauticsConstants.LOGGER.info("[sabletrain] plain sub level {} became train {} from merged train {}, {} bogey(s)",
@@ -180,7 +181,6 @@ public final class SubLevelMergeWatcher {
         return true;
     }
 
-    // the body being pulled and the body it merges into, both are shoved by the pull and neither is a crash
     public static boolean merging(ServerLevel level, UUID subId) {
         if (pulling(level, subId)) {
             return true;

@@ -3,6 +3,8 @@ package com.lycoris.loconautics.trainphysics.spawn;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
 import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
@@ -37,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -44,6 +47,44 @@ public final class RerailApproach {
 
     private RerailApproach() {
     }
+
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (clears(event)) {
+                RerailApproach.forget(train.id());
+            }
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            WALKING.keySet().retainAll(liveTrains);
+            EASING.keySet().retainAll(liveTrains);
+            GAVE_UP.keySet().retainAll(liveTrains);
+            SWINGING.keySet().retainAll(liveTrains);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            StringBuilder out = new StringBuilder();
+            note(out, "walking", WALKING.containsKey(trainId));
+            note(out, "easing", EASING.containsKey(trainId));
+            note(out, "gaveUp", GAVE_UP.containsKey(trainId));
+            note(out, "swinging", SWINGING.containsKey(trainId));
+            return out.toString().trim();
+        }
+
+        private void note(StringBuilder out, String name, boolean held) {
+            if (held) {
+                out.append(name).append(' ');
+            }
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.RESEATED_IN_PLACE || event == CartEvent.REMOVED;
+        }
+    };
 
     private static final double SETTLE_SINK =
             LoconauticsConstants.RAIL_HEAD_HEIGHT - LoconauticsConstants.TRACK_COLLISION_HEIGHT;
@@ -76,7 +117,6 @@ public final class RerailApproach {
 
     private static final Map<UUID, Integer> SWINGING = new HashMap<>();
 
-    // every substep of an approaching car, otherwise gravity eats the step before the next game tick can add another
     public static boolean holdApproach(PhysicsPipeline pipeline, ServerSubLevel sub, SableTrain train) {
         if (!WALKING.containsKey(train.id()) && !EASING.containsKey(train.id())) {
             return false;
@@ -231,7 +271,6 @@ public final class RerailApproach {
         if (bodyHit == null) {
             bodyHit = seats.get(0).hit();
         }
-        // the plates swing to the rails own sign while they steer, which says nothing about which way the car faces
         Vec3 facing = SableTrainSpawner.currentFacing(sub, train.car());
         SeatPose landing = SableTrainSpawner.seatPoseAt(level, train, bodyHit.location(), bodyHit.upNormal(),
                 facing, true);
@@ -264,7 +303,6 @@ public final class RerailApproach {
         boolean aligned = steerPlates(train, seats);
         int walked = WALKING.getOrDefault(train.id(), 0) + 1;
         if (!(aligned && worst.within(COMMIT_LATERAL, COMMIT_VERTICAL, COMMIT_YAW_DEGREES))) {
-            // a seat the car never reached stays where it fell, no teleport onto a line it was never on
             if (walked >= MAX_TICKS) {
                 GAVE_UP.put(train.id(), level.getGameTime());
                 return abort(train, String.format("walk ran out, aligned=%s worst lateral %.2f vertical %.2f yaw %.1f",
@@ -324,7 +362,6 @@ public final class RerailApproach {
             TrainRailAdvance.seedTravelSign(seat, SableTrainSpawner.currentFacing(sub, train.car()));
             SableTrain.Bogey seated = new SableTrain.Bogey(bogey.localPos(), seat);
             updated.add(seated);
-            // driveconstraintpivot glues at the first railed bogey, so that is the one the body has to line up with
             if (pivot == null) {
                 pivot = seated;
             }
@@ -414,7 +451,6 @@ public final class RerailApproach {
         if (loose == null || arm.length() < 1.0) {
             return stopSwing(train);
         }
-        // a loose bogey with rail of its own under it seats there, swinging it onto the pivot rail would drag it off
         if (SableTrainSpawner.acceptableSeatFor(level, sub, loose, train.car().carriage().forward(), null,
                 SableTrainSpawner.RERAIL_MAX_LATERAL) != null) {
             return stopSwing(train);
@@ -490,14 +526,12 @@ public final class RerailApproach {
         Vector3d anchor = sub.logicalPose().transformPosition(
                 new Vector3d(SableTrainDriver.pivotLocalAnchor(sub, train.car(), pivot)), new Vector3d());
         Vector3d gap = new Vector3d(railPoint).sub(anchor);
-        // the seat follows the bogey along the rail, so that gap never closes
         Vec3 tangent = pivot.rail().forward();
         double along = gap.x * tangent.x + gap.y * tangent.y + gap.z * tangent.z;
         gap.sub(tangent.x * along, tangent.y * along, tangent.z * along);
         return isFinite(gap) ? gap : null;
     }
 
-    // temporary probe for the easing stall, remove once the gap x cause is settled
     private static String easeProbe(ServerSubLevel sub, SableTrain train, SableTrain.Bogey pivot) {
         Vector3d anchor = SubLevelData.worldOf(sub, new Vector3d(SableTrainDriver.pivotLocalAnchor(sub, train.car(), pivot)));
         Vector3d bogey = SubLevelData.worldOfOffset(sub, pivot.localPos());
@@ -529,7 +563,6 @@ public final class RerailApproach {
         GhostWheelBodies.carryWheels(train, from, q, next, q);
     }
 
-    // the worst of the per bogey errors, since the car only lands once every one of its wheels is on its own rail
     private static Error worstError(ServerLevel level, ServerSubLevel sub, SableTrain train, List<BogeySeat> seats,
                                     SeatPose landing) {
         Vec3 carFacing = SableTrainSpawner.currentFacing(sub, train.car());

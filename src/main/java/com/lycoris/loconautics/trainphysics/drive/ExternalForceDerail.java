@@ -9,6 +9,8 @@ import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.mixin.sable.physicsstaff.PhysicsStaffDragSessionAccessor;
 import com.lycoris.loconautics.mixin.sable.physicsstaff.PhysicsStaffServerHandlerAccessor;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.SableTrain.Car;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.spawn.SubLevelMergeWatcher;
@@ -38,6 +40,50 @@ public final class ExternalForceDerail {
 
     private ExternalForceDerail() {
     }
+
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (!clears(event)) {
+                return;
+            }
+            PEAK.remove(subId);
+            PLUNGER_PEAK.remove(subId);
+            PLUNGER_PULL.remove(subId);
+            LIFTED.remove(train.id());
+            REGRIP.remove(train.id());
+            RELEASED.remove(train.id());
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            ExternalForceDerail.retain(liveTrains, liveSubs);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            StringBuilder out = new StringBuilder();
+            note(out, "peak", PEAK.containsKey(subId));
+            note(out, "plungerPeak", PLUNGER_PEAK.containsKey(subId));
+            note(out, "plungerPull", PLUNGER_PULL.containsKey(subId));
+            note(out, "lifted", LIFTED.containsKey(trainId));
+            note(out, "regrip", REGRIP.containsKey(trainId));
+            note(out, "released", RELEASED.containsKey(trainId));
+            return out.toString().trim();
+        }
+
+        private void note(StringBuilder out, String name, boolean held) {
+            if (held) {
+                out.append(name).append(' ');
+            }
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.RESEATED_IN_PLACE
+                    || event == CartEvent.REMOVED;
+        }
+    };
 
     private static final int LIFT_TICKS = 5;
     private static final double LIFT_RATIO = 100.0;
@@ -180,7 +226,6 @@ public final class ExternalForceDerail {
         }
         Vector3d linear = new Vector3d();
         glue.getJointImpulses(linear, new Vector3d());
-        // rapier keeps the impulse in the joint frame, the basis gluebody built out of these same three axes
         Vector3d lateral = new Vector3d(tangent).cross(up).normalize();
         return RailGlue.basisQuaternion(tangent, up, lateral).transform(linear, new Vector3d())
                 .mul(1.0 / (mass * dt));
@@ -219,7 +264,6 @@ public final class ExternalForceDerail {
         return speed <= limit ? new Vector3d() : velocity.mul(limit / speed - 1.0);
     }
 
-    // a rolling car leaves its height free, so while the staff drags it the guide holds it down and the lift guard has a force to read
     static boolean holdDownForStaff(ServerSubLevel sub) {
         return LoconauticsConfig.DERAIL_ON_EXTERNAL_FORCE.get() && staffDrags(sub);
     }
@@ -263,7 +307,6 @@ public final class ExternalForceDerail {
         }
     }
 
-    // islocked needs a live handle, an unloaded body has none
     public static boolean staffLockedById(ServerLevel level, Collection<UUID> ids) {
         try {
             Map<UUID, Object> locks = ((PhysicsStaffServerHandlerAccessor) PhysicsStaffServerHandler.get(level)).loconautics$getLocks();

@@ -20,6 +20,8 @@ import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.rail.RailEdgeSearch;
 import com.lycoris.loconautics.trainphysics.rail.RailFollower;
 import com.lycoris.loconautics.trainphysics.rail.RailPick;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartLifecycle;
 import com.lycoris.loconautics.trainphysics.state.SableTrainPersistence;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.lycoris.loconautics.trainphysics.teleport.TeleportStrands;
@@ -86,7 +88,6 @@ public final class SableTrainSpawner {
     private static final double REACH = 12.0;
     private static final int MAX_BLOCKS = 4096;
 
-    // gap left between relocated car bodies, we use a fixed value since cars are physics linked with no stored spacing
 
     private SableTrainSpawner() {
     }
@@ -176,7 +177,6 @@ public final class SableTrainSpawner {
             return null;
         }
 
-        // trains forward when extending a consist so the new car runs the same way, else the players view
         Vec3 railDir = dirHint != null ? dirHint : view;
 
         TrackHit track = findRailBelow(level, origin, railDir);
@@ -210,7 +210,6 @@ public final class SableTrainSpawner {
         return car;
     }
 
-    // the blocks leave the world on assembly, so the rail has to be found first or a failure leaves an orphan body
     static boolean hasRail(ServerLevel level, Set<BlockPos> blocks, BoundingBox3i bounds, Vec3 railDir,
                            BlockPos preferredAnchor) {
         return railFor(level, bounds, bodyAnchorOf(blocks, preferredAnchor), railDir, bogeysIn(level, blocks)) != null;
@@ -256,10 +255,8 @@ public final class SableTrainSpawner {
 
     static SableTrain.Car seatCar(ServerLevel level, Set<BlockPos> blocks, BoundingBox3i bounds,
                                           Vec3 railDir, BlockPos preferredAnchor) {
-        // bogey positions are recorded in world space, converted to the bodys local frame after assembly
         List<BlockPos> bogeyPositions = bogeysIn(level, blocks);
         bogeyPositions.sort(java.util.Comparator.comparingDouble(p -> p.getX() * railDir.x + p.getZ() * railDir.z));
-        // the blocks leave the world on assembly, so which bogeys hang has to be read now
         Set<BlockPos> hangingBogeys = new java.util.HashSet<>();
         for (BlockPos p : bogeyPositions) {
             if (WheelColliders.isUpsideDown(level.getBlockState(p))) {
@@ -279,7 +276,6 @@ public final class SableTrainSpawner {
 
         StationAssembly.moveGlueIntoSubLevel(level, blocks, bounds, sub, bodyAnchor);
 
-        // localpos is relative to the body sub levels anchor block, so the driver can find the bogey each tick
         List<SableTrain.Bogey> bogeys = new ArrayList<>();
         for (BlockPos bp : bogeyPositions) {
             TrackHit bogeyTrack = findRailBelow(level, bp, railDir, hangingBogeys.contains(bp));
@@ -288,7 +284,6 @@ public final class SableTrainSpawner {
                         "[sabletrain] seat: NO rail found under bogey at {}, this bogey will not follow the track", bp);
                 continue;
             }
-            // a cart on a sub level is gathered at plot coordinates, railcarriage answers in world space
             RailCarriage bogeyRail = seatFollowerUnder(bogeyTrack, worldOfSeat(bogeyTrack, bp));
             if (bogeyRail == null) {
                 continue;
@@ -505,7 +500,6 @@ public final class SableTrainSpawner {
             msg(player, "no parked train found at this station");
             return false;
         }
-        // an assembled car is latched at the station but can sit further than the park radius from the mark
         if (!TrainStations.parkOnMark(parked, global) && !latched) {
             msg(player, "the train has to be stopped on the station mark to disassemble");
             return false;
@@ -543,7 +537,6 @@ public final class SableTrainSpawner {
     }
 
     private static boolean isParkedAt(SableTrain train, GlobalStation station) {
-        // atstation survives a four block grace so a jiggling car keeps its stop, which is not the same as parked,
         if (train.stationState() != SableTrain.StationState.STOPPED) {
             return false;
         }
@@ -571,7 +564,6 @@ public final class SableTrainSpawner {
         if (sub == null) {
             return false;
         }
-        // squaring up rebuilds ghost wheels, so they get stripped after, not before
         com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.releaseAll(train);
 
         BlockPos anchor = sub.getPlot().getCenterBlock();
@@ -582,7 +574,6 @@ public final class SableTrainSpawner {
         int turns = -Mth.floor(yaw / (Math.PI / 2.0) + 0.5);
         Rotation rotation = SimAssemblyHelper.rotationFrom90DegRots(turns);
 
-        // create hands the schedule item back on disassembly, so do we, before the sub level is gone
         com.lycoris.loconautics.content.schedule.ScheduleConductor.returnScheduleOnDisassembly(level, train.id(), sub,
                 drawn, sender);
 
@@ -592,7 +583,6 @@ public final class SableTrainSpawner {
         RerailApproach.forget(train.id());
         SableTrainPersistence.unpersist(level.getServer(), train.id());
         SableTrainSyncPacket.broadcastRemoval(subId);
-        // emptying the plot marks the husk removed but leaves it ticking, and a pending heat map split then crashes
         if (container.getSubLevel(subId) == sub) {
             container.removeSubLevel(sub, SubLevelRemovalReason.REMOVED);
         }
@@ -720,7 +710,6 @@ public final class SableTrainSpawner {
 
     private static final double RELOCATE_REACH = 24.0;
 
-    // plot positions are far from the player
     public static boolean withinRelocateReach(ServerPlayer player, BlockPos pos) {
         return Sable.HELPER.distanceSquaredWithSubLevels(player.level(), player.getEyePosition(),
                 Vec3.atCenterOf(pos)) <= RELOCATE_REACH * RELOCATE_REACH;
@@ -740,7 +729,6 @@ public final class SableTrainSpawner {
         }
     }
 
-    // the hover preview calls this with speak off, so hovering never spams chat or the log
     @Nullable
     private static RelocationPlan planRelocation(ServerPlayer player, UUID subLevelId, RailPick pick, Vec3 lookAngle,
                                                  boolean speak) {
@@ -772,7 +760,6 @@ public final class SableTrainSpawner {
             refuseRelocation(speak, player, pos + " is not a track block", null);
             return null;
         }
-        // every track axis and every locationback tangent below is read in the graphs own frame, and a sub levels graph is its plot, so the players world look has to come down into that frame before any of them use it
         Vec3 look = lookAngle;
         ServerSubLevel railHost = RailSeams.hostAt(level, pos) instanceof ServerSubLevel s ? s : null;
         if (railHost != null) {
@@ -855,7 +842,6 @@ public final class SableTrainSpawner {
             return;
         }
 
-        // all poses first, so one bad car cannot strand the rest
         List<SeatPose> seats = new ArrayList<>(cars.size());
         for (int i = 0; i < cars.size(); i++) {
             Vec3 heading = plan.chain().heads().get(i);
@@ -890,7 +876,6 @@ public final class SableTrainSpawner {
                 placed, cars.size(), pos);
     }
 
-    // a kept engagement reads the jump as a huge stretch
     private static void reengageKnuckles(ServerLevel level, List<SableTrain> cars) {
         for (SableTrain car : cars) {
             ServerSubLevel sub = SubLevelData.resolve(level, car.car().subLevelId());
@@ -932,7 +917,6 @@ public final class SableTrainSpawner {
         return cars;
     }
 
-    // heads point at the front of the train, taken from the walk that placed each spot
     public record ChainSpots(List<TrackGraphLocation> spots, List<Vec3> heads) {
     }
 
@@ -966,7 +950,6 @@ public final class SableTrainSpawner {
                 return null;
             }
             Vec3 at = pointOf(carLoc);
-            // cars are straight bodies, so on a curve the rail has to run longer than the spacing to keep the couplers that far apart
             for (int i = 0; prevAt != null && at != null && i < CHORD_STEPS; i++) {
                 double seen = at.distanceTo(prevAt);
                 double gap = step - seen;
@@ -993,7 +976,6 @@ public final class SableTrainSpawner {
     private static final double CHORD_TOLERANCE = 0.01;
     private static final double HEADING_PROBE = 0.1;
 
-    // a step toward the front along the same walk, so a u turn cannot flip it
     private static Vec3 headingAt(TrackGraphLocation front, Vec3 upNormal, Vec3 look, double cursor, @Nullable Vec3 at) {
         TrackGraphLocation nearer = at == null ? null
                 : locationBack(front, upNormal, look, Math.max(cursor - HEADING_PROBE, 0.0), true);
@@ -1030,7 +1012,6 @@ public final class SableTrainSpawner {
                 b -> b.localPos().getX() * fx + b.localPos().getZ() * fz));
     }
 
-    // the assembly forward through the bodys pose. never lead minus trail, that pair is seated off the rail edge
     public static Vec3 currentFacing(ServerSubLevel sub, SableTrain.Car car) {
         Vector3d reference = car.carriage() == null ? null : car.carriage().referenceForward();
         if (reference != null && reference.lengthSquared() > 1.0e-9) {
@@ -1084,8 +1065,7 @@ public final class SableTrainSpawner {
                     seat.origin(), seat.orient());
             return true;
         }
-        // a wrench click puts the car somewhere else entirely, and dragging a live body there mows down whatever is
-        SableTrainDriver.forgetBodyState(train);
+        CartLifecycle.beforeTeleport(train);
         SableTeleportation.Result placed = SableTeleportation.teleport(sub, level, seat.origin(), seat.orient());
         if (placed.ok()) {
             return true;
@@ -1142,7 +1122,6 @@ public final class SableTrainSpawner {
         if (chord == null) {
             Vec3 cf = carriage.forward();
             chord = new Vector3d(cf.x, cf.y, cf.z);
-            // a lone bogey has no chord, and the rail edge sign says nothing about which way the car faces
             if (cf.x * lookAngle.x + cf.z * lookAngle.z < 0.0) {
                 chord.negate();
             }
@@ -1161,7 +1140,6 @@ public final class SableTrainSpawner {
             return new SeatPose(null, orient, carriage, bogeys);
         }
 
-        // the anchor only lands where it should once the body is turned, so the origin has to be read off the turned pose
         Vector3d localAnchor = seatAnchorLocal(sub, train.car(), bogeys);
         Pose3d pose = sub.logicalPose();
         Quaterniond keepOrient = new Quaterniond(pose.orientation());
@@ -1204,21 +1182,16 @@ public final class SableTrainSpawner {
         }
 
         train.relocate(carriage, bogeys);
-        seedTravelSigns(seat, carriage, bogeys);
-        if (teleport) {
-            RerailBalance.noteManualRerail(train);
-        }
         train.setDerailed(false);
         train.setSpeed(0.0);
         train.setTargetSpeed(0.0);
         train.setStationState(SableTrain.StationState.RUNNING);
         train.setCurrentStation(null);
         train.setAtStation(null);
-        com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.rebuild(train);
+        CartLifecycle.fire(train, teleport ? CartEvent.RELOCATED : CartEvent.REERAILED);
 
         SableTrainPersistence.persist(train);
         SableTrainSyncPacket.broadcast(train);
-        // a seat origin out at the plot means a follower never lifted through its host, which reads as the car vanishing
         LoconauticsConstants.LOGGER.info("[sabletrain] seated car {} on {} bogey(s) at {}",
                 train.id(), bogeys.size(), v3d(seat.origin()));
         if (com.lycoris.loconautics.content.knuckle.KnuckleTuning.trace) {
@@ -1241,20 +1214,6 @@ public final class SableTrainSpawner {
         Vector3d turned = seat.orient().transform(new Vector3d(reference), new Vector3d());
         double dot = (tangent.x * turned.x + tangent.z * turned.z) * bogeys.get(0).rail().lastTravelSign();
         return String.format("%.2f", dot);
-    }
-
-    // fresh followers default to travel sign 1 and a parked car never advances to correct it, so axlesign read the car backwards
-    private static void seedTravelSigns(SeatPose seat, RailCarriage carriage, List<SableTrain.Bogey> bogeys) {
-        Vector3d reference = carriage.referenceForward();
-        if (reference == null) {
-            return;
-        }
-        Vector3d turned = seat.orient().transform(new Vector3d(reference), new Vector3d());
-        Vec3 facing = new Vec3(turned.x, 0.0, turned.z);
-        TrainRailAdvance.seedTravelSign(carriage, facing);
-        for (SableTrain.Bogey bogey : bogeys) {
-            TrainRailAdvance.seedTravelSign(bogey.rail(), facing);
-        }
     }
 
     private static List<SableTrain.Bogey> seatBogeysUnderThemselves(ServerLevel level, ServerSubLevel sub,
@@ -1382,7 +1341,6 @@ public final class SableTrainSpawner {
         return locationBack(from, upNormal, look, dist, false);
     }
 
-    // a portal is a zero length edge, walking through it lands on the far scenes raw coordinates
     public static TrackGraphLocation locationBack(TrackGraphLocation from, Vec3 upNormal, Vec3 look, double dist,
                                                   boolean refusePortals) {
         TravellingPoint p = RailFollower.pointAt(from);
@@ -1436,7 +1394,6 @@ public final class SableTrainSpawner {
             return false;
         }
         carriage.adoptReferenceFrame(train.car().carriage());
-        // align the carriages arc position to the bodys actual center, seating is block coarse otherwise
         Vector3d c = carriage.center();
         Vec3 cf = carriage.forward();
         if (c != null) {
@@ -1471,16 +1428,16 @@ public final class SableTrainSpawner {
         double keepDistance = train.distanceToStation();
         int keepDwell = train.dwellTicks();
         train.relocate(carriage, bogeys);
-        train.setSpeed(keepSpeed); // mid run reseat, the car keeps rolling since relocate zeroes it
+        train.setSpeed(keepSpeed);
         if (keepState == SableTrain.StationState.STOPPED) {
             train.keepStop(keepState, keepStation, keepDistance, keepDwell);
         }
+        CartLifecycle.fire(train, CartEvent.RESEATED_IN_PLACE);
         LoconauticsConstants.LOGGER.info(
                 "[sabletrain] re-seated train {} on the live track graph (rail broken/rebuilt nearby)", train.id());
         return true;
     }
 
-    // a bogey that just jumped is still sitting over the rail it left, so it has to be given time to actually leave
     static final int RERAIL_COOLDOWN_TICKS = 60;
 
     static final double RAILHEAD_PROBE = 1.0;
@@ -1634,7 +1591,6 @@ public final class SableTrainSpawner {
         return rail;
     }
 
-    // a bogey block gathered out of a plot has to come back through the host the rail itself lives in
     private static Vector3d worldOfSeat(TrackHit hit, BlockPos seat) {
         ServerSubLevel host = RailSeams.serverHostOf(hit.location().edge.getFirst());
         return host == null
@@ -1675,7 +1631,6 @@ public final class SableTrainSpawner {
         return false;
     }
 
-    // a sub levels rails are ordinary blocks parked at plot coordinates thousands of blocks from where the sub level is drawn, so a search that only reads world coordinates can never see the track a car is standing on
     static TrackHit findRailBelow(ServerLevel level, BlockPos origin, Vec3 look) {
         return findRailBelow(level, origin, look, false);
     }
@@ -1707,7 +1662,6 @@ public final class SableTrainSpawner {
         return best.hit;
     }
 
-    // a bezier bend has no blocks under its middle, so the track graph edges are the only rail there
     private static void edgeRailBelow(ServerLevel level, ServerSubLevel host, Vec3 origin, Vec3 look, Hit best,
                                       boolean hanging) {
         RailEdgeSearch.Found found = RailEdgeSearch.nearest(level.dimension(), host, origin, look,
@@ -1723,7 +1677,6 @@ public final class SableTrainSpawner {
         return LoconauticsConfig.RAIL_SEARCH_RADIUS.get() + RAIL_SEARCH_VERTICAL_RANGE + 1.0;
     }
 
-    // the plot frame is a rigid move of the world one, so a squared block offset compares across hosts unchanged
     private static final class Hit {
         TrackHit hit;
         double distSqr = Double.MAX_VALUE;

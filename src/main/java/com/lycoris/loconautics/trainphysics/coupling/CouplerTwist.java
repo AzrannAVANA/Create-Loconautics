@@ -6,6 +6,8 @@ import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.content.knuckle.KnuckleTuning;
 import com.lycoris.loconautics.foundation.debug.DebugLines;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.TrainConsist;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
 import com.lycoris.loconautics.trainphysics.drive.SeatBlend;
@@ -43,7 +45,6 @@ public final class CouplerTwist {
     static final double TWIST_SLACK_DEGREES = 3.0;
 
 
-    // couplertwist is temporary, it goes with the fix confirmation
     public static final boolean TRACE = true;
 
     private static final long RAMP_TICKS = 8L;
@@ -57,6 +58,36 @@ public final class CouplerTwist {
 
     private CouplerTwist() {
     }
+
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (!clears(event)) {
+                return;
+            }
+            ARTICULATED.remove(subId);
+            STATES.keySet().removeIf(pair -> pair.lo().equals(subId) || pair.hi().equals(subId));
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            CouplerTwist.retain(liveSubs);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            long pairs = STATES.keySet().stream()
+                    .filter(pair -> pair.lo().equals(subId) || pair.hi().equals(subId)).count();
+            boolean articulated = ARTICULATED.contains(subId);
+            return pairs == 0 && !articulated ? "" : "restPairs=" + pairs + " articulated=" + articulated;
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.RESEATED_IN_PLACE
+                    || event == CartEvent.REMOVED;
+        }
+    };
 
     private enum Role { ROLLING, FREE, SKIP }
 
@@ -117,7 +148,6 @@ public final class CouplerTwist {
     private static final Map<Pair, State> STATES = new ConcurrentHashMap<>();
     private static final Set<UUID> ARTICULATED = ConcurrentHashMap.newKeySet();
 
-    // the providers scan block entities, so this is once per game tick, not per substep
     public static void collect(ServerLevel level) {
         long now = level.getGameTime();
         Snapshot previous = SNAPSHOTS.get(level.dimension());
@@ -174,7 +204,6 @@ public final class CouplerTwist {
         }
     }
 
-    // a bearing whose axis is not along the track already locks relative roll in its own rotary joint
     private static Swivel evaluateSwivel(ServerLevel level, Pair pair, TwistLink link) {
         ServerSubLevel own = SubLevelData.resolve(level, link.subA());
         double dot = 0.0;
@@ -455,7 +484,6 @@ public final class CouplerTwist {
         return centerB.sub(centerA).dot(axis) < 0.0 ? axis.negate() : axis;
     }
 
-    // twist about u of the rotation from car a to car b, with their seated relation taken out
     private static double twistAbout(Side a, Side b, Quaterniond rest, Vector3d u) {
         Quaterniond turnedA = new Quaterniond(a.sub().logicalPose().orientation()).mul(rest).invert();
         Quaterniond error = new Quaterniond(b.sub().logicalPose().orientation()).mul(turnedA);
@@ -468,7 +496,6 @@ public final class CouplerTwist {
         return theta;
     }
 
-    // a rolling car only turns about its chord, a free car about u itself
     private static double inverseInertia(Side side, Vector3d u, double dot) {
         if (side.rolling()) {
             double hingeI = side.roll().hingeI;
@@ -524,7 +551,6 @@ public final class CouplerTwist {
         state.capHit = capped;
     }
 
-    // the angle between the two track normals about u, logged only, the law never reads it
     private static String trackTwist(Side a, Side b, Vector3d u) {
         if (!a.rolling() || !b.rolling()) {
             return "na";

@@ -121,6 +121,17 @@ public final class Loconautics {
             com.lycoris.loconautics.compat.computercraft.LoconauticsCCPlugin.install();
         }
         com.lycoris.loconautics.trainphysics.debug.force.ForceTrace.register();
+        com.lycoris.loconautics.trainphysics.state.CartLifecycle.register(
+                com.lycoris.loconautics.trainphysics.glue.RailGlue.STORE,
+                com.lycoris.loconautics.trainphysics.glue.WheelSupports.STORE,
+                com.lycoris.loconautics.trainphysics.glue.CarriageRoll.STORE,
+                com.lycoris.loconautics.trainphysics.coupling.CouplerTwist.STORE,
+                com.lycoris.loconautics.trainphysics.spawn.RerailApproach.STORE,
+                com.lycoris.loconautics.trainphysics.spawn.RerailBalance.STORE,
+                com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail.STORE,
+                com.lycoris.loconautics.trainphysics.drive.TrainDerailment.STORE,
+                com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.STORE,
+                new com.lycoris.loconautics.trainphysics.state.TravelSignSeed());
         com.lycoris.loconautics.common.strand.StrandRemap.register(
                 com.lycoris.loconautics.content.steelcable.SteelCableStrandRemap.INSTANCE);
         com.lycoris.loconautics.common.strand.StrandRemap.register(
@@ -233,7 +244,6 @@ public final class Loconautics {
         runStopHook("TurntableRegistry", com.lycoris.loconautics.common.turntable.TurntableRegistry::clear);
         runStopHook("SignalOverrides", com.lycoris.loconautics.common.railway.SignalOverrides::clear);
         runStopHook("PointOverrides", com.lycoris.loconautics.common.railway.PointOverrides::clearAll);
-        // every one of these holds a constraint handle or a body from a rapier scene that is about to go away
         runStopHook("GhostWheelBodies", com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies::clear);
         runStopHook("KnuckleJoint", com.lycoris.loconautics.content.knuckle.KnuckleJoint::clear);
         runStopHook("SubLevelContacts",com.lycoris.loconautics.trainphysics.sublevel.SubLevelContacts::clear);

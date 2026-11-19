@@ -61,12 +61,10 @@ import static com.lycoris.loconautics.foundation.LogFormat.shortId;
 
 public final class TrainResidency {
 
-    // a body that just came back is still at the pose it unloaded at, the write waits for the server tick, never a container callback
     private static final Set<UUID> RECONCILE = ConcurrentHashMap.newKeySet();
 
     private static final Set<UUID> RAILHEAD_HELD = ConcurrentHashMap.newKeySet();
 
-    // a miss makes sable log an error per candidate chunk, so a body that cannot be found must not be hunted every tick
     private static final int SNATCH_RETRY_TICKS = 40;
 
     private static final Map<UUID, Integer> SNATCH_COOLDOWN = new ConcurrentHashMap<>();
@@ -75,12 +73,10 @@ public final class TrainResidency {
 
     private static final Map<UUID, Integer> SNATCH_MISSES = new ConcurrentHashMap<>();
 
-    // 30 misses at 40 ticks each is a minute of looking, after that the body is checked on disk and in every level
     private static final int LOST_CHECK_MISSES = 30;
 
     private static final Map<UUID, Long> REFILED_AT = new ConcurrentHashMap<>();
 
-    // sable returns a refiled body as soon as its own bounds are loaded, so a second refile right after would only loop
     private static final int REFILE_BACKOFF_TICKS = 100;
 
     private static final Map<UUID, Long> DEFER_UNTIL = new ConcurrentHashMap<>();
@@ -91,20 +87,16 @@ public final class TrainResidency {
 
     private static final Set<UUID> VELOCITY_CHECK = ConcurrentHashMap.newKeySet();
 
-    // ghost cars of a split consist, the tick each one took a chunk hold at its own cursor
     private static final Map<UUID, Long> SPLIT_PINNED = new ConcurrentHashMap<>();
 
-    // a car whose hold timed out or whose body is lost does not take the hold again until the split ends
     private static final Set<UUID> SPLIT_GAVE_UP = ConcurrentHashMap.newKeySet();
 
-    // 8 cars of 9 chunks each is no more than eight stopped trains already pin at a station
     private static final int MAX_SPLIT_PINS = 8;
 
     private static final Map<UUID, Integer> RESEAT_FAILS = new ConcurrentHashMap<>();
 
     private static final int RESEAT_RETRY_TICKS = 40;
 
-    // every failed try tears the body down and loads it again, so a reseat that never works stops being retried
     private static final int MAX_RESEAT_FAILS = 5;
 
     private static final Map<UUID, Long> UNLOADED_AT = new ConcurrentHashMap<>();
@@ -115,15 +107,12 @@ public final class TrainResidency {
 
     private static final Map<UUID, Long> PULL_BLOCKED_UNTIL = new ConcurrentHashMap<>();
 
-    // the chunks of a body that just came back stay pinned this long, so a station hold that ends on the embody tick cannot drop them
     public static final long EMBODY_GRACE_TICKS = 100L;
 
-    // a body sable took away this soon after it came back flapped, nothing pulls it back for a while
     private static final long FLAP_TICKS = 20L;
 
     private static final long FLAP_HOLDOFF_TICKS = 100L;
 
-    // a mate that flaps in and out of loading is still a ghost for the heads sake, or the head drives off and tears the knuckle
     private static final long MATE_UNLOAD_HOLD_TICKS = 60L;
 
 
@@ -164,7 +153,6 @@ public final class TrainResidency {
         RECONCILE.add(train.id());
     }
 
-    // a train restored off disk whose body was already loaded never went through onsubleveladded, nothing had it in the registry yet
     public static void queueReconcile(SableTrain train) {
         if (train != null) {
             RECONCILE.add(train.id());
@@ -178,7 +166,6 @@ public final class TrainResidency {
             return;
         }
         if (train.isGhost()) {
-            // sable loaded this body with a mate and took it back before its turn
             RECONCILE.remove(train.id());
             return;
         }
@@ -199,9 +186,7 @@ public final class TrainResidency {
             PULL_BLOCKED_UNTIL.put(train.id(), unloadedAt + FLAP_HOLDOFF_TICKS);
         }
         RECONCILE.remove(train.id());
-        SableTrainDriver.forgetBodyState(train);
-        // the plates hang off the car by a joint, and a joint left on a body sable took away panics rapier
-        GhostWheelBodies.releaseAll(train);
+        CartLifecycle.fire(train, CartEvent.GHOSTED);
         if (train.level().getServer() != null && train.level().getServer().isRunning()) {
             SableTrainPersistence.persist(train);
         }
@@ -220,7 +205,6 @@ public final class TrainResidency {
         }
         var controller = SableTrainDriver.controllerIn(train);
         train.setScheduleDriven(controller != null && controller.isScheduleControlled());
-        // the full power top, the ghost scales it by the schedule notch limit the way the lever would
         double top = ConsistPower.peakTopBpt(train);
         if (top > 1.0e-4) {
             train.setGhostCruise(top);
@@ -266,7 +250,6 @@ public final class TrainResidency {
         }
         Vector3d cursor = railCursor(car);
         if (train.isDerailed() || train.isPhysics()) {
-            // this branch never reaches the ticket update below, so a hold taken before the derail would stay forever
             if (RAILHEAD_HELD.remove(train.id()) | SPLIT_PINNED.remove(train.id()) != null) {
                 StationChunkTickets.release(train.id(), "ghost derailed");
             }
@@ -304,7 +287,6 @@ public final class TrainResidency {
         return ExternalForceDerail.staffLockedById(train.level(), ids);
     }
 
-    // one speed and one step for the whole consist
     private static void stepGhostConsist(SableTrain train, boolean split) {
         long now = train.level().getGameTime();
         if (GHOST_STEPPED.getOrDefault(train.id(), -1L) == now) {
@@ -355,7 +337,6 @@ public final class TrainResidency {
         }
     }
 
-    // a ghost car with an embodied mate stands still waiting for chunks nobody loads, so it pins its own, a few cars at a time
     private static void updateSplitPin(SableTrain train, Vector3d cursor, boolean split) {
         UUID id = train.id();
         if (!split) {
@@ -392,7 +373,6 @@ public final class TrainResidency {
                 shortId(id), v3(cursor), pinned, train.consistCache().size());
     }
 
-    // a body that has been searched for a minute and not found, the hold for it gets the dwell cap
     public static boolean bodyLost(SableTrain train) {
         return SNATCH_MISSES.getOrDefault(train.id(), 0) >= LOST_CHECK_MISSES;
     }
@@ -469,7 +449,6 @@ public final class TrainResidency {
         }
     }
 
-    // sable loads a body with its chain, an unready car would pull them all back down
     private static String matesNotReady(SableTrain train) {
         for (SableTrain mate : GhostConsist.ghosts(train, true)) {
             if (mate == train || bodyLost(mate)) {
@@ -532,7 +511,6 @@ public final class TrainResidency {
         return out.toString();
     }
 
-    // the body was filed under one of the world chunks it overlapped, the pose chunk first since that is nearly always it
     private static List<ChunkPos> candidateChunks(SableTrain train, HoldingSubLevel holding) {
         List<ChunkPos> out = new ArrayList<>();
         ChunkPos primary = holding != null ? chunkOf(new Vector3d(holding.data().pose().position()))
@@ -541,7 +519,6 @@ public final class TrainResidency {
             out.add(primary);
         }
         if (holding != null) {
-            // sable files a body under a chunk of its bounds grown by one block, the same margin its ready test uses
             BoundingBox3d bounds = holding.data().bounds();
             addSpan(out, Mth.floor(bounds.minX() - 1.0) >> 4, Mth.floor(bounds.maxX() + 1.0) >> 4,
                     Mth.floor(bounds.minZ() - 1.0) >> 4, Mth.floor(bounds.maxZ() + 1.0) >> 4);
@@ -572,7 +549,6 @@ public final class TrainResidency {
         return new ChunkPos((int) Math.floor(pos.x()) >> 4, (int) Math.floor(pos.z()) >> 4);
     }
 
-    // true when nothing is left to retry, false when the body stays live and the next tick asks again
     private static boolean embody(SableTrain train) {
         ServerSubLevel sub = resolve(train);
         if (sub == null) {
@@ -593,8 +569,7 @@ public final class TrainResidency {
                 return true;
             }
         }
-        SableTrainDriver.forgetBodyState(train);
-        train.beginPoseSettle(POSE_SETTLE_TICKS);
+        CartLifecycle.beforeTeleport(train);
         boolean seated = false;
         if (reseat) {
             Vector3d before = new Vector3d(sub.logicalPose().position());
@@ -610,7 +585,6 @@ public final class TrainResidency {
                     if (retryReseat(train, placed.failure())) {
                         return false;
                     }
-                    // the failed teleport may have put the body back as a new object, so the old handle is stale
                     ServerSubLevel back = resolve(train);
                     if (back == null) {
                         return true;
@@ -620,7 +594,6 @@ public final class TrainResidency {
             }
         }
         if (seated) {
-            // sable gives back 0.9 of the saved speed or none, the rail speed is what the train really has
             SableTrainDriver.seedRailVelocity(sub, train.car(), train);
             VELOCITY_CHECK.add(train.id());
         }
@@ -638,7 +611,7 @@ public final class TrainResidency {
         SPLIT_GAVE_UP.remove(train.id());
         RAILHEAD_HELD.remove(train.id());
         StationChunkTickets.clearCap(train.id());
-        GhostWheelBodies.rebuild(train);
+        CartLifecycle.fire(train, CartEvent.EMBODIED);
         cacheEmbodiedState(train, sub);
         SableTrainPersistence.persist(train);
         SableTrainSyncPacket.broadcast(train);
@@ -646,7 +619,6 @@ public final class TrainResidency {
         return true;
     }
 
-    // the lever is saved with the body and would drive a parked ghost off the moment it loads
     private static void zeroLeverOfStoppedGhost(SableTrain train, ServerSubLevel sub) {
         if (Math.abs(train.targetSpeed()) > 1.0e-6 && Math.abs(train.speed()) > StationLanding.PARK_SPEED) {
             return;
@@ -659,7 +631,6 @@ public final class TrainResidency {
         }
     }
 
-    // true when the train stays a ghost and the reseat is tried again after a pause, false once the tries ran out
     private static boolean retryReseat(SableTrain train, String failure) {
         UUID id = train.id();
         int fails = RESEAT_FAILS.merge(id, 1, Integer::sum);
@@ -677,7 +648,6 @@ public final class TrainResidency {
 
     private enum Target { PROCEED, PARKED, DEFERRED }
 
-    // a body sable brought back at its old place is never reseated onto a cursor in chunks nobody has loaded
     private static Target guardTarget(SableTrain train, ServerSubLevel sub, Vector3d origin, Quaterniond orient) {
         if (sub.logicalPose().position().distance(origin) <= RESEAT_IN_PLACE) {
             return Target.PROCEED;
@@ -734,7 +704,6 @@ public final class TrainResidency {
         return Target.PARKED;
     }
 
-    // the same margin as sable, bounds shifted to the target and grown by one block
     private static boolean targetLoaded(ServerLevel level, ServerSubLevel sub, Vector3d origin) {
         BoundingBox3dc box = sub.boundingBox();
         Vector3d at = sub.logicalPose().position();
@@ -754,7 +723,6 @@ public final class TrainResidency {
         return true;
     }
 
-    // sable keeps a body with a player inside its box, so the check is the same box grown by one block
     private static boolean playerAboard(ServerLevel level, ServerSubLevel sub) {
         BoundingBox3dc box = sub.boundingBox();
         return !level.getPlayers(player -> {
@@ -765,14 +733,12 @@ public final class TrainResidency {
         }).isEmpty();
     }
 
-    // the stored pose is written at the cursor before the body is filed, so a login point on it reads the real place
     private static void refile(SableTrain train, ServerSubLevel sub, ServerSubLevelContainer container,
                                Vector3d origin, Quaterniond orient, long now) {
         UUID subId = sub.getUniqueId();
         Vector3d from = new Vector3d(sub.logicalPose().position());
         ChunkPos filing = chunkOf(origin);
-        GhostWheelBodies.releaseAll(train);
-        SableTrainDriver.forgetBodyState(train);
+        CartLifecycle.fire(train, CartEvent.GHOSTED);
         SableTeleportation.writePose(train.level(), sub, origin, orient);
         sub.updateBoundingBox();
         String bounds = boundsText(sub.boundingBox(), 1.0);
@@ -844,13 +810,11 @@ public final class TrainResidency {
                 && train.level().getGameTime() - EMBODIED_AT.getOrDefault(train.id(), Long.MIN_VALUE / 2) < ticks;
     }
 
-    // nothing may pull a ghost back chunk holds, snatches right after sable took its body away on a flap
     public static boolean pullBlocked(SableTrain train) {
         Long until = PULL_BLOCKED_UNTIL.get(train.id());
         return until != null && train.level().getGameTime() < until;
     }
 
-    // the chunks sable tests for every body that loads and unloads with this car, bounds grown by one block like its own test
     public static Set<ChunkPos> chainChunks(SableTrain train) {
         Set<ChunkPos> out = new HashSet<>();
         ServerSubLevel sub = resolve(train);
@@ -922,7 +886,6 @@ public final class TrainResidency {
         return BlockPos.containing(cursor.x, cursor.y, cursor.z);
     }
 
-    // a rail whose host body is not loaded reads in plot space, nothing there can be pinned or counted as loaded
     public static boolean inPlotGrid(ServerLevel level, Vector3d pos) {
         ServerSubLevelContainer container = SubLevelContainer.getContainer(level);
         return container != null && container.inBounds(pos);

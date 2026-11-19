@@ -4,6 +4,8 @@ import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.common.train.TrainStatusChat;
 import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.coupling.CouplerTwist;
 import com.lycoris.loconautics.trainphysics.glue.CarriageRoll;
 import com.lycoris.loconautics.trainphysics.glue.RailGauge;
@@ -27,6 +29,33 @@ public final class RerailBalance {
 
     private RerailBalance() {
     }
+
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (clears(event)) {
+                RerailBalance.forget(train.id());
+            }
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            RerailBalance.retain(liveTrains);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return TOLD.containsKey(trainId) || LOOPING.containsKey(trainId) || AUTO_RERAILED.containsKey(trainId)
+                    || LOOPS.containsKey(trainId)
+                    ? "told=" + TOLD.containsKey(trainId) + " looping=" + LOOPING.containsKey(trainId)
+                    + " autoRerailed=" + AUTO_RERAILED.containsKey(trainId) + " loops=" + LOOPS.get(trainId) : "";
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.RESEATED_IN_PLACE || event == CartEvent.REMOVED;
+        }
+    };
 
     private static final long LOOP_WINDOW_TICKS = 100L;
     private static final int LOOP_LIMIT = 2;
@@ -123,12 +152,10 @@ public final class RerailBalance {
         AUTO_RERAILED.put(train.id(), gameTime);
     }
 
-    // a hand placed rerail starts the count over
     public static void noteManualRerail(SableTrain train) {
         forget(train.id());
     }
 
-    // the second roll off soon after an auto rerail ends the auto rerails
     public static void noteRolledOff(ServerSubLevel sub, SableTrain train) {
         UUID id = train.id();
         long now = sub.getLevel().getGameTime();

@@ -2,12 +2,20 @@ package com.lycoris.loconautics.content.boiler.bogey;
 
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
 import com.lycoris.loconautics.content.frequency.FrequencyBindUtil;
+import com.lycoris.loconautics.registry.LoconauticsRegistries;
+import com.simibubi.create.AllItems;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.content.trains.bogey.BogeySizes;
 import com.simibubi.create.content.trains.bogey.BogeyStyle;
 import com.simibubi.create.content.trains.track.TrackMaterial;
 import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.Containers;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.core.Direction;
@@ -66,6 +74,58 @@ public class BoilerBogeyBlock extends AbstractBogeyBlock<BoilerBogeyBlockEntity>
     }
 
     @Override
+    protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos,
+                                              Player player, InteractionHand hand, BlockHitResult hit) {
+        if (stack.is(AllItems.WRENCH.get()) && player.isShiftKeyDown()) {
+            // with no wheelset left the click goes on to the normal wrench, which takes the bogey out
+            if (!(level.getBlockEntity(pos) instanceof BoilerBogeyBlockEntity bogey) || bogey.wheelPairs() == 0) {
+                return super.useItemOn(stack, state, level, pos, player, hand, hit);
+            }
+            if (level.isClientSide) return ItemInteractionResult.SUCCESS;
+            if (bogey.removeWheelPair()) {
+                if (!player.isCreative()) {
+                    player.getInventory().placeItemBackInInventory(new ItemStack(LoconauticsRegistries.TRAIN_WHEEL.get()));
+                }
+                level.playSound(null, pos, SoundEvents.ANVIL_PLACE, SoundSource.BLOCKS, 0.5f, 0.7f);
+            }
+            return ItemInteractionResult.CONSUME;
+        }
+        if (stack.is(AllItems.WRENCH.get()) && hit.getDirection().getAxis().isHorizontal()) {
+            if (level.isClientSide) return ItemInteractionResult.SUCCESS;
+            if (level.getBlockEntity(pos) instanceof BoilerBogeyBlockEntity bogey) {
+                bogey.flipPistons();
+                level.playSound(null, pos, SoundEvents.ANVIL_PLACE, SoundSource.BLOCKS, 0.4f, 0.8f);
+            }
+            return ItemInteractionResult.CONSUME;
+        }
+        if (!stack.is(LoconauticsRegistries.TRAIN_WHEEL.get())) {
+            return super.useItemOn(stack, state, level, pos, player, hand, hit);
+        }
+        if (level.isClientSide) return ItemInteractionResult.SUCCESS;
+        if (!(level.getBlockEntity(pos) instanceof BoilerBogeyBlockEntity bogey)) return ItemInteractionResult.FAIL;
+        if (!bogey.addWheelPair()) {
+            player.displayClientMessage(Component.translatable("loconautics.boiler_bogey.wheels_full"), true);
+            return ItemInteractionResult.CONSUME;
+        }
+        if (!player.isCreative()) stack.shrink(1);
+        level.playSound(null, pos, SoundEvents.ANVIL_PLACE, SoundSource.BLOCKS, 0.5f, 1.3f);
+        return ItemInteractionResult.CONSUME;
+    }
+
+    @Override
+    public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+        if (!level.isClientSide && !player.isCreative()
+                && level.getBlockEntity(pos) instanceof BoilerBogeyBlockEntity bogey) {
+            int extra = bogey.wheelPairs();
+            if (extra > 0) {
+                Containers.dropItemStack(level, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                        new ItemStack(LoconauticsRegistries.TRAIN_WHEEL.get(), extra));
+            }
+        }
+        return super.playerWillDestroy(level, pos, state, player);
+    }
+
+    @Override
     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity placer,
                             ItemStack stack) {
         super.setPlacedBy(level, pos, state, placer, stack);
@@ -96,7 +156,8 @@ public class BoilerBogeyBlock extends AbstractBogeyBlock<BoilerBogeyBlockEntity>
 
     @Override
     public double getWheelRadius() {
-        return 6.5 / 16d;
+        // the flat of the wheel rim is 14 pixels from the axle, the spin angle is distance over this
+        return 14 / 16d;
     }
 
     @Override

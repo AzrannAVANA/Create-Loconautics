@@ -10,8 +10,8 @@ import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.sublevel.SubLevelContacts;
-import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
-import com.lycoris.loconautics.trainphysics.state.TrainResidency;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartLifecycle;
 import com.lycoris.loconautics.trainphysics.portal.PortalFrame;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.spawn.PlacementClearance;
@@ -249,8 +249,7 @@ public final class TrainTeleporter {
         int moved = 0;
         for (Landing landing : plan) {
             SableTrain train = landing.train();
-            GhostWheelBodies.releaseAll(train);
-            SableTrainDriver.forgetBodyState(train);
+            CartLifecycle.beforeTeleport(train);
             BlockPos fromCenter = landing.sub().getPlot().getCenterBlock();
             Map<BlockPos, UUID> drivers = drivers(landing.sub());
             Vector3d carriedVelocity = mode == Mode.HANDOVER ? carriedVelocity(landing) : null;
@@ -269,15 +268,12 @@ public final class TrainTeleporter {
             where.put(landing.sub().getUniqueId(), destLevel);
 
             train.setLevel(destLevel);
-            if (mode == Mode.HANDOVER) {
-                train.beginPoseSettle(TrainResidency.POSE_SETTLE_TICKS);
-            } else if (mode == Mode.RAIL) {
+            if (mode == Mode.RAIL) {
                 double speed = Math.abs(train.speed()) * landing.railTravelSign();
                 train.relocate(landing.seat().carriage(), landing.seat().bogeys());
                 train.setDerailed(false);
                 train.setSpeed(speed);
-                train.beginPoseSettle(TrainResidency.POSE_SETTLE_TICKS);
-            } else {
+            } else if (mode != Mode.HANDOVER) {
                 train.setSpeed(0.0);
                 train.setTargetSpeed(0.0);
                 train.setDerailed(true, "teleport");
@@ -288,7 +284,7 @@ public final class TrainTeleporter {
             }
             settleKnuckles(result.moved(), moving);
             reseatDrivers(result.moved(), fromCenter, drivers, trace);
-            GhostWheelBodies.rebuild(train);
+            CartLifecycle.fire(train, mode == Mode.HANDOVER ? CartEvent.HANDED_OVER : CartEvent.TELEPORTED);
             SableTrainPersistence.persist(train);
             SableTrainSyncPacket.broadcast(train);
             moved++;
@@ -306,7 +302,6 @@ public final class TrainTeleporter {
         return new Result(null, moved, cars(plan));
     }
 
-    // the body is rebuilt on landing and rapier starts it at rest, so the speed is turned with the car and handed back
     private static Vector3d carriedVelocity(Landing landing) {
         ServerSubLevelContainer container = SubLevelContainer.getContainer(landing.sub().getLevel());
         if (container == null) {
@@ -318,7 +313,6 @@ public final class TrainTeleporter {
         return turn.transform(velocity);
     }
 
-    // the contact filters are bound to the bodies that are about to be removed, drop them before the body goes
     private static void releaseContacts(ServerSubLevel sub) {
         for (UUID wheel : GhostWheelBodies.wheelBodiesOf(sub.getUniqueId())) {
             SubLevelContacts.releaseAll(wheel);
@@ -326,7 +320,6 @@ public final class TrainTeleporter {
         SubLevelContacts.releaseAll(sub.getUniqueId());
     }
 
-    // the filters went with the old bodies, so coupled cars would touch for a tick or two after landing
     private static void holdCoupledContacts(List<Landing> plan, ServerLevel destLevel) {
         for (Landing landing : plan) {
             ServerSubLevel moved = SubLevelData.resolve(destLevel, landing.sub().getUniqueId());
@@ -343,7 +336,6 @@ public final class TrainTeleporter {
         }
     }
 
-    // each car lands on its own plot, so the partner position a knuckle stored points at the old plot until it is shifted
     private static void followPartnerPlots(List<Landing> plan, ServerLevel destLevel,
                                            Map<UUID, TeleportStrands.Shift> shifts) {
         for (Landing landing : plan) {
@@ -358,7 +350,6 @@ public final class TrainTeleporter {
                     knuckle.movePartnerPos(partnerShift.apply(matePos));
                 }
             }
-            // a firebox keeps its controller and barrel positions in plot coordinates, the new plot is at another x and z
             TeleportStrands.Shift own = shifts.get(landing.sub().getUniqueId());
             if (own == null) {
                 continue;
@@ -402,7 +393,6 @@ public final class TrainTeleporter {
         return drivers;
     }
 
-    // the controller reloads from a tag that never carries a driver, a new plot only shifts x and z like repot
     private static void reseatDrivers(ServerSubLevel moved, BlockPos fromCenter, Map<BlockPos, UUID> drivers,
                                       Consumer<String> trace) {
         BlockPos toCenter = moved.getPlot().getCenterBlock();
