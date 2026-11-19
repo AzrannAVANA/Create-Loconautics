@@ -55,6 +55,10 @@ public final class TrainTeleporter {
     private record Landing(SableTrain train, ServerSubLevel sub, Vector3d origin, Quaterniond orient,
                            @Nullable SableTrainSpawner.SeatPose seat, double railTravelSign) {}
 
+    private record Home(ServerLevel level, Vector3d position, Quaterniond orient,
+                         @Nullable SableTeleportation.PlotSlot slot, BlockPos center, Map<BlockPos, UUID> drivers,
+                         @Nullable Vector3d carriedVelocity) {}
+
     private enum Mode { RAIL, FREE, HANDOVER }
 
     public static Result teleport(SableTrain train, ServerLevel destLevel, Vec3 position, double yawDeg,
@@ -233,10 +237,19 @@ public final class TrainTeleporter {
             trace.accept("car " + shortId(landing.train()) + " takes plot " + slot.x() + ", " + slot.z() + " in "
                     + destLevel.dimension().location());
         }
+        for (Landing landing : plan) {
+            String refusal = SableTeleportation.preflight(landing.sub(), destLevel,
+                    seats.get(landing.sub().getUniqueId())).refusal();
+            if (refusal != null) {
+                return new Result(refusal, 0, cars(plan));
+            }
+        }
 
         Set<UUID> moving = new HashSet<>();
+        List<Home> homes = new ArrayList<>();
         for (Landing landing : plan) {
             moving.add(landing.sub().getUniqueId());
+            homes.add(home(landing, mode));
         }
 
         ServerLevel sourceLevel = plan.get(0).sub().getLevel();
@@ -245,48 +258,40 @@ public final class TrainTeleporter {
                 strands.carried(), strands.cut(), sourceLevel.dimension().location(), destLevel.dimension().location());
         Map<UUID, TeleportStrands.Shift> shifts = new HashMap<>();
         Map<UUID, ServerLevel> where = new HashMap<>();
+        List<ServerSubLevel> arrived = new ArrayList<>();
 
-        int moved = 0;
-        for (Landing landing : plan) {
-            SableTrain train = landing.train();
-            CartLifecycle.beforeTeleport(train);
-            BlockPos fromCenter = landing.sub().getPlot().getCenterBlock();
-            Map<BlockPos, UUID> drivers = drivers(landing.sub());
-            Vector3d carriedVelocity = mode == Mode.HANDOVER ? carriedVelocity(landing) : null;
+        for (int i = 0; i < plan.size(); i++) {
+            Landing landing = plan.get(i);
+            CartLifecycle.beforeTeleport(landing.train());
             releaseContacts(landing.sub());
 
             SableTeleportation.Result result = SableTeleportation.teleport(landing.sub(), destLevel,
                     landing.origin(), landing.orient(), seats.get(landing.sub().getUniqueId()));
             if (!result.ok()) {
-                LoconauticsConstants.LOGGER.error("[teleport] train {} stopped: {}", train.id(), result.failure());
-                GhostWheelBodies.rebuild(train);
-                TeleportStrands.restore(strands, where, sourceLevel, shifts);
-                return new Result(result.failure(), moved, cars(plan));
+                LoconauticsConstants.LOGGER.error("[teleport] train {} stopped: {}", landing.train().id(),
+                        result.failure());
+                return rollBack(plan, homes, arrived, destLevel, strands, where, shifts, moving, result.failure(), mode,
+                        trace);
             }
-            shifts.put(landing.sub().getUniqueId(), new TeleportStrands.Shift(fromCenter,
+            arrived.add(result.moved());
+            shifts.put(landing.sub().getUniqueId(), new TeleportStrands.Shift(homes.get(i).center(),
                     result.moved().getPlot().getCenterBlock()));
             where.put(landing.sub().getUniqueId(), destLevel);
+        }
 
-            train.setLevel(destLevel);
-            if (mode == Mode.RAIL) {
-                double speed = Math.abs(train.speed()) * landing.railTravelSign();
-                train.relocate(landing.seat().carriage(), landing.seat().bogeys());
-                train.setDerailed(false);
-                train.setSpeed(speed);
-            } else if (mode != Mode.HANDOVER) {
-                train.setSpeed(0.0);
-                train.setTargetSpeed(0.0);
-                train.setDerailed(true, "teleport");
-            }
+        int moved = 0;
+        for (int i = 0; i < plan.size(); i++) {
+            Landing landing = plan.get(i);
+            SableTrain train = landing.train();
+            ServerSubLevel body = arrived.get(i);
+            arrive(landing, mode, destLevel);
+            Vector3d carriedVelocity = homes.get(i).carriedVelocity();
             if (carriedVelocity != null) {
                 var pipeline = SubLevelContainer.getContainer(destLevel).physicsSystem().getPipeline();
-                pipeline.addLinearAndAngularVelocity(result.moved(), carriedVelocity, new Vector3d());
+                pipeline.addLinearAndAngularVelocity(body, carriedVelocity, new Vector3d());
             }
-            settleKnuckles(result.moved(), moving);
-            reseatDrivers(result.moved(), fromCenter, drivers, trace);
-            CartLifecycle.fire(train, mode == Mode.HANDOVER ? CartEvent.HANDED_OVER : CartEvent.TELEPORTED);
-            SableTrainPersistence.persist(train);
-            SableTrainSyncPacket.broadcast(train);
+            land(train, body, moving, homes.get(i), mode == Mode.HANDOVER ? CartEvent.HANDED_OVER : CartEvent.TELEPORTED,
+                    trace);
             moved++;
             LoconauticsConstants.LOGGER.info("[issue281] car={} landed {}/{} derailed={} speed={}", shortId(train), moved,
                     plan.size(), train.isDerailed(), train.speed());
@@ -302,6 +307,85 @@ public final class TrainTeleporter {
         return new Result(null, moved, cars(plan));
     }
 
+    // cars before the failed one go back to the plot they left, so knuckle partner positions never changed
+    private static Result rollBack(List<Landing> plan, List<Home> homes, List<ServerSubLevel> arrived,
+                                   ServerLevel destLevel, TeleportStrands.Carry strands, Map<UUID, ServerLevel> where,
+                                   Map<UUID, TeleportStrands.Shift> shifts, Set<UUID> moving, String failure, Mode mode,
+                                   Consumer<String> trace) {
+        int failedAt = arrived.size();
+        for (int i = failedAt - 1; i >= 0; i--) {
+            UUID id = plan.get(i).sub().getUniqueId();
+            Home home = homes.get(i);
+            SableTeleportation.Result back = SableTeleportation.teleport(arrived.get(i), home.level(), home.position(),
+                    home.orient(), home.slot());
+            if (!back.ok()) {
+                LoconauticsConstants.LOGGER.error("[teleport] car {} could not go back home, it stays in {}: {}",
+                        id, destLevel.dimension().location(), back.failure());
+                continue;
+            }
+            arrived.set(i, back.moved());
+            where.remove(id);
+            shifts.remove(id);
+        }
+        ServerLevel sourceLevel = homes.get(0).level();
+        for (int i = 0; i <= failedAt; i++) {
+            Landing landing = plan.get(i);
+            SableTrain train = landing.train();
+            UUID id = landing.sub().getUniqueId();
+            ServerSubLevel body = i < failedAt ? arrived.get(i) : SubLevelData.resolve(sourceLevel, id);
+            if (body == null) {
+                LoconauticsConstants.LOGGER.error("[teleport] car {} has no body after the failed move", id);
+                continue;
+            }
+            if (where.containsKey(id)) {
+                arrive(landing, mode, destLevel);
+                land(train, body, moving, homes.get(i), mode == Mode.HANDOVER ? CartEvent.HANDED_OVER
+                        : CartEvent.TELEPORTED, trace);
+                continue;
+            }
+            GhostWheelBodies.rebuild(train);
+            land(train, body, moving, homes.get(i), CartEvent.RELOCATED, trace);
+        }
+        for (int i = failedAt + 1; i < plan.size(); i++) {
+            settleKnuckles(plan.get(i).sub(), moving);
+        }
+        holdCoupledContacts(plan, sourceLevel);
+        TeleportStrands.restore(strands, where, sourceLevel, shifts);
+        return new Result(failure, where.size(), cars(plan));
+    }
+
+    private static Home home(Landing landing, Mode mode) {
+        ServerSubLevel sub = landing.sub();
+        return new Home(sub.getLevel(), new Vector3d(sub.logicalPose().position()),
+                new Quaterniond(sub.logicalPose().orientation()), SableTeleportation.plotSlot(sub),
+                sub.getPlot().getCenterBlock(), drivers(sub), mode == Mode.HANDOVER ? carriedVelocity(landing) : null);
+    }
+
+    private static void arrive(Landing landing, Mode mode, ServerLevel destLevel) {
+        SableTrain train = landing.train();
+        train.setLevel(destLevel);
+        if (mode == Mode.RAIL) {
+            double speed = Math.abs(train.speed()) * landing.railTravelSign();
+            train.relocate(landing.seat().carriage(), landing.seat().bogeys());
+            train.setDerailed(false);
+            train.setSpeed(speed);
+        } else if (mode != Mode.HANDOVER) {
+            train.setSpeed(0.0);
+            train.setTargetSpeed(0.0);
+            train.setDerailed(true, "teleport");
+        }
+    }
+
+    private static void land(SableTrain train, ServerSubLevel body, Set<UUID> moving, Home home, CartEvent event,
+                             Consumer<String> trace) {
+        settleKnuckles(body, moving);
+        reseatDrivers(body, home.center(), home.drivers(), trace);
+        CartLifecycle.fire(train, event);
+        SableTrainPersistence.persist(train);
+        SableTrainSyncPacket.broadcast(train);
+    }
+
+    // the body is rebuilt on landing and rapier starts it at rest, so the speed is turned with the car and handed back
     private static Vector3d carriedVelocity(Landing landing) {
         ServerSubLevelContainer container = SubLevelContainer.getContainer(landing.sub().getLevel());
         if (container == null) {
@@ -313,6 +397,7 @@ public final class TrainTeleporter {
         return turn.transform(velocity);
     }
 
+    // the contact filters are bound to the bodies that are about to be removed, drop them before the body goes
     private static void releaseContacts(ServerSubLevel sub) {
         for (UUID wheel : GhostWheelBodies.wheelBodiesOf(sub.getUniqueId())) {
             SubLevelContacts.releaseAll(wheel);
@@ -320,6 +405,7 @@ public final class TrainTeleporter {
         SubLevelContacts.releaseAll(sub.getUniqueId());
     }
 
+    // the filters went with the old bodies, so coupled cars would touch for a tick or two after landing
     private static void holdCoupledContacts(List<Landing> plan, ServerLevel destLevel) {
         for (Landing landing : plan) {
             ServerSubLevel moved = SubLevelData.resolve(destLevel, landing.sub().getUniqueId());
@@ -336,6 +422,7 @@ public final class TrainTeleporter {
         }
     }
 
+    // each car lands on its own plot, so the partner position a knuckle stored points at the old plot until it is shifted
     private static void followPartnerPlots(List<Landing> plan, ServerLevel destLevel,
                                            Map<UUID, TeleportStrands.Shift> shifts) {
         for (Landing landing : plan) {
@@ -350,6 +437,7 @@ public final class TrainTeleporter {
                     knuckle.movePartnerPos(partnerShift.apply(matePos));
                 }
             }
+            // a firebox keeps its controller and barrel positions in plot coordinates, the new plot is at another x and z
             TeleportStrands.Shift own = shifts.get(landing.sub().getUniqueId());
             if (own == null) {
                 continue;
@@ -393,6 +481,7 @@ public final class TrainTeleporter {
         return drivers;
     }
 
+    // the controller reloads from a tag that never carries a driver, a new plot only shifts x and z like repot
     private static void reseatDrivers(ServerSubLevel moved, BlockPos fromCenter, Map<BlockPos, UUID> drivers,
                                       Consumer<String> trace) {
         BlockPos toCenter = moved.getPlot().getCenterBlock();

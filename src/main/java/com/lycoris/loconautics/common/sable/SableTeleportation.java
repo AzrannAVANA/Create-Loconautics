@@ -8,6 +8,7 @@ import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.companion.math.Pose3d;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import dev.ryanhcode.sable.sublevel.plot.PlotChunkHolder;
 import dev.ryanhcode.sable.sublevel.storage.SubLevelRemovalReason;
 import dev.ryanhcode.sable.sublevel.storage.serialization.SubLevelData;
 import dev.ryanhcode.sable.sublevel.storage.serialization.SubLevelSerializer;
@@ -18,6 +19,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniondc;
 import org.joml.Vector3d;
@@ -41,6 +43,12 @@ public final class SableTeleportation {
     public record Result(@Nullable ServerSubLevel moved, @Nullable String failure) {
         public boolean ok() {
             return failure == null;
+        }
+    }
+
+    public record Preflight(@Nullable PlotSlot slot, @Nullable String refusal) {
+        public boolean ok() {
+            return refusal == null;
         }
     }
 
@@ -134,10 +142,17 @@ public final class SableTeleportation {
     }
 
     @Nullable
+    private static String gridMismatch(ServerSubLevelContainer srcContainer, ServerSubLevelContainer destContainer) {
+        return srcContainer.getLogPlotSize() == destContainer.getLogPlotSize() ? null
+                : "the two dimensions lay their plot grids out at different sizes";
+    }
+
+    @Nullable
     private static String repotPlot(CompoundTag tag, ServerSubLevelContainer srcContainer,
                                     ServerSubLevelContainer destContainer, PlotSlot from, PlotSlot to) {
-        if (srcContainer.getLogPlotSize() != destContainer.getLogPlotSize()) {
-            return "the two dimensions lay their plot grids out at different sizes";
+        String mismatch = gridMismatch(srcContainer, destContainer);
+        if (mismatch != null) {
+            return mismatch;
         }
         CompoundTag plot = tag.getCompound("plot");
         plot.putInt("plot_x", to.x());
@@ -181,6 +196,52 @@ public final class SableTeleportation {
         }
     }
 
+    // every refusal teleport can give before it removes the body, so a caller can check a whole rake first
+    public static Preflight preflight(ServerSubLevel sub, ServerLevel destLevel, @Nullable PlotSlot targetSlot) {
+        ServerLevel srcLevel = sub.getLevel();
+        if (sub.isRemoved()) {
+            return new Preflight(null, "body " + sub.getUniqueId() + " is not live");
+        }
+        ServerSubLevelContainer srcContainer = SubLevelContainer.getContainer(srcLevel);
+        ServerSubLevelContainer destContainer = SubLevelContainer.getContainer(destLevel);
+        if (srcContainer == null || destContainer == null) {
+            return new Preflight(null, "one of the two levels has no sub level container");
+        }
+        if (destLevel == srcLevel) {
+            return new Preflight(null, null);
+        }
+        PlotSlot fromSlot = plotSlot(sub);
+        if (fromSlot == null) {
+            return new Preflight(null, "body " + sub.getUniqueId() + " has no plot slot");
+        }
+        if (targetSlot == null) {
+            targetSlot = plotSlotFree(destLevel, fromSlot) ? fromSlot : firstFreeSlot(destLevel, Set.of());
+        }
+        if (targetSlot == null) {
+            return new Preflight(null, "no free plot left in " + destLevel.dimension().location());
+        }
+        if (!plotSlotFree(destLevel, targetSlot)) {
+            return new Preflight(null, "plot " + targetSlot.x() + ", " + targetSlot.z() + " is taken in "
+                    + destLevel.dimension().location());
+        }
+        String mismatch = gridMismatch(srcContainer, destContainer);
+        if (mismatch != null) {
+            return new Preflight(null, mismatch);
+        }
+        int delta = srcLevel.getMinSection() - destLevel.getMinSection();
+        if (delta != 0) {
+            for (PlotChunkHolder holder : sub.getPlot().getLoadedChunks()) {
+                LevelChunk chunk = holder.getChunk();
+                for (int idx = 0; idx < chunk.getSectionsCount(); idx++) {
+                    if (!chunk.getSection(idx).hasOnlyAir() && !fitsHeight(idx + delta, destLevel)) {
+                        return new Preflight(null, tooTall(destLevel));
+                    }
+                }
+            }
+        }
+        return new Preflight(targetSlot, null);
+    }
+
     public static Result teleport(ServerSubLevel sub, ServerLevel destLevel, Vector3dc position,
                                   Quaterniondc orient) {
         return teleport(sub, destLevel, position, orient, null);
@@ -188,33 +249,15 @@ public final class SableTeleportation {
 
     public static Result teleport(ServerSubLevel sub, ServerLevel destLevel, Vector3dc position,
                                   Quaterniondc orient, @Nullable PlotSlot targetSlot) {
-        ServerLevel srcLevel = sub.getLevel();
-        if (sub.isRemoved()) {
-            return new Result(null, "body " + sub.getUniqueId() + " is not live");
+        Preflight checked = preflight(sub, destLevel, targetSlot);
+        if (!checked.ok()) {
+            return new Result(null, checked.refusal());
         }
+        ServerLevel srcLevel = sub.getLevel();
         ServerSubLevelContainer srcContainer = SubLevelContainer.getContainer(srcLevel);
         ServerSubLevelContainer destContainer = SubLevelContainer.getContainer(destLevel);
-        if (srcContainer == null || destContainer == null) {
-            return new Result(null, "one of the two levels has no sub level container");
-        }
         PlotSlot fromSlot = plotSlot(sub);
-        if (destLevel != srcLevel) {
-            if (fromSlot == null) {
-                return new Result(null, "body " + sub.getUniqueId() + " has no plot slot");
-            }
-            if (targetSlot == null) {
-                targetSlot = plotSlotFree(destLevel, fromSlot) ? fromSlot : firstFreeSlot(destLevel, Set.of());
-            }
-            if (targetSlot == null) {
-                return new Result(null, "no free plot left in " + destLevel.dimension().location());
-            }
-            if (!plotSlotFree(destLevel, targetSlot)) {
-                return new Result(null, "plot " + targetSlot.x() + ", " + targetSlot.z() + " is taken in "
-                        + destLevel.dimension().location());
-            }
-        } else {
-            targetSlot = null;
-        }
+        targetSlot = checked.slot();
 
         destLevel.getChunk(BlockPos.containing(position.x(), position.y(), position.z()));
 
@@ -316,7 +359,6 @@ public final class SableTeleportation {
         if (delta == 0) {
             return null;
         }
-        int limit = destLevel.getSectionsCount();
         CompoundTag chunks = tag.getCompound("plot").getCompound("chunks");
         for (String chunkKey : chunks.getAllKeys()) {
             CompoundTag chunkTag = chunks.getCompound(chunkKey);
@@ -324,8 +366,8 @@ public final class SableTeleportation {
             CompoundTag shifted = new CompoundTag();
             for (String sectionKey : sections.getAllKeys()) {
                 int moved = Integer.parseInt(sectionKey) + delta;
-                if (moved < 0 || moved >= limit) {
-                    return "the body does not fit the build height of " + destLevel.dimension().location();
+                if (!fitsHeight(moved, destLevel)) {
+                    return tooTall(destLevel);
                 }
                 shifted.put(String.valueOf(moved), sections.getCompound(sectionKey));
             }
@@ -333,5 +375,13 @@ public final class SableTeleportation {
             chunkTag.remove("heightmaps");
         }
         return null;
+    }
+
+    private static boolean fitsHeight(int sectionIndex, ServerLevel destLevel) {
+        return sectionIndex >= 0 && sectionIndex < destLevel.getSectionsCount();
+    }
+
+    private static String tooTall(ServerLevel destLevel) {
+        return "the body does not fit the build height of " + destLevel.dimension().location();
     }
 }
