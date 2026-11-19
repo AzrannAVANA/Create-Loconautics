@@ -100,6 +100,9 @@ public final class RailGlue {
             return true;
         }
         if (trackSub == null && railInDeadPlot(sub, railPoint)) {
+            LoconauticsConstants.LOGGER.warn(
+                    "[glue_refused] car body {} mode {} rail point {} sits in a plot with no live sub level, "
+                            + "so the car derails as glue_refused", shortId(id), mode, railPoint);
             releaseConstraint(id);
             return false;
         }

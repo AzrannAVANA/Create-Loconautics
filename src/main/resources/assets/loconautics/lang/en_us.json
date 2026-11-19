@@ -708,6 +708,7 @@
   "loconautics.train.status.coupling_stress": "Forced stop due to Stress on Couplings",
   "loconautics.train.status.double_portal": "Carriages are stuck between two Portals",
   "loconautics.train.status.end_of_track": "A Carriage has reached the end of its Track",
+  "loconautics.train.status.glue_refused": "A Carriage could not grip its Track",
   "loconautics.train.status.found_driver": "A driver is aboard again",
   "loconautics.train.status.lifted_off": "Something lifted a Carriage clear off the Track",
   "loconautics.train.status.rolled_off": "A Carriage leaned over and rolled off the Track",

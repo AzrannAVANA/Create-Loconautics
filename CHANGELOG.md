@@ -24,6 +24,7 @@
 - ISSUE 197: Bearing axle bogeys no longer crash the game when their model is not ready.
 - Trains no longer jump or stall when they run off the end of a track.
 - Unloaded trains stop at a dead end instead of running off it when loaded.
+- Chat now says a car could not grip its track instead of no track.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

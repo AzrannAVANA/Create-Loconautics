@@ -327,7 +327,7 @@ public final class SableTrainDriver {
             }
         } else if (!RailGlue.glueBody(pipeline, bodySub, localAnchor, railPoint, tangent, q,
                 RailGlue.GlueMode.RIGID, trackSub)) {
-            train.setDerailed(true);
+            train.setDerailed(true, "glue_refused");
             CarriageRoll.noteLock(bodyId, "released");
             return;
         }
@@ -358,7 +358,7 @@ public final class SableTrainDriver {
         if (!RailGlue.glueBody(pipeline, bodySub, pivotLocal, pivotRail, frame.tangent, frame.up, limited,
                 ExternalForceDerail.holdDownForStaff(bodySub) ? RailGlue.GlueMode.ROLLING_HELD : RailGlue.GlueMode.ROLLING,
                 trackSub)) {
-            train.setDerailed(true);
+            train.setDerailed(true, "glue_refused");
             return RollOutcome.DERAILED;
         }
         if (RailGlue.glueModeOf(bodySub).equals("none")) {
@@ -477,7 +477,7 @@ public final class SableTrainDriver {
         if (!RailGlue.glueBody(pipeline, bodySub, localAnchor, railPoint, tangent,
                 new Quaterniond(bodySub.logicalPose().orientation()), RailGlue.GlueMode.PIVOT,
                 pivotTrackSub)) {
-            train.setDerailed(true);
+            train.setDerailed(true, "glue_refused");
             return;
         }
 
