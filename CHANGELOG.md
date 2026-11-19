@@ -35,6 +35,7 @@
 - A rake that fails a portal crossing returns every car home, still coupled.
 - Tanks, vaults and belts on a car keep their contents after a portal crossing.
 - A rope with no holder drops as an item when a car crosses a portal.
+- A rope to a body left behind is cut and dropped when a car crosses a portal.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

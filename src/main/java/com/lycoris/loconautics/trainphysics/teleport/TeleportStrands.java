@@ -32,7 +32,6 @@ import dev.simulated_team.simulated.content.blocks.rope.strand.server.ServerLeve
 import dev.simulated_team.simulated.content.blocks.rope.strand.server.ServerRopeStrand;
 import dev.simulated_team.simulated.index.SimItems;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Containers;
 import net.minecraft.world.item.ItemStack;
@@ -110,8 +109,6 @@ public final class TeleportStrands {
     @Nullable
     private static Field pointsField;
 
-    private static final List<RopeJoint> PENDING = new ArrayList<>();
-
     private TeleportStrands() {
     }
 
@@ -160,17 +157,14 @@ public final class TeleportStrands {
                 continue;
             }
             boolean carried = startMoves && endMoves;
-            boolean held = !carried && start != null && end != null && start.subLevelID() != null
-                    && end.subLevelID() != null;
-            RopeShape shape = carried || held ? RopeShape.of(container, strand, start, end) : null;
-            if (!destroyRope(level, container, manager, strand, start, !carried && !held)) {
+            RopeShape shape = carried ? RopeShape.of(container, strand, start, end) : null;
+            if (!destroyRope(level, container, manager, strand, start, !carried)) {
                 carry.cut++;
                 continue;
             }
-            if (carried || held) {
-                RopeJoint joint = new RopeJoint(start.subLevelID(), start.blockAttachment(),
-                        end.subLevelID(), end.blockAttachment(), shape);
-                (carried ? carry.ropes : PENDING).add(joint);
+            if (carried) {
+                carry.ropes.add(new RopeJoint(start.subLevelID(), start.blockAttachment(), end.subLevelID(),
+                        end.blockAttachment(), shape));
             } else {
                 carry.cut++;
             }
@@ -296,47 +290,6 @@ public final class TeleportStrands {
         for (HoseJoint joint : carry.hoses) {
             respawnHose(joint, where, fallback, shifts);
         }
-        settlePending(fallback.getServer(), shifts);
-    }
-
-    // a rope between two cars that cross a portal one after the other waits here until both are in the same level
-    private static void settlePending(MinecraftServer server, Map<UUID, Shift> shifts) {
-        for (RopeJoint joint : List.copyOf(PENDING)) {
-            PENDING.remove(joint);
-            RopeJoint moved = shiftJoint(joint, shifts);
-            ServerLevel a = levelOf(server, moved.subA());
-            ServerLevel b = levelOf(server, moved.subB());
-            if (a == null || b == null) {
-                LoconauticsConstants.LOGGER.warn("[teleport] held rope between {} and {} lost a body, dropping it",
-                        moved.subA(), moved.subB());
-                continue;
-            }
-            if (a != b) {
-                PENDING.add(moved);
-                continue;
-            }
-            respawnRope(moved, Map.of(), a, Map.of());
-        }
-    }
-
-    private static RopeJoint shiftJoint(RopeJoint joint, Map<UUID, Shift> shifts) {
-        RopeShape shape = joint.shape();
-        RopeShape shifted = shape == null ? null : new RopeShape(
-                shape.viaA().stream().map(point -> shiftLocal(shifts, joint.subA(), point)).toList(),
-                shape.viaB().stream().map(point -> shiftLocal(shifts, joint.subB(), point)).toList(),
-                shape.extension());
-        return new RopeJoint(joint.subA(), shifted(shifts, joint.subA(), joint.localA()), joint.subB(),
-                shifted(shifts, joint.subB(), joint.localB()), shifted);
-    }
-
-    @Nullable
-    private static ServerLevel levelOf(MinecraftServer server, UUID sub) {
-        for (ServerLevel candidate : server.getAllLevels()) {
-            if (StrandEndpoints.subLevel(SubLevelContainer.getContainer(candidate), sub) != null) {
-                return candidate;
-            }
-        }
-        return null;
     }
 
     private static void respawnHose(HoseJoint joint, Map<UUID, ServerLevel> where, ServerLevel fallback,
