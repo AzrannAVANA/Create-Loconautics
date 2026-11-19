@@ -152,7 +152,6 @@ public final class TrainDerailment {
             return false;
         }
         RAILS_GONE.remove(train.id());
-        train.setSpeed(0.0);
         train.setTargetSpeed(0.0);
         train.setDerailed(true, "track_missing");
         LoconauticsConstants.LOGGER.info(
@@ -180,7 +179,6 @@ public final class TrainDerailment {
             return false;
         }
         TILT_OVER.remove(train.id());
-        train.setSpeed(0.0);
         train.setTargetSpeed(0.0);
         train.setDerailed(true, "overturned");
         LoconauticsConstants.LOGGER.info("[sabletrain] car {} fell off a rail leaning {} deg, past {}",
