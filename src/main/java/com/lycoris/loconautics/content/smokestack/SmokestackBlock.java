@@ -81,7 +81,7 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
 
     // the whole column sits out from a boiler when its bottom block stands on one
     private static boolean raisedAt(BlockGetter level, BlockPos pos) {
-        return BoilerAttach.raisedAt(level, columnBottom(level, pos).below());
+        return BoilerAttach.raisedOn(level, columnBottom(level, pos), Direction.DOWN);
     }
 
     private static boolean isStack(BlockState state) {

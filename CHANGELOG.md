@@ -25,6 +25,7 @@
 - Trains no longer jump or stall when they run off the end of a track.
 - Unloaded trains stop at a dead end instead of running off it when loaded.
 - Chat now says a car could not grip its track instead of no track.
+- Parts on top of an upright boiler no longer float 8 pixels up.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

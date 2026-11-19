@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.content.boiler;
 
 import com.lycoris.loconautics.LoconauticsConstants;
+import com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.TagKey;
@@ -37,12 +38,13 @@ public final class BoilerAttach {
 
     // face is the side of the part that touches the host
     public static boolean raisedOn(BlockGetter level, BlockPos part, Direction face) {
-        return raisedAt(level, part.relative(face));
-    }
-
-    public static boolean raisedAt(BlockGetter level, BlockPos host) {
-        BlockState state = level.getBlockState(host);
-        return isHost(state) && !state.is(FLUSH_HOSTS);
+        BlockState host = level.getBlockState(part.relative(face));
+        if (!isHost(host) || host.is(FLUSH_HOSTS)) {
+            return false;
+        }
+        boolean barrelEnd = host.getBlock() instanceof BoilerBarrelBlock
+                && host.getValue(BoilerBarrelBlock.FACING).getAxis() == face.getAxis();
+        return !barrelEnd;
     }
 
     // a placement helper ghost and its placed block both take their raised and joined state from the neighbors
