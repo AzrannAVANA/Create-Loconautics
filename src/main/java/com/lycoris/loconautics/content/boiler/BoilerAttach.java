@@ -5,9 +5,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BooleanProperty;
+
+import java.util.function.UnaryOperator;
 
 public final class BoilerAttach {
     public static final TagKey<Block> HOSTS = TagKey.create(net.minecraft.core.registries.Registries.BLOCK,
@@ -40,5 +43,10 @@ public final class BoilerAttach {
     public static boolean raisedAt(BlockGetter level, BlockPos host) {
         BlockState state = level.getBlockState(host);
         return isHost(state) && !state.is(FLUSH_HOSTS);
+    }
+
+    // a placement helper ghost and its placed block both take their raised and joined state from the neighbors
+    public static UnaryOperator<BlockState> settled(LevelAccessor level, BlockPos target) {
+        return state -> Block.updateFromNeighbourShapes(state, level, target);
     }
 }

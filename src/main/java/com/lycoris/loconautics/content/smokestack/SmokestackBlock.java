@@ -8,6 +8,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.ItemInteractionResult;
 import net.minecraft.world.entity.player.Player;
+import net.createmod.catnip.placement.IPlacementHelper;
+import net.createmod.catnip.placement.PlacementHelpers;
+import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.DyeItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.BlockGetter;
@@ -137,6 +140,11 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
                 forEachInColumn(level, pos, be -> be.setColor(rgb));
             }
             return ItemInteractionResult.sidedSuccess(level.isClientSide);
+        }
+        IPlacementHelper helper = PlacementHelpers.get(SmokestackPlacement.ID);
+        if (helper.matchesItem(stack)) {
+            return helper.getOffset(player, level, state, pos, hit)
+                    .placeInWorld(level, (BlockItem) stack.getItem(), player, hand, hit);
         }
         return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
     }

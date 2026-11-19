@@ -112,6 +112,7 @@ public final class Loconautics {
     private void commonSetup(FMLCommonSetupEvent event) {
         LoconauticsConstants.LOGGER.info("Loconautics common setup");
         com.lycoris.loconautics.content.bearingaxle.BogeyShaftPlacement.init();
+        com.lycoris.loconautics.content.smokestack.SmokestackPlacement.init();
         com.lycoris.loconautics.foundation.LoconauticsStress.register();
         event.enqueueWork(com.lycoris.loconautics.content.conductorshat.ConductorsGoggles::registerWearing);
         if (net.neoforged.fml.ModList.get().isLoaded("hullsteel")) {

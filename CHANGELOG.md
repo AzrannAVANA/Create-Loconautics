@@ -59,6 +59,7 @@
 - A driving Boiler Bogey eases pressure down to 70 percent, keeping the valve shut.
 - Railways smokeboxes hold water in a boiler, untested.
 - A boiler that overpressures gives the Too Much Pressure advancement.
+- Smokestacks show a placement ghost when you click a smokestack or boiler host.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
