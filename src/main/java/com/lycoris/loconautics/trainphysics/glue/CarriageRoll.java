@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.trainphysics.glue;
 
 import com.lycoris.loconautics.LoconauticsConstants;
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.PoseTweak;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.state.CartEvent;
@@ -38,6 +39,10 @@ public final class CarriageRoll {
         @Override
         public void forget(SableTrain train, UUID subId, CartEvent event) {
             if (clears(event)) {
+                if (STATE.containsKey(subId)) {
+                    LoconauticsConstants.LOGGER.warn("[rocktrace] car={} motion state released by {}",
+                            subId.toString().substring(0, 8), event);
+                }
                 release(subId);
             }
         }
@@ -55,10 +60,11 @@ public final class CarriageRoll {
         @Override
         public boolean clears(CartEvent event) {
             return event.moved() || event == CartEvent.REERAILED || event == CartEvent.GHOSTED
-                    || event == CartEvent.REMOVED;
+                    || event == CartEvent.DERAILED || event == CartEvent.REMOVED;
         }
     };
 
+    // creates rail model spans 0 to 0.2836 above the bezier point, the car anchor sits one block above it
     public static final double RAIL_TOP = 0.2836;
     public static final double SEAT_DROP = 1.0 - RAIL_TOP;
     public static final double FLANGE = 0.125;
@@ -71,10 +77,14 @@ public final class CarriageRoll {
     public static final double FALL_MARGIN = Math.toRadians(5.0);
     public static final String LOCK_ARTICULATED = "articulated";
     private static final double MIN_GRAVITY = 0.5;
+    private static final long RIDE_TICKS = 3L;
+    private static final java.util.Set<String> LASTING_LOCKS = java.util.Set.of("docked", "monorail",
+            "no_wheel_lift", "upside_down", "trackless", "pivot", "no_bogey");
 
     public static final TagKey<Block> NO_WHEEL_LIFT = TagKey.create(Registries.BLOCK,
             ResourceLocation.fromNamespaceAndPath(LoconauticsConstants.MOD_ID, "no_wheel_lift"));
 
+    // one condition that has to hold on unglueticks game ticks in a row, counted once per tick
     public static final class Hold {
         private int count;
         private long tick = Long.MIN_VALUE;
@@ -98,7 +108,23 @@ public final class CarriageRoll {
         }
     }
 
+    public record RollCache(RollFrame frame, PoseTweak.Applied level, PoseTweak.Applied seated,
+                            WheelSupports.Prepared prepared, long tick) {
+    }
+
+    public record Seats(PoseTweak.Applied level, PoseTweak.Applied seated) {
+    }
+
+    public static Seats seats(ServerSubLevel sub, SableTrain train, RollFrame frame, double dt, boolean decayBlend) {
+        Roll roll = of(sub.getUniqueId());
+        PoseTweak.Applied level = frame.seatedLevel(sub, train, decayBlend);
+        stepSuspension(roll, frame.half, dt);
+        SuspensionLean.publish(sub, roll, frame.forward0, sub.getLevel().getGameTime());
+        return new Seats(level, frame.leaned(sub, level, roll.suspension));
+    }
+
     public static final class Roll {
+        public volatile RollCache cache;
         public volatile boolean rolling;
         public volatile String lock = "none";
         public volatile double phi;
@@ -121,6 +147,9 @@ public final class CarriageRoll {
         public volatile double torque;
         public volatile double relief;
         public volatile double curvature;
+        public volatile boolean curvatureSeeded;
+        public volatile double need;
+        public volatile double gN;
         public volatile Vector3d axis = new Vector3d(0.0, 0.0, 1.0);
         public volatile Vector3d up = new Vector3d(0.0, 1.0, 0.0);
         public volatile Quaterniond seat = new Quaterniond();
@@ -135,8 +164,6 @@ public final class CarriageRoll {
         public volatile double suspensionRate;
         public volatile double suspensionSent;
         public volatile long suspensionSentTick = -1000L;
-        public volatile double lastMass = -1.0;
-        public final Vector3d lastCenter = new Vector3d();
         public volatile long settleUntil;
         public volatile long lastDriveTick = Long.MIN_VALUE;
         public volatile double[] y = new double[0];
@@ -192,21 +219,6 @@ public final class CarriageRoll {
 
     public static Roll rollById(UUID id) {
         return id == null ? null : STATE.get(id);
-    }
-
-    public static final boolean TRACE = true;
-    private static final ConcurrentHashMap<UUID, Long> LAST_TRACE = new ConcurrentHashMap<>();
-
-    public static boolean traceDue(UUID id, long gameTime) {
-        if (!TRACE) {
-            return false;
-        }
-        Long last = LAST_TRACE.get(id);
-        if (last != null && gameTime - last < 10L) {
-            return false;
-        }
-        LAST_TRACE.put(id, gameTime);
-        return true;
     }
 
     public static String primaryLockOf(UUID id) {
@@ -274,19 +286,43 @@ public final class CarriageRoll {
         Roll roll = of(id);
         String next = reason == null ? "none" : reason;
         if (!next.equals(roll.lock)) {
-            LoconauticsConstants.LOGGER.info("[wheellift] car={} lock {} -> {}", id.toString().substring(0, 8),
+            LoconauticsConstants.LOGGER.warn("[rocktrace] car={} lock {} -> {}", id.toString().substring(0, 8),
                     roll.lock, next);
             roll.lock = next;
         }
         roll.rolling = reason == null;
-        roll.primaryLock = reason == null || reason.equals(LOCK_ARTICULATED) || reason.equals("released") ? null
-                : reason;
+        roll.primaryLock = reason != null && LASTING_LOCKS.contains(reason) ? reason : null;
         if (reason != null) {
             roll.rolledOff.reset();
             roll.liftedOff.reset();
         }
     }
 
+    public static void hold(UUID id, RollFrame frame, Seats seats, WheelSupports.Prepared prepared, long now) {
+        of(id).cache = new RollCache(frame, seats.level(), seats.seated(), prepared, now);
+    }
+
+    public static RollCache ride(UUID id, String reason, long now) {
+        if (!"no_geometry".equals(reason) && !"no_gravity".equals(reason)) {
+            return null;
+        }
+        return heldFrame(id, now);
+    }
+
+    public static RollCache heldFrame(UUID id, long now) {
+        Roll roll = STATE.get(id);
+        RollCache held = roll == null ? null : roll.cache;
+        return held == null || now - held.tick() > RIDE_TICKS ? null : held;
+    }
+
+    public static void pause(UUID id) {
+        Roll roll = STATE.get(id);
+        if (roll != null) {
+            roll.rolling = false;
+        }
+    }
+
+    // a car that was not rolling on the last substep, or whose last substep is more than a tick old, starts settling
     public static void beginStep(Roll roll, long gameTime) {
         boolean fresh = !roll.rolling || gameTime - roll.lastDriveTick > 1L;
         roll.lastDriveTick = gameTime;
@@ -295,10 +331,10 @@ public final class CarriageRoll {
             roll.side = 0;
             roll.rolledOff.reset();
             roll.liftedOff.reset();
-            LoconauticsConstants.LOGGER.info("[wheellift] settle window opened until tick {}", roll.settleUntil);
         }
     }
 
+    // the hinge side keeps its sign until the roll crosses to the other side by more than phieps
     public static int updateSide(Roll roll, double phi) {
         int side = roll.side;
         if (side == 0) {
@@ -315,6 +351,7 @@ public final class CarriageRoll {
     public record Ready(String reason, WheelSupports.Prepared prepared) {
     }
 
+    // everything the rolling glue needs, checked before any glue call so a substep never switches mode twice
     public static Ready rollReady(ServerSubLevel sub, Car car, RollFrame frame, PoseTweak.Applied seated) {
         MassData md = sub.getMassTracker();
         if (frame == null || md == null || md.isInvalid() || RigidBodyHandle.of(sub) == null
@@ -332,6 +369,7 @@ public final class CarriageRoll {
         return new Ready(null, prepared);
     }
 
+    // swing and twist split about the bodys own forward axis, positive is a right hand turn about the chord
     public static double twist(org.joml.Quaterniond seat, org.joml.Quaterniond body, Vector3d forward0) {
         org.joml.Quaterniond r = new org.joml.Quaterniond(seat).invert().mul(body);
         double p = r.x * forward0.x + r.y * forward0.y + r.z * forward0.z;
@@ -344,27 +382,35 @@ public final class CarriageRoll {
         return phi;
     }
 
+    // where gravity alone would tip the car, for the log and cc only, nothing derails on it
     public static double tippingAngle(double halfGauge, double offset, double height, double lean, double cant) {
         return Math.atan2(halfGauge - lean * offset, Math.max(height, 1.0e-3)) - cant;
     }
 
+    // the most the hinge holds, in radians
     public static double holdAngle() {
         return Math.toRadians(WHEEL_LIFT_MAX_DEGREES);
     }
 
+    // steady curve lean is m v2 k h less the gravity hold, over the hinge stiffness, so mass cancels
+    // and the speed that keeps it under a share of the fast unglue angle is the root of hold plus hinge over k h
     public static double safeCurveSpeed(Roll roll, double gN, double curvature, double share) {
         double k = Math.abs(curvature);
         if (k < 1.0e-6 || roll.height < 0.05 || roll.half <= 0.0) {
             return Double.POSITIVE_INFINITY;
         }
+        double hold = Math.max(0.0, gN * (roll.half - Math.abs(roll.offset)));
+        if (LoconauticsConfig.DERAIL_ON_CURVE.get()) {
+            return Math.sqrt(hold / (k * roll.height));
+        }
         double phiRef = Math.toRadians(RollDynamics.WHEEL_LIFT_DEGREES);
         double phiSafe = share * Math.min(Math.toRadians(ROLL_UNGLUE_DEGREES),
                 holdAngle());
-        double hold = Math.max(0.0, gN * (roll.half - Math.abs(roll.offset)));
         double hinge = gN * roll.half * phiSafe / phiRef;
         return Math.sqrt((hold + hinge) / (k * roll.height));
     }
 
+    // 0 at the slow roll speed and below, 1 at the fast one and above, smooth between
     public static double speedBlend(double speed) {
         double slow = ROLL_SLOW_SPEED;
         double fast = Math.max(slow + 1.0e-3, ROLL_FAST_SPEED);
@@ -372,6 +418,7 @@ public final class CarriageRoll {
         return t * t * (3.0 - 2.0 * t);
     }
 
+    // slow cars come off only past the hinge ceiling plus a margin, fast cars at the flange limit
     public static double unglueAngle(double speed) {
         double blend = speedBlend(speed);
         double slowLimit = holdAngle() + FALL_MARGIN;
@@ -379,6 +426,7 @@ public final class CarriageRoll {
         return slowLimit + blend * (fastLimit - slowLimit);
     }
 
+    // static lean on one hinge side, infinite when the car cannot stand on that rail
     public static double predictedLift(double gN, double gSide, double halfGauge, double offset, double height,
                                        double phiRef, int side) {
         double moment = gN * (side * offset - halfGauge) + gSide * height;
@@ -389,6 +437,7 @@ public final class CarriageRoll {
         return phiRef * Math.max(0.0, moment) / den;
     }
 
+    // the worst of both hinge sides for a car at rest, using the shared formula
     public static double predictedLift(Vector3d gravity, Vector3d up, Vector3d lateral, double halfGauge,
                                        double offset, double height) {
         double gN = -gravity.dot(up);
@@ -401,9 +450,11 @@ public final class CarriageRoll {
         return worst;
     }
 
+    // body lean on the springs, a spring damper toward a share of the max lean set by how far the load sits off center
     public static void stepSuspension(Roll roll, double halfGauge, double dt) {
         double max = Math.toRadians(SUSPENSION_LEAN_DEGREES);
-        double target = max * Math.max(-1.0, Math.min(1.0, roll.offset / Math.max(halfGauge, 1.0e-3)));
+        double outward = roll.need * roll.height / Math.max(roll.gN, 1.0e-3);
+        double target = max * Math.max(-1.0, Math.min(1.0, (roll.offset - outward) / Math.max(halfGauge, 1.0e-3)));
         double omega = 2.0 * Math.PI * SUSPENSION_HZ;
         double zeta = RollDynamics.WHEEL_LIFT_DAMPING;
         roll.suspensionRate += (omega * omega * (target - roll.suspension) - 2.0 * zeta * omega * roll.suspensionRate) * dt;
@@ -418,12 +469,10 @@ public final class CarriageRoll {
     public static void retain(java.util.Set<UUID> live) {
         STATE.keySet().retainAll(live);
         ROLLING_THIS_STEP.keySet().retainAll(live);
-        LAST_TRACE.keySet().retainAll(live);
     }
 
     public static void clearAll() {
         STATE.clear();
         ROLLING_THIS_STEP.clear();
-        LAST_TRACE.clear();
     }
 }

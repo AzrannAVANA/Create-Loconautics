@@ -226,6 +226,7 @@ public final class ExternalForceDerail {
         }
         Vector3d linear = new Vector3d();
         glue.getJointImpulses(linear, new Vector3d());
+        // rapier keeps the impulse in the joint frame, the basis gluebody built out of these same three axes
         Vector3d lateral = new Vector3d(tangent).cross(up).normalize();
         return RailGlue.basisQuaternion(tangent, up, lateral).transform(linear, new Vector3d())
                 .mul(1.0 / (mass * dt));
@@ -264,6 +265,11 @@ public final class ExternalForceDerail {
         return speed <= limit ? new Vector3d() : velocity.mul(limit / speed - 1.0);
     }
 
+    public static boolean holdsLift(ServerSubLevel sub, SableTrain train) {
+        return PEAK.containsKey(sub.getUniqueId()) || LIFTED.containsKey(train.id());
+    }
+
+    // a rolling car leaves its height free, so while the staff drags it the guide holds it down and the lift guard has a force to read
     static boolean holdDownForStaff(ServerSubLevel sub) {
         return LoconauticsConfig.DERAIL_ON_EXTERNAL_FORCE.get() && staffDrags(sub);
     }
@@ -307,6 +313,7 @@ public final class ExternalForceDerail {
         }
     }
 
+    // islocked needs a live handle, an unloaded body has none
     public static boolean staffLockedById(ServerLevel level, Collection<UUID> ids) {
         try {
             Map<UUID, Object> locks = ((PhysicsStaffServerHandlerAccessor) PhysicsStaffServerHandler.get(level)).loconautics$getLocks();

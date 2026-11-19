@@ -60,11 +60,6 @@ public final class RollFrame {
         return new Vector3d(gLocal).fma(side * half, lateral0);
     }
 
-    public PoseTweak.Applied seated(ServerSubLevel sub, SableTrain train, boolean decayBlend) {
-        CarriageRoll.Roll roll = CarriageRoll.rollOf(sub);
-        return leaned(sub, seatedLevel(sub, train, decayBlend), roll == null ? 0.0 : roll.suspension);
-    }
-
     public PoseTweak.Applied seatedLevel(ServerSubLevel sub, SableTrain train, boolean decayBlend) {
         Quaterniond blended = SeatBlend.q(sub.getUniqueId(), seat, decayBlend);
         PoseTweak.Applied tweaked = PoseTweak.apply(sub, RailSnap.anchorTo(sub, anchorLocal, reference, blended),

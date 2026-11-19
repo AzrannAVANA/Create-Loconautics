@@ -1,8 +1,6 @@
 package com.lycoris.loconautics.trainphysics.glue;
 
-import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.sable.BodyRef;
-import com.lycoris.loconautics.foundation.debug.DebugLines;
 import com.lycoris.loconautics.trainphysics.PoseTweak;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.state.CartEvent;
@@ -20,7 +18,6 @@ import dev.ryanhcode.sable.api.physics.mass.MassData;
 import dev.ryanhcode.sable.companion.math.Pose3d;
 import dev.ryanhcode.sable.physics.config.dimension_physics.DimensionPhysicsData;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
-import net.minecraft.world.phys.Vec3;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -31,8 +28,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.lycoris.loconautics.foundation.LogFormat.f;
-import static com.lycoris.loconautics.foundation.LogFormat.shortId;
 
 public final class WheelSupports {
 
@@ -64,6 +59,7 @@ public final class WheelSupports {
         }
     };
 
+    // side is 1 on the left of the chord and 1 on the right, host is null on a rail in the world
     public record Wheel(Vector3d rail, Vector3d seatPoint, Vector3d local, Vector3d normal, Vector3d tangent,
                         int side, ServerSubLevel host) {
     }
@@ -138,7 +134,6 @@ public final class WheelSupports {
 
         Vector3d massCenter = pose.transformPosition(new Vector3d(md.getCenterOfMass()), new Vector3d());
         noteHinge(sub, roll, md, pose, frame, seated, side, massCenter);
-        noteMassChange(sub, roll, md, phi, y);
         roll.preUp = handle.getLinearVelocity(new Vector3d()).dot(frame.up);
         roll.preValid = true;
 
@@ -157,6 +152,7 @@ public final class WheelSupports {
     private static void noteHinge(ServerSubLevel sub, CarriageRoll.Roll roll, MassData md, Pose3d pose,
                                   RollFrame frame, PoseTweak.Applied seated, int side, Vector3d massCenter) {
         double gN = Math.max(0.0, -DimensionPhysicsData.getGravity(sub.getLevel()).dot(frame.up));
+        roll.gN = gN;
         roll.axis = new Vector3d(frame.tangent);
         roll.up = new Vector3d(frame.up);
         roll.seat = new Quaterniond(seated.orientation());
@@ -166,21 +162,6 @@ public final class WheelSupports {
         roll.hingeI = RollDynamics.hingeInertia(md, pose, frame, side, massCenter);
         roll.couplerTorque = 0.0;
         roll.couplerTwist = 0.0;
-    }
-
-    private static void noteMassChange(ServerSubLevel sub, CarriageRoll.Roll roll, MassData md, double phi,
-                                       double[] y) {
-        double mass = md.getMass();
-        Vector3d center = new Vector3d(md.getCenterOfMass());
-        if (roll.lastMass >= 0.0
-                && (Math.abs(mass - roll.lastMass) > 0.05 * roll.lastMass || center.distance(roll.lastCenter) > 0.1)) {
-            LoconauticsConstants.LOGGER.info(
-                    "[wheellift] car={} mass event mass {} -> {} com {} -> {} phi={} deg rise={} y={}", shortId(sub),
-                    f(roll.lastMass), f(mass), roll.lastCenter, center, f(Math.toDegrees(phi)), f(roll.rise),
-                    java.util.Arrays.toString(y));
-        }
-        roll.lastMass = mass;
-        roll.lastCenter.set(center);
     }
 
     private static void updateJoints(PhysicsPipeline pipeline, ServerSubLevel sub, Wheel[] wheels) {
@@ -218,8 +199,6 @@ public final class WheelSupports {
             }
             created.setLimit(ConstraintJointAxis.LINEAR_Y, 0.0, CarriageRoll.LIFT_RANGE);
             supports[i] = new Support(created, hostId);
-            LoconauticsConstants.LOGGER.info("[wheellift] car={} support {} created on host {}", shortId(id), i,
-                    shortId(wheel.host()));
         }
     }
 
@@ -249,47 +228,6 @@ public final class WheelSupports {
             if (held != null && held.handle().isValid()) {
                 held.handle().remove();
             }
-        }
-        LoconauticsConstants.LOGGER.info("[wheellift] car={} supports released", shortId(id));
-    }
-
-    public static String impulseLine(UUID id) {
-        Support[] supports = SUPPORTS.get(id);
-        if (supports == null) {
-            return "none";
-        }
-        StringBuilder out = new StringBuilder();
-        for (int i = 0; i < supports.length; i++) {
-            Support held = supports[i];
-            if (held == null || !held.handle().isValid()) {
-                out.append(" [").append(i).append(" none]");
-                continue;
-            }
-            Vector3d linear = new Vector3d();
-            held.handle().getJointImpulses(linear, new Vector3d());
-            out.append(" [").append(i).append(" jointY=").append(f(linear.y)).append("]");
-        }
-        return out.toString();
-    }
-
-    public static void traceColumns(ServerSubLevel sub, Prepared prepared) {
-        Wheel[] wheels = prepared.wheels();
-        CarriageRoll.Roll roll = CarriageRoll.of(sub.getUniqueId());
-        if (roll.y.length != wheels.length) {
-            return;
-        }
-        String car8 = shortId(sub.getUniqueId());
-        for (int i = 0; i < wheels.length; i++) {
-            Vec3 at = new Vec3(wheels[i].rail().x, wheels[i].rail().y, wheels[i].rail().z);
-            int color = roll.y[i] > CarriageRoll.LIFT_EPS ? 0xFF3333 : 0x33FF33;
-            DebugLines.column(sub.getLevel(), "wl_" + car8 + "_" + i, at, color);
-        }
-        for (int index = 0; index < 2; index++) {
-            Wheel first = wheels[index];
-            Wheel last = wheels[wheels.length - 2 + index];
-            DebugLines.line(sub.getLevel(), "wl_" + car8 + "_hinge" + index,
-                    new Vec3(first.rail().x, first.rail().y, first.rail().z),
-                    new Vec3(last.rail().x, last.rail().y, last.rail().z), 0xFFFF00);
         }
     }
 

@@ -1,5 +1,7 @@
 package com.lycoris.loconautics.trainphysics.state;
 
+import com.lycoris.loconautics.LoconauticsConstants;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -115,25 +117,39 @@ public final class SableTrainClientRegistry {
         LEANS.remove(subLevelId);
     }
 
-    private record Lean(Quaternionf turn, long receivedMillis) {}
+    private record Lean(Quaternionf previous, Quaternionf current, long tick) {}
 
     private static final Map<UUID, Lean> LEANS = new ConcurrentHashMap<>();
-    private static final long LEAN_STALE_MILLIS = 2500L;
+    private static final long LEAN_STALE_TICKS = 40L;
 
-    public static void putLean(UUID subLevelId, Quaternionf turn) {
-        LEANS.put(subLevelId, new Lean(turn, System.currentTimeMillis()));
+    private static long gameTick() {
+        return Minecraft.getInstance().level == null ? 0L : Minecraft.getInstance().level.getGameTime();
     }
 
-    public static Quaternionf lean(UUID subLevelId) {
+    public static void putLean(UUID subLevelId, Quaternionf turn) {
+        long now = gameTick();
+        Lean old = LEANS.get(subLevelId);
+        boolean fresh = old == null || now - old.tick() > LEAN_STALE_TICKS;
+        Quaternionf from = fresh ? new Quaternionf() : old.current();
+        if (fresh || turn.angle() < 1.0e-3f) {
+            LoconauticsConstants.LOGGER.warn("[bogeyroll] sub={} lean {} deg {}", subLevelId.toString().substring(0, 8),
+                    Math.toDegrees(turn.angle()), fresh ? "starts" : "back to level");
+        }
+        LEANS.put(subLevelId, new Lean(from, turn, now));
+    }
+
+    public static Quaternionf lean(UUID subLevelId, float partialTick) {
         Lean lean = LEANS.get(subLevelId);
         if (lean == null) {
             return null;
         }
-        if (System.currentTimeMillis() - lean.receivedMillis() > LEAN_STALE_MILLIS) {
+        long now = gameTick();
+        if (now - lean.tick() > LEAN_STALE_TICKS) {
             LEANS.remove(subLevelId);
             return null;
         }
-        return lean.turn();
+        float t = Math.max(0.0f, Math.min(1.0f, now + partialTick - lean.tick()));
+        return new Quaternionf(lean.previous()).slerp(lean.current(), t);
     }
 
     public static void clear() {

@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.trainphysics.glue;
 
 import com.lycoris.loconautics.LoconauticsConstants;
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.PoseTweak;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.SableTrain.Car;
@@ -12,6 +13,8 @@ import com.lycoris.loconautics.trainphysics.drive.SeatBlend;
 import com.lycoris.loconautics.trainphysics.drive.TrackHostMotion;
 import com.lycoris.loconautics.trainphysics.drive.TrainPropulsion;
 import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.spawn.RerailBalance;
 import dev.ryanhcode.sable.api.physics.PhysicsPipeline;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
@@ -35,12 +38,33 @@ public final class RailSnap {
 
     static final double UNREALIZED_SLIDE_TOLERANCE = 0.02;
     private static final double RISE_EPS = 1.0e-3;
-    private static final double SINK_LOG = 0.02;
     private static final double KICK_ACCEL = 20.0;
-    private static final double KICK_LOG = 0.5;
-    private static final double CURVE_CLAMP_MARGIN = Math.toRadians(2.0);
 
     static final java.util.Map<UUID, Double> LAST_SLIDE = new java.util.HashMap<>();
+
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (clears(event)) {
+                LAST_SLIDE.remove(subId);
+            }
+        }
+
+        @Override
+        public void retain(java.util.Set<UUID> liveTrains, java.util.Set<UUID> liveSubs) {
+            RailSnap.retain(liveSubs);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return LAST_SLIDE.containsKey(subId) ? "last slide held" : "";
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.REMOVED;
+        }
+    };
 
     public static void noteSlide(UUID id, double slide) {
         LAST_SLIDE.put(id, slide);
@@ -223,29 +247,36 @@ public final class RailSnap {
                                Vector3d[] ref, double dt) {
         RigidBodyHandle handle = RigidBodyHandle.of(sub);
         MassData md = sub.getMassTracker();
-        RollFrame frame = RollFrame.of(sub, car, ref);
+        UUID id = sub.getUniqueId();
+        long now = sub.getLevel().getGameTime();
+        CarriageRoll.RollCache held = CarriageRoll.heldFrame(id, now);
+        RollFrame own = RollFrame.of(sub, car, ref);
+        boolean reuse = held != null && (own == null
+                || held.tick() == now && held.frame().reference.distanceSquared(ref[0]) < 1.0e-12);
+        RollFrame frame = reuse ? held.frame() : own;
         if (handle == null || md == null || md.isInvalid() || frame == null) {
             return false;
         }
-        UUID id = sub.getUniqueId();
         CarriageRoll.Roll roll = CarriageRoll.of(id);
-        long now = sub.getLevel().getGameTime();
         boolean settling = roll.settling(now) || SeatBlend.active(id);
-        PoseTweak.Applied level = frame.seatedLevel(sub, train, true);
-        PoseTweak.Applied seated = frame.leaned(sub, level, roll.suspension);
-        WheelSupports.Prepared prepared = WheelSupports.prepare(sub, car.chain(), frame, seated);
-        if (prepared == null) {
-            return false;
+        PoseTweak.Applied seated;
+        WheelSupports.Prepared prepared;
+        if (reuse) {
+            seated = held.seated();
+            prepared = held.prepared();
+            SeatBlend.q(id, frame.seat, true);
+        } else {
+            CarriageRoll.Seats seats = CarriageRoll.seats(sub, train, frame, dt, true);
+            seated = seats.seated();
+            prepared = WheelSupports.prepare(sub, car.chain(), frame, seated);
+            if (prepared == null) {
+                return false;
+            }
         }
 
         Pose3d pose = sub.logicalPose();
         double phi = CarriageRoll.twist(seated.orientation(), pose.orientation(), frame.forward0);
-        int sideBefore = roll.side;
         int side = CarriageRoll.updateSide(roll, phi);
-        if (side != sideBefore) {
-            LoconauticsConstants.LOGGER.info("[wheellift] car={} hinge side {} -> {} phi={} deg", shortId(sub),
-                    sideBefore, side, f(Math.toDegrees(phi)));
-        }
         int pivot = side != 0 && Math.abs(phi) > CarriageRoll.PHI_EPS ? side : 0;
         Vector3d pivotLocal = frame.pointLocal(pivot);
         Vector3d pivotSeated = RollFrame.seatedPoint(sub, seated, pivotLocal);
@@ -269,37 +300,31 @@ public final class RailSnap {
             roll.preValid = false;
             kick = Math.max(0.0, vel.dot(frame.up) - roll.preUp - KICK_ACCEL * dt);
         }
-        if (kick > KICK_LOG) {
-            LoconauticsConstants.LOGGER.info("[wheellift] car={} solver kick {} b/s up removed, rise {} -> {} phi={} deg",
-                    shortId(sub), f(kick), f(rise), f(Math.max(0.0, rise - kick * dt)), f(Math.toDegrees(phi)));
-        }
         double written = phi;
-        double riseWritten = Math.max(0.0, rise - kick * dt);
+        double riseKept = Math.max(0.0, rise - kick * dt);
+        boolean realLift = riseKept > CarriageRoll.FLANGE || ExternalForceDerail.holdsLift(sub, train);
+        double riseWritten = realLift ? riseKept : 0.0;
         double omegaWritten = omegaR;
-        if (roll.curveHeld(now)) {
-            double limit = Math.max(roll.curveBase,
-                    Math.toRadians(RollDynamics.CURVE_LIFT_MAX_DEGREES) + CURVE_CLAMP_MARGIN);
+        if (roll.curveHeld(now) && !LoconauticsConfig.DERAIL_ON_CURVE.get()) {
+            double limit = roll.curveBase;
             if (Math.abs(phi) > limit) {
                 written = Math.copySign(limit, phi);
                 omegaWritten = omegaR * phi > 0.0 ? 0.0 : omegaR;
                 if (!roll.curveClamped) {
                     roll.curveClamped = true;
-                    LoconauticsConstants.LOGGER.info("[wheellift] car={} curve clamp phi {} -> {} deg curvature={} speed={}",
+                    LoconauticsConstants.LOGGER.warn("[rocktrace] car={} curve clamp phi {} -> {} deg curvature={} speed={}",
                             shortId(sub), f(Math.toDegrees(phi)), f(Math.toDegrees(written)), f(roll.curvature),
                             f(new Vector3d(vel).sub(railVel).dot(frame.tangent)));
                 }
             }
         }
         double riseRateLeft = riseRate - kick;
-        double riseRateWritten = riseWritten <= RISE_EPS && riseRateLeft < 0.0 ? 0.0 : riseRateLeft;
+        double riseRateWritten = !realLift || riseWritten <= RISE_EPS && riseRateLeft < 0.0 ? 0.0 : riseRateLeft;
 
         noteRoll(sub, md, frame, phi, written, omegaWritten, riseWritten, vTan, settling, train);
-        CarriageRoll.stepSuspension(roll, frame.half, dt);
-        SuspensionLean.publish(sub, roll, frame.forward0, now);
-        PoseTweak.Applied leanedSeat = frame.leaned(sub, level, roll.suspension);
-        Vector3d pivotWrite = RollFrame.seatedPoint(sub, leanedSeat, pivotLocal);
+        Vector3d pivotWrite = pivotSeated;
 
-        Quaterniond rolled = new Quaterniond(leanedSeat.orientation())
+        Quaterniond rolled = new Quaterniond(seated.orientation())
                 .mul(new Quaterniond().rotateAxis(written, frame.forward0.x, frame.forward0.y, frame.forward0.z))
                 .normalize();
         pose.orientation().set(rolled);
@@ -314,10 +339,6 @@ public final class RailSnap {
         if (sink > 0.0) {
             newPos.fma(sink, frame.up);
             pose.position().set(newPos);
-            if (sink > SINK_LOG) {
-                LoconauticsConstants.LOGGER.info("[wheellift] car={} sank {} blocks, wheel heights {}", shortId(sub),
-                        f(sink), java.util.Arrays.toString(heights));
-            }
         }
         com.lycoris.loconautics.common.strand.RopePullTrace.noteSnap(sub, newPos.distance(poseBeforeSnap));
         pipeline.teleport(sub, newPos, rolled);
@@ -339,9 +360,6 @@ public final class RailSnap {
         ForceTrace.deltaV(sub, ForceSource.RAIL_SNAP, deltaLinear, ref[0],
                 "rolling snap, vTan=" + f(vTan) + " roll=" + f(Math.toDegrees(written)) + " deg rise="
                         + f(riseWritten) + (settling ? " settling" : ""));
-        if (CarriageRoll.traceDue(id, now)) {
-            traceRoll(sub, train, roll, md, prepared);
-        }
         com.lycoris.loconautics.trainphysics.debug.RidingBodyTrace.trace(sub, RailGlue.glueModeOf(sub),
                 Math.toDegrees(roll.suspension), now);
         return true;
@@ -387,7 +405,8 @@ public final class RailSnap {
                 : Math.asin(Math.max(-1.0, Math.min(1.0, lean * frame.lateral.dot(new Vector3d(gravity).normalize()))));
         double tip = CarriageRoll.tippingAngle(frame.half, offset, height, lean, cant);
         boolean curveGrace = roll.curveHeld(sub.getLevel().getGameTime());
-        double unglue = curveGrace ? CarriageRoll.unglueAngle(0.0) : CarriageRoll.unglueAngle(vTan);
+        double unglue = LoconauticsConfig.DERAIL_ON_CURVE.get() ? tip
+                : curveGrace ? CarriageRoll.unglueAngle(0.0) : CarriageRoll.unglueAngle(vTan);
         roll.phi = written;
         roll.omegaR = rollRate;
         roll.rise = rise;
@@ -409,36 +428,19 @@ public final class RailSnap {
         boolean rolledHeld = roll.rolledOff.update(Math.abs(phi) > unglue, now);
         boolean liftedHeld = roll.liftedOff.update(roll.allBeyondFlange(), now);
         if (rolledHeld) {
-            LoconauticsConstants.LOGGER.info(
-                    "[wheellift] car={} unglue rolled_off phi={} deg limit={} deg tip={} deg speed={} curvature={} grace={} relief={}",
+            LoconauticsConstants.LOGGER.warn(
+                    "[rocktrace] car={} unglue rolled_off phi={} deg limit={} deg tip={} deg speed={} curvature={} grace={} relief={}",
                     shortId(sub), f(Math.toDegrees(phi)), f(Math.toDegrees(unglue)), f(Math.toDegrees(tip)), f(vTan),
                     f(roll.curvature), curveGrace, f(roll.relief));
             train.setDerailed(true, "rolled_off");
             ExternalForceDerail.holdAfterRoll(train);
             RerailBalance.noteRolledOff(sub, train);
         } else if (liftedHeld) {
-            LoconauticsConstants.LOGGER.info("[wheellift] car={} unglue lifted_off wheels={} rise={} curvature={}",
+            LoconauticsConstants.LOGGER.warn("[rocktrace] car={} unglue lifted_off wheels={} rise={} curvature={}",
                     shortId(sub), java.util.Arrays.toString(roll.y), f(rise), f(roll.curvature));
             train.setDerailed(true, "lifted_off");
             ExternalForceDerail.holdAfterRoll(train);
             RerailBalance.noteRolledOff(sub, train);
         }
-    }
-
-    private static void traceRoll(ServerSubLevel sub, SableTrain train, CarriageRoll.Roll roll, MassData md,
-                                  WheelSupports.Prepared prepared) {
-        StringBuilder wheels = new StringBuilder();
-        for (int i = 0; i < roll.y.length; i++) {
-            wheels.append(" w").append(i).append("(y=").append(f(roll.y[i])).append(")");
-        }
-        LoconauticsConstants.LOGGER.info(
-                "[wheellift] car={} mode={} lock={} phi={} deg lean={} deg side={} rate={} rise={} e={} h={} tip={} deg unglue={} deg speed={} mass={} lifted={} torque={} coupler={} kappa={} relief={} plates={}{} joints:{}",
-                shortId(sub), RailGlue.glueModeOf(sub), roll.lock, f(Math.toDegrees(roll.phi)), f(Math.toDegrees(roll.suspension)), roll.side,
-                f(roll.omegaR), f(roll.rise), f(roll.offset), f(roll.height), f(Math.toDegrees(roll.tip)),
-                f(Math.toDegrees(roll.unglue)), f(roll.speed), f(md.getMass()), roll.lifted, f(roll.torque),
-                f(roll.couplerTorque), f(roll.curvature), f(roll.relief),
-                com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.plateRollLine(sub, train), wheels,
-                WheelSupports.impulseLine(sub.getUniqueId()));
-        WheelSupports.traceColumns(sub, prepared);
     }
 }

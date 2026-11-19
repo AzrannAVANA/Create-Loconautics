@@ -244,7 +244,7 @@ public final class LoconauticsConfig {
                 .define("derailOnExternalForce", true);
 
         DERAIL_ON_CURVE = BUILDER
-                .comment("Off, a fast curve only lifts the wheels on the outside a little. On, curves are full physics and a car taken too fast tips off.")
+                .comment("Off, a car leans outward on its springs in a curve and its wheels stay on the rail. On, the wheels lift from the real overturning force and a car taken too fast tips off.")
                 .define("derailOnCurve", false);
 
         DERAIL_AT_TRACK_END = BUILDER

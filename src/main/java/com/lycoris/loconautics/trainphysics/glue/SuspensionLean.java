@@ -20,9 +20,11 @@ public final class SuspensionLean {
         if (now == roll.suspensionSentTick) {
             return;
         }
+        boolean first = roll.suspensionSentTick < 0L;
         boolean moved = Math.abs(roll.suspension - roll.suspensionSent) > SEND_STEP;
         boolean level = Math.abs(roll.suspension) < REST && Math.abs(roll.suspensionSent) < REST;
-        if (!moved && (level || now - roll.suspensionSentTick < HEARTBEAT_TICKS)) {
+        boolean leveled = Math.abs(roll.suspension) < REST && Math.abs(roll.suspensionSent) >= REST;
+        if (!first && !moved && !leveled && (level || now - roll.suspensionSentTick < HEARTBEAT_TICKS)) {
             return;
         }
         roll.suspensionSent = roll.suspension;

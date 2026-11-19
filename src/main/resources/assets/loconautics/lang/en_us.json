@@ -975,7 +975,7 @@
   "loconautics.configuration.track.derailment.coupledCollisionDerail.tooltip": "Allows coupled carriages in the same train to derail each other when they collide.",
   "loconautics.configuration.track.derailment.derailAtTrackEnd": "Derail at Track End",
   "loconautics.configuration.track.derailment.derailOnCurve": "Derail On Curve",
-  "loconautics.configuration.track.derailment.derailOnCurve.tooltip": "Off, a fast curve only lifts the wheels on the outside a little. On, curves are full physics and a car taken too fast tips off.",
+  "loconautics.configuration.track.derailment.derailOnCurve.tooltip": "Off, a car leans outward on its springs in a curve and its wheels stay on the rail. On, the wheels lift from the real overturning force and a car taken too fast tips off.",
   "loconautics.configuration.track.derailment.derailOnExternalForce": "Derail from External Force",
   "loconautics.configuration.track.derailment.derailOnExternalForce.tooltip": "Allows a strong upward push, such as from a Physics Staff, to lift a train off the rails.",
   "loconautics.configuration.track.derailment.derailedSlipFactor": "Derailed Drive Factor",

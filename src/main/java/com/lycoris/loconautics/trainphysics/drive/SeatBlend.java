@@ -1,5 +1,8 @@
 package com.lycoris.loconautics.trainphysics.drive;
 
+import com.lycoris.loconautics.trainphysics.SableTrain;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
@@ -9,6 +12,30 @@ import java.util.UUID;
 public final class SeatBlend {
     private SeatBlend() {
     }
+
+    public static final CartStateStore STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (clears(event)) {
+                end(subId);
+            }
+        }
+
+        @Override
+        public void retain(java.util.Set<UUID> liveTrains, java.util.Set<UUID> liveSubs) {
+            SeatBlend.retain(liveSubs);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return active(subId) ? "seat blend running" : "";
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.GHOSTED || event == CartEvent.REMOVED;
+        }
+    };
 
     static final java.util.Map<UUID, Vector3d> SEAT_BLEND_POS = new java.util.HashMap<>();
     static final java.util.Map<UUID, Quaterniond> SEAT_BLEND_Q = new java.util.HashMap<>();

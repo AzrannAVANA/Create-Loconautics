@@ -126,6 +126,8 @@ public final class Loconautics {
                 com.lycoris.loconautics.trainphysics.glue.RailGlue.STORE,
                 com.lycoris.loconautics.trainphysics.glue.WheelSupports.STORE,
                 com.lycoris.loconautics.trainphysics.glue.CarriageRoll.STORE,
+                com.lycoris.loconautics.trainphysics.glue.RailSnap.STORE,
+                com.lycoris.loconautics.trainphysics.drive.SeatBlend.STORE,
                 com.lycoris.loconautics.trainphysics.coupling.CouplerTwist.STORE,
                 com.lycoris.loconautics.trainphysics.spawn.RerailApproach.STORE,
                 com.lycoris.loconautics.trainphysics.spawn.RerailBalance.STORE,
@@ -245,6 +247,7 @@ public final class Loconautics {
         runStopHook("TurntableRegistry", com.lycoris.loconautics.common.turntable.TurntableRegistry::clear);
         runStopHook("SignalOverrides", com.lycoris.loconautics.common.railway.SignalOverrides::clear);
         runStopHook("PointOverrides", com.lycoris.loconautics.common.railway.PointOverrides::clearAll);
+        // every one of these holds a constraint handle or a body from a rapier scene that is about to go away
         runStopHook("GhostWheelBodies", com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies::clear);
         runStopHook("KnuckleJoint", com.lycoris.loconautics.content.knuckle.KnuckleJoint::clear);
         runStopHook("SubLevelContacts",com.lycoris.loconautics.trainphysics.sublevel.SubLevelContacts::clear);

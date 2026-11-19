@@ -13,7 +13,6 @@ import dev.ryanhcode.sable.api.physics.PhysicsPipelineBody;
 import dev.ryanhcode.sable.api.physics.constraint.ConstraintJointAxis;
 import dev.ryanhcode.sable.api.physics.constraint.GenericConstraintConfiguration;
 import dev.ryanhcode.sable.api.physics.constraint.GenericConstraintHandle;
-import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
@@ -24,7 +23,6 @@ import org.joml.Vector3dc;
 
 import java.util.UUID;
 
-import static com.lycoris.loconautics.foundation.LogFormat.f;
 import static com.lycoris.loconautics.foundation.LogFormat.shortId;
 import static com.lycoris.loconautics.foundation.math.VecMath.perpendicularUp;
 
@@ -87,6 +85,7 @@ public final class RailGlue {
         return glueBody(pipeline, sub, localAnchor, railPoint, tangent, null, q, mode, trackSub);
     }
 
+    // a null up means the world up, a rolling car passes its track normal so the guide follows a banked rail
     public static boolean glueBody(PhysicsPipeline pipeline, ServerSubLevel sub, Vector3dc localAnchor,
                                    Vector3d railPoint, Vector3d tangent, Vector3d trackUp, Quaterniond q,
                                    GlueMode mode, ServerSubLevel trackSub) {
@@ -95,6 +94,7 @@ public final class RailGlue {
             releaseConstraint(id);
             return true;
         }
+        // a removed track body still arrives as a live reference, and a joint left on it panics rapier
         if (BodyRef.ofBody(trackSub).absent()) {
             releaseConstraint(id);
             return true;
@@ -134,16 +134,6 @@ public final class RailGlue {
             return true;
         }
         rebuildGuide(id, mode);
-        RigidBodyHandle issue297 = RigidBodyHandle.of(sub);
-        Vector3d issue295Anchor = sub.logicalPose().transformPosition(new Vector3d(localAnchor), new Vector3d());
-        Quaterniond issue295Turn = new Quaterniond(sub.logicalPose().orientation()).conjugate().mul(q);
-        LoconauticsConstants.LOGGER.info(
-                "[issue295] new {} glue for {} anchorToRail={} ({} blocks) orientationError={} deg tangent={}", mode,
-                shortId(id), new Vector3d(railPoint).sub(issue295Anchor), f(railPoint.distance(issue295Anchor)),
-                f(Math.toDegrees(issue295Turn.angle())), tangent);
-        LoconauticsConstants.LOGGER.info("[issue297] new {} glue for {} body vel={} ang={} existing={}", mode,
-                shortId(id), issue297 == null ? "none" : issue297.getLinearVelocity(new Vector3d()),
-                issue297 == null ? "none" : issue297.getAngularVelocity(new Vector3d()), existing != null);
         java.util.Set<ConstraintJointAxis> locked = switch (mode) {
             case PIVOT -> java.util.EnumSet.of(ConstraintJointAxis.LINEAR_Y, ConstraintJointAxis.LINEAR_Z,
                     ConstraintJointAxis.ANGULAR_X);
@@ -165,6 +155,7 @@ public final class RailGlue {
         return true;
     }
 
+    // sable refuses to pin a world body to a rail left in a dead plot
     static boolean railInDeadPlot(ServerSubLevel sub, Vector3d railPoint) {
         if (!(sub.getLevel() instanceof ServerLevel level)) {
             return false;
@@ -204,6 +195,7 @@ public final class RailGlue {
         return mode == null ? "none" : mode.name();
     }
 
+    // a rolling guide that only moved to another track body or toggled the staff hold keeps its supports and roll state
     private static void rebuildGuide(UUID id, GlueMode next) {
         GlueMode previous = GLUE_MODE.get(id);
         if (!next.rolls() || previous == null || !previous.rolls()) {
@@ -221,7 +213,6 @@ public final class RailGlue {
 
     public static void releaseConstraint(UUID id) {
         WheelSupports.release(id);
-        CarriageRoll.release(id);
         GLUE_MODE.remove(id);
         LAST_GLUE_Q.remove(id);
         GLUE_BODY_A_ID.remove(id);
@@ -231,6 +222,7 @@ public final class RailGlue {
         }
     }
 
+    // the live ids come back so the caller trims its own per car state to the same set
     public static java.util.Set<UUID> sweepStaleConstraints() {
         java.util.Set<UUID> live = new java.util.HashSet<>();
         java.util.Map<UUID, ServerLevel> levels = new java.util.HashMap<>();
@@ -243,6 +235,7 @@ public final class RailGlue {
         }
         java.util.List<UUID> stale = new java.util.ArrayList<>();
         for (UUID id : CONSTRAINTS.keySet()) {
+            // a live car says nothing about the body it is glued to, and some driver paths never reach gluebody
             if (!live.contains(id) || BodyRef.of(levels.get(id), GLUE_BODY_A_ID.get(id)).absent()) {
                 stale.add(id);
             }

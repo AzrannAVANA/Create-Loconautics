@@ -227,11 +227,15 @@ public final class BogeyRailPoints {
     }
 
     public static org.joml.Quaternionf worldFrame(Chord chord, org.joml.Quaternionf dest) {
+        return worldFrame(chord, new org.joml.Vector3f((float) chord.up().x, (float) chord.up().y,
+                (float) chord.up().z), dest);
+    }
+
+    public static org.joml.Quaternionf worldFrame(Chord chord, org.joml.Vector3f upHint, org.joml.Quaternionf dest) {
         Vec3 forward = chord.forward();
         org.joml.Vector3f f = new org.joml.Vector3f((float) forward.x, (float) forward.y, (float) forward.z);
         f.normalize();
-        org.joml.Vector3f up = new org.joml.Vector3f((float) chord.up().x, (float) chord.up().y,
-                (float) chord.up().z);
+        org.joml.Vector3f up = new org.joml.Vector3f(upHint);
         up.sub(new org.joml.Vector3f(f).mul(up.dot(f)));
         if (up.lengthSquared() < 1.0e-6f) {
             up.set(1.0f, 0.0f, 0.0f).sub(new org.joml.Vector3f(f).mul(f.x));

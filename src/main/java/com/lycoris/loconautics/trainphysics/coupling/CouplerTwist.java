@@ -1,6 +1,5 @@
 package com.lycoris.loconautics.trainphysics.coupling;
 
-import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.sable.BodyRef;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.content.knuckle.KnuckleTuning;
@@ -24,7 +23,6 @@ import dev.ryanhcode.sable.sublevel.system.SubLevelPhysicsSystem;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.phys.Vec3;
 import org.joml.Quaterniond;
 import org.joml.Vector3d;
 
@@ -37,7 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.lycoris.loconautics.foundation.LogFormat.f;
 import static com.lycoris.loconautics.foundation.LogFormat.shortId;
 
 public final class CouplerTwist {
@@ -45,16 +42,10 @@ public final class CouplerTwist {
     static final double TWIST_SLACK_DEGREES = 3.0;
 
 
-    public static final boolean TRACE = true;
-
     private static final long RAMP_TICKS = 8L;
-    private static final long TRACE_TICKS = 10L;
     private static final long NEVER = -1_000_000L;
     private static final double MIN_SPAN = 0.05;
     private static final double RIGID_AXIS = 0.707;
-    private static final int GREEN = 0x33FF33;
-    private static final int YELLOW = 0xFFFF00;
-    private static final int RED = 0xFF3333;
 
     private CouplerTwist() {
     }
@@ -129,8 +120,6 @@ public final class CouplerTwist {
         boolean frozen;
         long lastActive = NEVER;
         long rampStart;
-        long lastTrace = NEVER;
-        boolean capHit;
     }
 
     private static final class Load {
@@ -148,6 +137,7 @@ public final class CouplerTwist {
     private static final Map<Pair, State> STATES = new ConcurrentHashMap<>();
     private static final Set<UUID> ARTICULATED = ConcurrentHashMap.newKeySet();
 
+    // the providers scan block entities, so this is once per game tick, not per substep
     public static void collect(ServerLevel level) {
         long now = level.getGameTime();
         Snapshot previous = SNAPSHOTS.get(level.dimension());
@@ -204,6 +194,7 @@ public final class CouplerTwist {
         }
     }
 
+    // a bearing whose axis is not along the track already locks relative roll in its own rotary joint
     private static Swivel evaluateSwivel(ServerLevel level, Pair pair, TwistLink link) {
         ServerSubLevel own = SubLevelData.resolve(level, link.subA());
         double dot = 0.0;
@@ -250,13 +241,6 @@ public final class CouplerTwist {
     }
 
     private static void noteLinkChanges(ServerLevel level, Snapshot previous, Snapshot next) {
-        for (Map.Entry<Pair, TwistLink> entry : next.shown().entrySet()) {
-            if ((previous == null || !previous.shown().containsKey(entry.getKey())) && TRACE) {
-                TwistLink link = entry.getValue();
-                LoconauticsConstants.LOGGER.info("[couplertwist] link a={} b={} kind={} strength={}",
-                        shortId(link.subA()), shortId(link.subB()), link.kind(), f(link.strength()));
-            }
-        }
         if (previous == null) {
             return;
         }
@@ -266,10 +250,6 @@ public final class CouplerTwist {
             }
             STATES.remove(pair);
             DebugLines.clear(level, pair.slot());
-            if (TRACE) {
-                LoconauticsConstants.LOGGER.info("[couplertwist] link gone a={} b={}", shortId(pair.lo()),
-                        shortId(pair.hi()));
-            }
         }
     }
 
@@ -294,17 +274,12 @@ public final class CouplerTwist {
             for (UUID other : group) {
                 String reason = other.equals(id) ? null : CarriageRoll.primaryLockOf(other);
                 if (reason != null) {
-                    if (ARTICULATED.add(id) && TRACE) {
-                        LoconauticsConstants.LOGGER.info("[couplertwist] lock articulated car={} because car={} is {}",
-                                shortId(id), shortId(other), reason);
-                    }
+                    ARTICULATED.add(id);
                     return CarriageRoll.LOCK_ARTICULATED;
                 }
             }
         }
-        if (ARTICULATED.remove(id) && TRACE) {
-            LoconauticsConstants.LOGGER.info("[couplertwist] lock articulated cleared car={}", shortId(id));
-        }
+        ARTICULATED.remove(id);
         return null;
     }
 
@@ -323,7 +298,6 @@ public final class CouplerTwist {
                 solveLink(level, snapshot, entry, now, dt, kappa, slack, loads);
             }
         }
-        traceSwivels(level, snapshot, now);
         PhysicsPipeline pipeline = system.getPipeline();
         for (Load load : loads.values()) {
             pipeline.wakeUp(load.sub);
@@ -354,14 +328,13 @@ public final class CouplerTwist {
             }
         }
         if (why == null && a.rolling() && b.rolling()) {
-            refreshRest(state, entry.pair(), a, b);
+            refreshRest(state, a, b);
         } else if (why == null && state.rest == null) {
             why = "no_rest";
         } else if (why == null) {
-            freezeRest(state, entry.pair());
+            freezeRest(state);
         }
         if (why != null) {
-            traceSkip(state, entry, a, b, why, now);
             return;
         }
 
@@ -378,7 +351,6 @@ public final class CouplerTwist {
         double inverseA = inverseInertia(a, u, dotA);
         double inverseB = inverseInertia(b, u, dotB);
         if (!(inverseA >= 0.0) || !(inverseB >= 0.0) || !(inverseA + inverseB > 1.0e-9)) {
-            traceSkip(state, entry, a, b, "degenerate", now);
             return;
         }
         double inertia = 1.0 / (inverseA + inverseB);
@@ -400,7 +372,6 @@ public final class CouplerTwist {
         double ramp = Math.min(1.0, (double) (now - state.rampStart) / RAMP_TICKS);
         double sign = Math.signum(thetaEx);
         double tauRaw = thetaEx == 0.0 ? 0.0 : kt * thetaEx + ct * thetaDot;
-        boolean capped = thetaEx != 0.0 && sign * tauRaw >= tauMax;
         double tau = sign * Math.min(tauMax, Math.max(0.0, sign * tauRaw)) * ramp;
 
         if (tau != 0.0) {
@@ -410,19 +381,6 @@ public final class CouplerTwist {
         }
         noteRoll(a, tau * dotA, theta);
         noteRoll(b, tau * dotB, theta);
-        noteCap(state, entry.pair(), capped);
-
-        if (TRACE && now - state.lastTrace >= TRACE_TICKS) {
-            state.lastTrace = now;
-            int color = capped ? RED : thetaEx != 0.0 ? YELLOW : GREEN;
-            DebugLines.line(level, entry.pair().slot(), new Vec3(pa.x, pa.y, pa.z), new Vec3(pb.x, pb.y, pb.z),
-                    color, DebugLines.DEFAULT_WIDTH, 2 * (int) TRACE_TICKS);
-            LoconauticsConstants.LOGGER.info(
-                    "[couplertwist] pair={}/{} kind={} a={} b={} uA={} uB={} theta={} deg track={} deg ex={} deg rate={} kt={} ct={} inertia={} tauRaw={} tau={} tauMax={} ramp={}",
-                    shortId(link.subA()), shortId(link.subB()), link.kind(), a.role(), b.role(), f(dotA), f(dotB),
-                    f(Math.toDegrees(theta)), trackTwist(a, b, u), f(Math.toDegrees(thetaEx)), f(thetaDot), f(kt),
-                    f(ct), f(inertia), f(tauRaw), f(tau), f(tauMax), f(ramp));
-        }
     }
 
     private static Side classify(ServerLevel level, Snapshot snapshot, UUID id, long now) {
@@ -484,6 +442,7 @@ public final class CouplerTwist {
         return centerB.sub(centerA).dot(axis) < 0.0 ? axis.negate() : axis;
     }
 
+    // twist about u of the rotation from car a to car b, with their seated relation taken out
     private static double twistAbout(Side a, Side b, Quaterniond rest, Vector3d u) {
         Quaterniond turnedA = new Quaterniond(a.sub().logicalPose().orientation()).mul(rest).invert();
         Quaterniond error = new Quaterniond(b.sub().logicalPose().orientation()).mul(turnedA);
@@ -496,6 +455,7 @@ public final class CouplerTwist {
         return theta;
     }
 
+    // a rolling car only turns about its chord, a free car about u itself
     private static double inverseInertia(Side side, Vector3d u, double dot) {
         if (side.rolling()) {
             double hingeI = side.roll().hingeI;
@@ -526,79 +486,13 @@ public final class CouplerTwist {
         }
     }
 
-    private static void refreshRest(State state, Pair pair, Side a, Side b) {
+    private static void refreshRest(State state, Side a, Side b) {
         state.rest = new Quaterniond(a.roll().seat).invert().mul(b.roll().seat);
-        if (state.frozen && TRACE) {
-            LoconauticsConstants.LOGGER.info("[couplertwist] pair={}/{} Q0 refreshed", shortId(pair.lo()),
-                    shortId(pair.hi()));
-        }
         state.frozen = false;
     }
 
-    private static void freezeRest(State state, Pair pair) {
-        if (!state.frozen && TRACE) {
-            LoconauticsConstants.LOGGER.info("[couplertwist] pair={}/{} Q0 frozen", shortId(pair.lo()),
-                    shortId(pair.hi()));
-        }
+    private static void freezeRest(State state) {
         state.frozen = true;
-    }
-
-    private static void noteCap(State state, Pair pair, boolean capped) {
-        if (capped != state.capHit && TRACE) {
-            LoconauticsConstants.LOGGER.info("[couplertwist] pair={}/{} cap {}", shortId(pair.lo()),
-                    shortId(pair.hi()), capped ? "hit" : "clear");
-        }
-        state.capHit = capped;
-    }
-
-    private static String trackTwist(Side a, Side b, Vector3d u) {
-        if (!a.rolling() || !b.rolling()) {
-            return "na";
-        }
-        Vector3d normalA = new Vector3d(a.roll().up).fma(-a.roll().up.dot(u), u);
-        Vector3d normalB = new Vector3d(b.roll().up).fma(-b.roll().up.dot(u), u);
-        return f(Math.toDegrees(Math.atan2(normalA.cross(normalB, new Vector3d()).dot(u), normalA.dot(normalB))));
-    }
-
-    private static void traceSkip(State state, Entry entry, Side a, Side b, String why, long now) {
-        if (!TRACE || now - state.lastTrace < TRACE_TICKS) {
-            return;
-        }
-        state.lastTrace = now;
-        LoconauticsConstants.LOGGER.info("[couplertwist] pair={}/{} kind={} skip {} a={} b={}",
-                shortId(entry.link().subA()), shortId(entry.link().subB()), entry.link().kind(), why, a.role(),
-                b.role());
-    }
-
-    private static void traceSwivels(ServerLevel level, Snapshot snapshot, long now) {
-        if (!TRACE) {
-            return;
-        }
-        for (Swivel swivel : snapshot.swivels()) {
-            State state = STATES.computeIfAbsent(swivel.pair(), key -> new State());
-            if (now - state.lastTrace < TRACE_TICKS) {
-                continue;
-            }
-            state.lastTrace = now;
-            TwistLink link = swivel.link();
-            Side a = classify(level, snapshot, link.subA(), now);
-            Side b = classify(level, snapshot, link.subB(), now);
-            String theta = "na";
-            if (a.rolling() && b.rolling()) {
-                Quaterniond rest = new Quaterniond(a.roll().seat).invert().mul(b.roll().seat);
-                theta = f(Math.toDegrees(twistAbout(a, b, rest, new Vector3d(a.roll().axis))));
-            }
-            LoconauticsConstants.LOGGER.info(
-                    "[couplertwist] swivel pair={}/{} axisDot={} {} theta={} deg a={} lockA={} b={} lockB={}",
-                    shortId(link.subA()), shortId(link.subB()), f(swivel.axisDot()),
-                    swivel.rigid() ? "rigid" : "free", theta, a.role(), lockText(link.subA()), b.role(),
-                    lockText(link.subB()));
-        }
-    }
-
-    private static String lockText(UUID id) {
-        CarriageRoll.Roll roll = CarriageRoll.rollById(id);
-        return roll == null ? "none" : roll.lock;
     }
 
     public static void retain(Set<UUID> live) {

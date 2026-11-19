@@ -89,6 +89,7 @@ public final class SableTrainDriver {
         forEachCar(system, (pipeline, container, sub, train, car) -> {
             if (train.isDerailed() || train.isPhysics()) {
                 RailGlue.releaseConstraint(sub.getUniqueId());
+                CarriageRoll.pause(sub.getUniqueId());
                 clearCrossState(sub.getUniqueId());
                 WeldedBodies.release(sub.getUniqueId());
                 if (train.isDerailed()) {
@@ -103,17 +104,18 @@ public final class SableTrainDriver {
             }
             if (DockGroups.isFollower(sub.getUniqueId())) {
                 RailGlue.releaseConstraint(sub.getUniqueId());
+                CarriageRoll.pause(sub.getUniqueId());
                 com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.retarget(pipeline, sub, train);
                 return;
             }
             if (beingPulled(sub)) {
                 RailGlue.releaseConstraint(sub.getUniqueId());
+                CarriageRoll.pause(sub.getUniqueId());
                 return;
             }
             DockApproach.drive(sub, train);
             Car group = DockGroups.composite(sub, train, car);
             capTrainSpeed(sub, group, train);
-            com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.retarget(pipeline, sub, train);
             if (useForceGlue(train, group)) {
                 ExternalForceDerail.sample(sub, group, train, timeStep);
                 driveConstraintGlued(pipeline, sub, group, timeStep, train);
@@ -122,6 +124,7 @@ public final class SableTrainDriver {
                 advancePinned(sub, group, train, timeStep);
                 pinCar(pipeline, sub, group, false, train);
             }
+            com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.retarget(pipeline, sub, train);
         });
         com.lycoris.loconautics.trainphysics.coupling.CouplerTwist.solve(system, timeStep);
         com.lycoris.loconautics.content.knuckle.KnuckleRailCoupler.solve(system, timeStep);
@@ -301,23 +304,32 @@ public final class SableTrainDriver {
             tangent = forwardUnit(carriage);
             q = carriage.orientation();
         }
-        q = RailGlue.limitGlueRotation(bodySub.getUniqueId(), q);
 
         ServerSubLevel trackSub = TrainRailAdvance.leadingActiveSub(car);
         UUID bodyId = bodySub.getUniqueId();
         String lock = CarriageRoll.lockReason(bodySub, car, DockGroups.hasFollowers(bodyId), train);
         RollFrame rollFrame = null;
-        PoseTweak.Applied seated = null;
+        CarriageRoll.Seats seats = null;
         CarriageRoll.Ready ready = null;
         if (lock == null) {
             rollFrame = RollFrame.of(bodySub, car, ref);
-            seated = rollFrame == null ? null : rollFrame.seated(bodySub, train, false);
-            ready = CarriageRoll.rollReady(bodySub, car, rollFrame, seated);
+            seats = rollFrame == null ? null : CarriageRoll.seats(bodySub, train, rollFrame, dt, false);
+            ready = CarriageRoll.rollReady(bodySub, car, rollFrame, seats == null ? null : seats.seated());
             lock = ready.reason();
+            long gameNow = bodySub.getLevel().getGameTime();
+            CarriageRoll.RollCache held = lock == null ? null : CarriageRoll.ride(bodyId, lock, gameNow);
+            if (held != null) {
+                rollFrame = held.frame();
+                seats = new CarriageRoll.Seats(held.level(), held.seated());
+                ready = new CarriageRoll.Ready(null, held.prepared());
+                lock = null;
+            } else if (lock == null) {
+                CarriageRoll.hold(bodyId, rollFrame, seats, ready.prepared(), gameNow);
+            }
         }
         if (lock == null) {
-            RollOutcome outcome = glueRolling(pipeline, bodySub, car, train, rollFrame, ready.prepared(), seated, q,
-                    trackSub, dt);
+            RollOutcome outcome = glueRolling(pipeline, bodySub, car, train, rollFrame, ready.prepared(), seats, trackSub,
+                    dt);
             if (outcome == RollOutcome.DERAILED) {
                 CarriageRoll.noteLock(bodyId, "released");
                 return;
@@ -325,8 +337,8 @@ public final class SableTrainDriver {
             if (outcome == RollOutcome.RELEASED) {
                 lock = "released";
             }
-        } else if (!RailGlue.glueBody(pipeline, bodySub, localAnchor, railPoint, tangent, q,
-                RailGlue.GlueMode.RIGID, trackSub)) {
+        } else if (!RailGlue.glueBody(pipeline, bodySub, localAnchor, railPoint, tangent,
+                RailGlue.limitGlueRotation(bodyId, q), RailGlue.GlueMode.RIGID, trackSub)) {
             train.setDerailed(true, "glue_refused");
             CarriageRoll.noteLock(bodyId, "released");
             return;
@@ -347,15 +359,15 @@ public final class SableTrainDriver {
 
     private static RollOutcome glueRolling(PhysicsPipeline pipeline, ServerSubLevel bodySub, Car car, SableTrain train,
                                            RollFrame frame, WheelSupports.Prepared prepared,
-                                           PoseTweak.Applied seated, Quaterniond limited, ServerSubLevel trackSub,
-                                           double dt) {
+                                           CarriageRoll.Seats seats, ServerSubLevel trackSub, double dt) {
+        PoseTweak.Applied seated = seats.seated();
         CarriageRoll.Roll roll = CarriageRoll.of(bodySub.getUniqueId());
         double phi = CarriageRoll.twist(seated.orientation(), bodySub.logicalPose().orientation(), frame.forward0);
         int side = CarriageRoll.updateSide(roll, phi);
         int pivot = side != 0 && Math.abs(phi) > CarriageRoll.PHI_EPS ? side : 0;
         Vector3d pivotLocal = frame.pointLocal(pivot);
         Vector3d pivotRail = RollFrame.seatedPoint(bodySub, seated, pivotLocal);
-        if (!RailGlue.glueBody(pipeline, bodySub, pivotLocal, pivotRail, frame.tangent, frame.up, limited,
+        if (!RailGlue.glueBody(pipeline, bodySub, pivotLocal, pivotRail, frame.tangent, frame.up, seats.level().orientation(),
                 ExternalForceDerail.holdDownForStaff(bodySub) ? RailGlue.GlueMode.ROLLING_HELD : RailGlue.GlueMode.ROLLING,
                 trackSub)) {
             train.setDerailed(true, "glue_refused");
@@ -371,9 +383,6 @@ public final class SableTrainDriver {
 
     static final double SPEED_GAIN_LIMIT = 12.0;
 
-    static final java.util.Map<UUID, Long> ISSUE297_LAST = new java.util.HashMap<>();
-    static final java.util.Map<UUID, Long> ISSUE295_LAST = new java.util.HashMap<>();
-
 
     static void readBackSpeed(SableTrain train, ServerSubLevel bodySub, ServerSubLevel trackSub,
                               Vector3d railPoint, Vector3d tangent, double dt) {
@@ -385,19 +394,6 @@ public final class SableTrainDriver {
         double measured = TrackHostMotion.relativeAlongTrack(
                 bodySub.getLevel(), trackSub, railPoint, vel, tangent) / 20.0;
         double previous = train.speed();
-        if (Math.abs(measured) * 20.0 > 3.0 && Math.abs(previous) * 20.0 < 0.5) {
-            long now = bodySub.getLevel().getGameTime();
-            Long last = ISSUE297_LAST.get(bodySub.getUniqueId());
-            if (last == null || now - last >= 20L) {
-                ISSUE297_LAST.put(bodySub.getUniqueId(), now);
-                LoconauticsConstants.LOGGER.info(
-                        "[issue297] car={} readback {} b/s along rail while train speed {} b/s, vel={} mode={} settling={} offTrack={} derailed={} staffHeld={} mass={}",
-                        shortId(train.id()), f(measured * 20.0), f(previous * 20.0), vel,
-                        RailGlue.glueModeOf(bodySub), train.isPoseSettling(), train.hasOffTrackBogey(), train.isDerailed(),
-                        ExternalForceDerail.staffHolds(bodySub), bodySub.getMassTracker() == null ? "none"
-                                : f(bodySub.getMassTracker().getMass()));
-            }
-        }
         double from = measured * previous < 0.0 ? 0.0 : previous;
         double away = Math.abs(measured) - Math.abs(from);
         double gain = SPEED_GAIN_LIMIT * dt / 20.0
@@ -408,15 +404,6 @@ public final class SableTrainDriver {
         }
         double allowed = Math.signum(measured) * (Math.abs(from) + gain);
         train.setSpeed(allowed);
-        long jumpNow = bodySub.getLevel().getGameTime();
-        Long jumpLast = ISSUE295_LAST.get(bodySub.getUniqueId());
-        if (jumpLast == null || jumpNow - jumpLast >= 10L) {
-            ISSUE295_LAST.put(bodySub.getUniqueId(), jumpNow);
-            LoconauticsConstants.LOGGER.info(
-                    "[issue295] car={} speed gain capped, measured {} b/s allowed {} b/s previous {} b/s tangent={} vel={} offTrackBogeys={} derailed={} mode={}",
-                    shortId(train.id()), f(measured * 20.0), f(allowed * 20.0), f(previous * 20.0), tangent, vel,
-                    train.hasOffTrackBogey(), train.isDerailed(), RailGlue.glueModeOf(bodySub));
-        }
         MassData md = bodySub.getMassTracker();
         double mass = (md != null && !md.isInvalid()) ? md.getMass() : 1.0;
         Vector3d worldImpulse = new Vector3d(tangent).mul(mass * (allowed - measured) * 20.0);

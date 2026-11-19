@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.trainphysics.visual;
 
+import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.config.BogeyRenderConfig;
 import com.lycoris.loconautics.trainphysics.state.SableTrainClientRegistry;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
@@ -54,20 +55,26 @@ public final class BogeyRenderFrame {
             Quaterniondc bodyQ = sub.renderPose().orientation();
             Quaternionf body = new Quaternionf((float) bodyQ.x(), (float) bodyQ.y(),
                     (float) bodyQ.z(), (float) bodyQ.w());
-            local.set(new Quaternionf(body).conjugate()
-                    .mul(BogeyRailPoints.worldFrame(walked, new Quaternionf())));
-            dropTwist(local);
+            Quaternionf bodyInverse = new Quaternionf(body).conjugate();
+            Vector3f forwardCar = bodyInverse.transform(new Vector3f((float) walked.forward().x,
+                    (float) walked.forward().y, (float) walked.forward().z), new Vector3f());
+            boolean backwards = (axisX ? forwardCar.x : forwardCar.z) < 0.0f;
+            if (backwards ? RAILED_BACKWARDS.add(be) : RAILED_BACKWARDS.remove(be)) {
+                LoconauticsConstants.LOGGER.warn("[bogeyroll] bogey={} now faces {} along its axis", be.getBlockPos(),
+                        backwards ? "backwards" : "forwards");
+            }
+            Vector3f up = new Vector3f((float) walked.up().x, (float) walked.up().y, (float) walked.up().z);
+            if (BogeyRenderConfig.rolling()) {
+                Quaternionf lean = SableTrainClientRegistry.lean(sub.getUniqueId(), partialTick);
+                Quaternionf level = lean == null ? new Quaternionf(body)
+                        : new Quaternionf(body).mul(new Quaternionf(lean).conjugate());
+                Vector3f carUp = level.transform(new Vector3f(0.0f, 1.0f, 0.0f), new Vector3f());
+                if (carUp.dot(up) > 0.0f) {
+                    up.set(carUp);
+                }
+            }
+            local.set(bodyInverse.mul(BogeyRailPoints.worldFrame(walked, up, new Quaternionf())));
             scaleTurn(local);
-            Quaternionf lean = BogeyRenderConfig.rolling() ? SableTrainClientRegistry.lean(sub.getUniqueId()) : null;
-            if (lean != null) {
-                local.premul(new Quaternionf(lean).conjugate()).normalize();
-            }
-            Vector3f faces = local.transform(new Vector3f(0.0f, 0.0f, 1.0f), new Vector3f());
-            if ((axisX ? faces.x : faces.z) < 0.0f) {
-                RAILED_BACKWARDS.add(be);
-            } else {
-                RAILED_BACKWARDS.remove(be);
-            }
         }
 
         Vector3f counter = railed ? BogeyYawVisual.getBodyCounter(be, new Vector3f()) : new Vector3f();
@@ -77,18 +84,6 @@ public final class BogeyRenderFrame {
     private static boolean derailed(ClientSubLevel sub) {
         SableTrainClientRegistry.TrainMarker marker = SableTrainClientRegistry.get(sub.getUniqueId());
         return marker != null && marker.derailed();
-    }
-
-    // the rail frame has no roll, so the bogey keeps the roll of the car instead of staying level with the rail
-    private static void dropTwist(Quaternionf localFrame) {
-        if (!BogeyRenderConfig.rolling()) {
-            return;
-        }
-        Quaternionf twist = new Quaternionf(0.0f, 0.0f, localFrame.z, localFrame.w);
-        if (twist.lengthSquared() < 1.0e-12f) {
-            return;
-        }
-        localFrame.mul(twist.normalize().invert()).normalize();
     }
 
     private static void scaleTurn(Quaternionf localFrame) {

@@ -1,12 +1,10 @@
 package com.lycoris.loconautics.trainphysics.spawn;
 
-import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.common.train.TrainStatusChat;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.state.CartEvent;
 import com.lycoris.loconautics.trainphysics.state.CartStateStore;
-import com.lycoris.loconautics.trainphysics.coupling.CouplerTwist;
 import com.lycoris.loconautics.trainphysics.glue.CarriageRoll;
 import com.lycoris.loconautics.trainphysics.glue.RailGauge;
 import com.lycoris.loconautics.trainphysics.glue.RailSnap;
@@ -23,7 +21,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.lycoris.loconautics.foundation.LogFormat.f;
 
 public final class RerailBalance {
 
@@ -101,10 +98,6 @@ public final class RerailBalance {
         Snapshot told = TOLD.get(id);
         if (told == null || told.differsFrom(mass, center)) {
             TOLD.put(id, new Snapshot(mass, center));
-            LoconauticsConstants.LOGGER.info(
-                    "[wheellift] car={} rerail refused too_lopsided e={} h={} phiEq={} deg hold={} deg coupled={}", id.toString().substring(0, 8),
-                    f(balance.offset()), f(balance.height()), f(Math.toDegrees(balance.lift())),
-                    f(Math.toDegrees(CarriageRoll.holdAngle())), CouplerTwist.linksOf(sub.getUniqueId()));
             TrainStatusChat.tooLopsided(train);
         }
         return true;
@@ -152,10 +145,12 @@ public final class RerailBalance {
         AUTO_RERAILED.put(train.id(), gameTime);
     }
 
+    // a hand placed rerail starts the count over
     public static void noteManualRerail(SableTrain train) {
         forget(train.id());
     }
 
+    // the second roll off soon after an auto rerail ends the auto rerails
     public static void noteRolledOff(ServerSubLevel sub, SableTrain train) {
         UUID id = train.id();
         long now = sub.getLevel().getGameTime();
@@ -173,7 +168,6 @@ public final class RerailBalance {
             LOOPING.put(id, new Snapshot(md.getMass(), new Vector3d(md.getCenterOfMass())));
         }
         RerailApproach.giveUp(train, now);
-        LoconauticsConstants.LOGGER.info("[wheellift] car={} rerail loop, giving up", id.toString().substring(0, 8));
     }
 
     public static void forget(UUID id) {
