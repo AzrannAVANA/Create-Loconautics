@@ -44,6 +44,7 @@
 - Unloaded trains keep their car gaps after a reload and announce a departure once.
 - A train that half leaves view parks as a whole instead of pulling cars with no body.
 - Track observers see unloaded trains pass, unless the observer has a filter.
+- Knuckles lock when a panel switch bound to them is turned on.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

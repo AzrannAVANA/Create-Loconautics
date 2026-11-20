@@ -4,6 +4,7 @@ import com.lycoris.loconautics.common.ShiftPlacement;
 import com.lycoris.loconautics.common.copycat.CopycatBlockLogic;
 import com.lycoris.loconautics.common.copycat.CopycatPlacement;
 import com.lycoris.loconautics.common.strand.StrandRemap;
+import com.lycoris.loconautics.content.controls.panel.target.PanelSignals;
 import com.lycoris.loconautics.foundation.math.TiltedShape;
 import com.lycoris.loconautics.foundation.math.VoxelShapes;
 import com.lycoris.loconautics.registry.LoconauticsRegistries;
@@ -191,7 +192,19 @@ public class KnuckleBlock extends HorizontalDirectionalBlock
     }
 
     public static boolean redstoneLocked(BlockGetter level, BlockPos pos, Direction facing) {
+        if (level.getBlockEntity(pos) instanceof KnuckleBlockEntity be && be.isPanelLocked()) {
+            return true;
+        }
         return level instanceof Level actual && actual.hasNeighborSignal(pos.relative(facing.getOpposite()));
+    }
+
+    @Override
+    protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, BlockPos fromPos,
+                                   boolean movedByPiston) {
+        super.neighborChanged(state, level, pos, block, fromPos, movedByPiston);
+        if (level instanceof ServerLevel server && level.getBlockEntity(pos) instanceof KnuckleBlockEntity be) {
+            be.setPanelLocked(PanelSignals.at(server, pos) > 0);
+        }
     }
 
     public KnuckleBlock(Properties properties) {

@@ -40,6 +40,7 @@ public class KnuckleBlockEntity extends SmartBlockEntity implements PartialSafeN
     @Nullable private UUID partnerSubLevelId = null;
     @Nullable private BlockPos partnerLocalPos = null;
     private boolean coupled;
+    private boolean panelLocked;
 
     private transient long rotateLockUntil;
     private transient long coupleLockUntil;
@@ -113,6 +114,18 @@ public class KnuckleBlockEntity extends SmartBlockEntity implements PartialSafeN
     public boolean isRedstoneLocked() {
         return level != null
                 && KnuckleBlock.redstoneLocked(level, getBlockPos(), getBlockState().getValue(KnuckleBlock.FACING));
+    }
+
+    public boolean isPanelLocked() {
+        return panelLocked;
+    }
+
+    public void setPanelLocked(boolean locked) {
+        if (panelLocked == locked) {
+            return;
+        }
+        panelLocked = locked;
+        sendData();
     }
 
     @Override
@@ -380,6 +393,9 @@ public class KnuckleBlockEntity extends SmartBlockEntity implements PartialSafeN
             tag.putLong("PartnerLocalPos", partnerLocalPos.asLong());
         }
         tag.putBoolean("Coupled", coupled);
+        if (clientPacket) {
+            tag.putBoolean("PanelLocked", panelLocked);
+        }
         copycat.write(tag, registries);
     }
 
@@ -395,6 +411,9 @@ public class KnuckleBlockEntity extends SmartBlockEntity implements PartialSafeN
         partnerSubLevelId = tag.contains("PartnerSubLevel") ? UUID.fromString(tag.getString("PartnerSubLevel")) : null;
         partnerLocalPos = tag.contains("PartnerLocalPos") ? BlockPos.of(tag.getLong("PartnerLocalPos")) : null;
         coupled = tag.getBoolean("Coupled");
+        if (clientPacket) {
+            panelLocked = tag.getBoolean("PanelLocked");
+        }
         copycat.read(tag, registries, clientPacket);
     }
 }

@@ -58,6 +58,11 @@ public final class PanelSignals {
         if (entry != null && entry.value > 0) notifyTarget(server, target);
     }
 
+    public static int at(ServerLevel level, BlockPos target) {
+        Entry entry = ENTRIES.get(new Key(level.dimension(), target.asLong()));
+        return entry == null ? 0 : live(entry, level.getGameTime());
+    }
+
     // the neighbor at pos is asked in direction, the reader is the block on the other side
     public static int signalFrom(ServerLevel level, BlockPos neighbor, Direction direction) {
         Entry entry = ENTRIES.get(new Key(level.dimension(), neighbor.relative(direction.getOpposite()).asLong()));
