@@ -7,6 +7,7 @@ import com.lycoris.loconautics.content.hose.HoseStrand;
 import com.lycoris.loconautics.content.hose.HoseStrandManager;
 import com.lycoris.loconautics.content.hose.HoseType;
 import com.lycoris.loconautics.content.hose.link.HoseLinks;
+import com.lycoris.loconautics.content.steelcable.SteelCableStrandManager;
 import com.lycoris.loconautics.content.hose.nozzle.HoseNozzleBlockEntity;
 import com.lycoris.loconautics.content.hose.winch.HoseWinchBlockEntity;
 import com.lycoris.loconautics.content.steelcable.SteelCableHolder;
@@ -84,7 +85,10 @@ public record HoseAttachPacket(BlockPos winchPos, @Nullable UUID farSubLevelId, 
                     packet.farLocalPos());
             if (!canTakeWinchHose(far, packet.farSubLevelId())) {
                 reject(player, "far_busy", "far end " + packet.farLocalPos() + " sub " + packet.farSubLevelId()
-                        + " is " + (far == null ? "missing" : far.getClass().getSimpleName() + " and not free"));
+                        + " is " + (far == null ? "missing" : far.getClass().getSimpleName() + " and not free")
+                        + (far == null ? "" : ", cableStrands=" + HoseLinks.fluidStrands(far,
+                                SteelCableStrandManager.get(level)).size() + ", atLimit="
+                                + HoseLinks.atLinkLimit(far)));
                 return;
             }
             Vector3d farPoint = StrandEndpoints.worldPoint(level, container, packet.farSubLevelId(),
