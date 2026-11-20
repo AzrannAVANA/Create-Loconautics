@@ -868,6 +868,9 @@ public final class SableTrainDriver {
                 com.lycoris.loconautics.trainphysics.drive.observer.TrainObservers.tick(train);
                 TrainPropulsion.applyDynamics(train);
                 TrainResidency.holdForGhostedConsist(train);
+                if (train.isGhost()) {
+                    continue;
+                }
                 StationChunkTickets.update(train);
                 com.lycoris.loconautics.compat.computercraft.CcControl.apply(train);
                 train.tickMotion();

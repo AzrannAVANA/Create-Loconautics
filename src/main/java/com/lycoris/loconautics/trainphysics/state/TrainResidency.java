@@ -17,8 +17,10 @@ import com.lycoris.loconautics.trainphysics.debug.HostThrashTrace;
 import com.lycoris.loconautics.trainphysics.drive.ConsistPower;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
 import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
+import com.lycoris.loconautics.trainphysics.portal.TrainPortalCrossing;
 import com.lycoris.loconautics.trainphysics.rail.RailFrame;
 import com.lycoris.loconautics.trainphysics.signal.TrainSignals;
+import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner;
 import com.lycoris.loconautics.trainphysics.station.StationLanding;
 import com.lycoris.loconautics.trainphysics.station.TrainStations;
 import com.lycoris.loconautics.trainphysics.spacing.TrainSpacing;
@@ -78,7 +80,6 @@ public final class TrainResidency {
         boolean deferLogged;
         boolean velocityCheck;
         int reseatFails;
-        long unloadedAt = Long.MIN_VALUE / 2;
         long ghostStepped = -1L;
         long embodiedAt = Long.MIN_VALUE / 2;
         long pullBlockedUntil = NONE;
@@ -119,9 +120,6 @@ public final class TrainResidency {
     private static final long FLAP_TICKS = 20L;
 
     private static final long FLAP_HOLDOFF_TICKS = 100L;
-
-    // a mate that flaps in and out of loading is still a ghost for the heads sake, or the head drives off and tears the knuckle
-    private static final long MATE_UNLOAD_HOLD_TICKS = 60L;
 
 
     public static final int POSE_SETTLE_TICKS = 20;
@@ -184,7 +182,6 @@ public final class TrainResidency {
         setPhase(train, Phase.GHOST, "body unloaded");
         long unloadedAt = train.level().getGameTime();
         CarState state = state(train);
-        state.unloadedAt = unloadedAt;
         if (unloadedAt - state.embodiedAt < FLAP_TICKS) {
             state.pullBlockedUntil = unloadedAt + FLAP_HOLDOFF_TICKS;
         }
@@ -879,16 +876,83 @@ public final class TrainResidency {
         if (consist.size() <= 1) {
             return false;
         }
-        long now = train.level().getGameTime();
+        SableTrain gone = null;
+        boolean waiting = false;
         for (UUID id : consist) {
             SableTrain other = SableTrainRegistry.bySubLevel(id);
-            if (other != null && other != train && !(other.isGhost() && bodyLost(other))
-                    && (other.isGhost() || now - state(other).unloadedAt < MATE_UNLOAD_HOLD_TICKS)) {
+            if (other == null || other == train || !other.isGhost() || bodyLost(other)) {
+                continue;
+            }
+            if (other.level() == train.level() && resolve(other) == null) {
+                gone = other;
+                break;
+            }
+            waiting = true;
+        }
+        if (gone == null) {
+            if (waiting) {
                 train.setTargetSpeed(0.0);
+            }
+            return waiting;
+        }
+        // create makes a train with a player rider wait for its chunks, so a ridden rake holds instead of parking
+        if (riderAboard(train) || crossingPortal(train)) {
+            train.setTargetSpeed(0.0);
+            return true;
+        }
+        parkRake(train, gone);
+        return true;
+    }
+
+    private static boolean crossingPortal(SableTrain train) {
+        for (UUID id : train.consistCache()) {
+            if (TrainPortalCrossing.straddle(id) != null || TrainPortalCrossing.isCrossing(id)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean riderAboard(SableTrain train) {
+        for (UUID id : train.consistCache()) {
+            SableTrain car = SableTrainRegistry.bySubLevel(id);
+            ServerSubLevel sub = car == null || car.isGhost() ? null : resolve(car);
+            if (sub != null && playerAboard(train.level(), sub)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // a rake is live or a ghost as a whole, a live car cannot be pulled by a mate that has no body
+    private static void parkRake(SableTrain train, SableTrain gone) {
+        ServerSubLevelContainer container = SubLevelContainer.getContainer(train.level());
+        if (container == null) {
+            return;
+        }
+        List<SableTrain> live = new ArrayList<>();
+        for (UUID id : train.consistCache()) {
+            SableTrain car = SableTrainRegistry.bySubLevel(id);
+            if (car != null && !car.isGhost() && car.level() == train.level() && resolve(car) != null) {
+                live.add(car);
+            }
+        }
+        LoconauticsConstants.LOGGER.warn("[residency] park rake train={} cars={} reason={} has no body", shortId(train.id()),
+                live.size(), shortId(gone.id()));
+        for (SableTrain car : live) {
+            ServerSubLevel sub = resolve(car);
+            if (sub == null) {
+                continue;
+            }
+            double targetSpeed = car.targetSpeed();
+            if (!car.isDerailed() && !car.isPhysics() && SableTrainSpawner.reseatOnRail(car, sub)) {
+                car.setTargetSpeed(targetSpeed);
+            }
+            cacheEmbodiedState(car, sub);
+            CartLifecycle.beforeTeleport(car);
+            setPhase(car, Phase.PARKING, "rake parks with its ghost mate " + shortId(gone.id()));
+            container.getHoldingChunkMap().moveToUnloaded(sub, chunkOf(sub.logicalPose().position()));
+        }
     }
 
     public static String forceGhost(SableTrain train) {
