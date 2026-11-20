@@ -381,7 +381,7 @@ public final class TrainResidency {
             return;
         }
         UUID subId = train.car().subLevelId();
-        HostThrashTrace.snatch(train, train.car().carriage().railHostMissing(), cursor == null ? "none" : chunkOf(cursor).toString());
+        HostThrashTrace.snatch(train, !train.isTrackless() && train.car().carriage().railHostMissing(), cursor == null ? "none" : chunkOf(cursor).toString());
         SubLevelHoldingChunkMap map = container.getHoldingChunkMap();
         HoldingSubLevel holding = map.getHoldingSubLevel(subId);
         GlobalSavedSubLevelPointer pointer = holding != null ? holding.pointer() : train.bodyPointer();
@@ -547,7 +547,7 @@ public final class TrainResidency {
             return true;
         }
         GhostCreateStep.settle(train);
-        HostThrashTrace.embody(train, train.car().carriage().railHostMissing(),
+        HostThrashTrace.embody(train, !train.isTrackless() && train.car().carriage().railHostMissing(),
                 footprintLoaded(train.level(), railCursor(train.car())));
         Vector3d origin = new Vector3d();
         Quaterniond orient = SableTrainDriver.seatPose(sub, train, origin);
@@ -656,7 +656,7 @@ public final class TrainResidency {
         if (container == null) {
             return Target.PROCEED;
         }
-        boolean blind = train.car() != null && train.car().carriage().railHostMissing();
+        boolean blind = train.car() != null && !train.isTrackless() && train.car().carriage().railHostMissing();
         if (!blind && targetLoaded(level, sub, origin)) {
             DEFER_UNTIL.remove(id);
             DEFER_LOGGED.remove(id);

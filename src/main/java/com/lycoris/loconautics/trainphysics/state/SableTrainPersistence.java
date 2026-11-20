@@ -54,9 +54,7 @@ public final class SableTrainPersistence {
 
     private static final int RESTORE_GIVEUP_TICKS = 6000;
 
-    // a record that throws on restore is retried each launch, this many failed launches and it is deleted
-    private static final int MAX_RESTORE_FAILURES = 3;
-
+    // a record that throws on restore is retried every launch and never deleted, its body is still in the world
     private static final String RESTORE_FAILURES_KEY = "RestoreFailures";
 
     // resnapshot live trains to disk this often, so a hard crash keeps a recent rail position.
@@ -161,9 +159,9 @@ public final class SableTrainPersistence {
             Map.Entry<UUID, CompoundTag> entry = it.next();
             SableTrain train;
             try {
-                train = deserialize(entry.getValue(), server, verbose, entry.getKey());
+                train = deserialize(entry.getValue(), server, verbose, entry.getKey(), giveUp);
             } catch (Throwable t) {
-                LoconauticsConstants.LOGGER.error("[sabletrain] error restoring train {}, dropping", entry.getKey(), t);
+                LoconauticsConstants.LOGGER.error("[sabletrain] error restoring train {}, kept on disk for next launch", entry.getKey(), t);
                 countFailedRestore(server, entry.getKey(), entry.getValue());
                 it.remove();
                 continue;
@@ -190,14 +188,10 @@ public final class SableTrainPersistence {
     private static void countFailedRestore(MinecraftServer server, UUID id, CompoundTag record) {
         int failures = record.getInt(RESTORE_FAILURES_KEY) + 1;
         SableTrainStore store = SableTrainStore.get(server);
-        if (failures >= MAX_RESTORE_FAILURES) {
-            store.remove(id);
-            LoconauticsConstants.LOGGER.warn("[sabletrain] deleted train record {} after {} failed restores", id,
-                    failures);
-            return;
-        }
         record.putInt(RESTORE_FAILURES_KEY, failures);
         store.put(id, record);
+        LoconauticsConstants.LOGGER.warn("[sabletrain] train {} failed to restore {} time(s), its body is still in the world",
+                id, failures);
     }
 
     private static void anchorCursorsToBodies() {
@@ -352,7 +346,38 @@ public final class SableTrainPersistence {
         return nodes.isEmpty() ? null : TrackNodeLocation.read(nodes.getCompound(0), dims);
     }
 
-    static SableTrain deserialize(CompoundTag tag, MinecraftServer server, boolean verbose, UUID trainId) {
+    // null when a bogey rail cannot be found, trackless gives every bogey no rail so the car still comes back
+    private static List<SableTrain.Bogey> restoreBogeys(CompoundTag c, DimensionPalette dims, boolean trackless,
+                                                       Map<BlockPos, net.minecraft.core.Direction> bogeyFronts) {
+        List<SableTrain.Bogey> bogeys = new ArrayList<>();
+        ListTag bogeyList = c.getList("Bogeys", Tag.TAG_COMPOUND);
+        for (int j = 0; j < bogeyList.size(); j++) {
+            CompoundTag bt = bogeyList.getCompound(j);
+            BlockPos localPos = BlockPos.of(bt.getLong("LocalPos"));
+            if (trackless || !bt.hasUUID("Graph")) {
+                bogeys.add(new SableTrain.Bogey(localPos, null));
+                continue;
+            }
+            TrackGraph bGraph = graphFor(bt.getUUID("Graph"), bt.getCompound("Carriage"), dims);
+            if (bGraph == null) {
+                return null;
+            }
+            RailCarriage bRail = RailCarriage.restore(bGraph, bt.getCompound("Carriage"), dims);
+            if (bRail != null) {
+                bogeys.add(new SableTrain.Bogey(localPos, bRail));
+                if (bt.contains("Front")) {
+                    net.minecraft.core.Direction front = net.minecraft.core.Direction.byName(bt.getString("Front"));
+                    if (front != null) {
+                        bogeyFronts.put(localPos, front);
+                    }
+                }
+            }
+        }
+        return bogeys;
+    }
+
+    static SableTrain deserialize(CompoundTag tag, MinecraftServer server, boolean verbose, UUID trainId,
+                                  boolean offTrack) {
         ResourceKey<Level> dimKey = ResourceKey.create(
                 Registries.DIMENSION, ResourceLocation.parse(tag.getString("Dimension")));
         ServerLevel level = server.getLevel(dimKey);
@@ -388,48 +413,43 @@ public final class SableTrainPersistence {
 
         TrackGraph graph = trackless ? null : graphFor(graphId, c.getCompound("Carriage"), dims);
         if (graph == null && !trackless) {
-            if (verbose) {
-                LoconauticsConstants.LOGGER.warn(
-                        "[sabletrain] waiting to restore {}: track graph {} not loaded and no graph holds the rail it sat on ({} graphs present)",
-                        trainId, graphId, Create.RAILWAYS.trackNetworks.size());
+            if (!offTrack) {
+                if (verbose) {
+                    LoconauticsConstants.LOGGER.warn(
+                            "[sabletrain] waiting to restore {}: track graph {} not loaded and no graph holds the rail it sat on ({} graphs present)",
+                            trainId, graphId, Create.RAILWAYS.trackNetworks.size());
+                }
+                return null;
             }
-            return null;
+            trackless = true;
         }
         boolean ghost = !(container.getSubLevel(subId) instanceof ServerSubLevel);
         RailCarriage carriage = trackless ? null : RailCarriage.restore(graph, c.getCompound("Carriage"), dims);
         if (carriage == null && !trackless) {
-            if (verbose) {
-                LoconauticsConstants.LOGGER.warn(
-                        "[sabletrain] waiting to restore {}: the rail cart {} sat on is not in the graph", trainId,
-                        subId);
-            }
-            return null;
-        }
-        List<SableTrain.Bogey> bogeys = new ArrayList<>();
-        Map<BlockPos, net.minecraft.core.Direction> bogeyFronts = new HashMap<>();
-        ListTag bogeyList = c.getList("Bogeys", Tag.TAG_COMPOUND);
-        for (int j = 0; j < bogeyList.size(); j++) {
-            CompoundTag bt = bogeyList.getCompound(j);
-            if (!bt.hasUUID("Graph")) {
-                bogeys.add(new SableTrain.Bogey(BlockPos.of(bt.getLong("LocalPos")), null));
-                continue;
-            }
-            TrackGraph bGraph = graphFor(bt.getUUID("Graph"), bt.getCompound("Carriage"), dims);
-            if (bGraph == null) {
+            if (!offTrack) {
+                if (verbose) {
+                    LoconauticsConstants.LOGGER.warn(
+                            "[sabletrain] waiting to restore {}: the rail cart {} sat on is not in the graph", trainId,
+                            subId);
+                }
                 return null;
             }
-            RailCarriage bRail = RailCarriage.restore(bGraph, bt.getCompound("Carriage"), dims);
-            if (bRail != null) {
-                BlockPos localPos = BlockPos.of(bt.getLong("LocalPos"));
-                bogeys.add(new SableTrain.Bogey(localPos, bRail));
-                if (bt.contains("Front")) {
-                    net.minecraft.core.Direction front =
-                            net.minecraft.core.Direction.byName(bt.getString("Front"));
-                    if (front != null) {
-                        bogeyFronts.put(localPos, front);
-                    }
-                }
+            trackless = true;
+        }
+        Map<BlockPos, net.minecraft.core.Direction> bogeyFronts = new HashMap<>();
+        List<SableTrain.Bogey> bogeys = restoreBogeys(c, dims, trackless, bogeyFronts);
+        if (bogeys == null) {
+            if (!offTrack) {
+                return null;
             }
+            trackless = true;
+            carriage = null;
+            bogeyFronts.clear();
+            bogeys = restoreBogeys(c, dims, true, bogeyFronts);
+        }
+        if (trackless && !c.getBoolean("Trackless")) {
+            LoconauticsConstants.LOGGER.warn("[sabletrain] train {} came back off its track, the rail it sat on is gone, "
+                    + "relocate it onto a track", trainId);
         }
         Vector3dc localLead = readVec3d(c, "LocalLead");
         Vector3dc localTrail = readVec3d(c, "LocalTrail");
