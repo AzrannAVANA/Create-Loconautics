@@ -3,17 +3,20 @@
     "render_type": "minecraft:cutout",
     "texture_size": [256, 256],
     "textures": {
-        "1": "loconautics:block/boiler/firebox/controller",
-        "particle": "loconautics:block/boiler/firebox/controller"
+        "0": "loconautics:block/boiler/barrel/red/shell_atlas",
+        "particle": "loconautics:block/boiler/barrel/red/shell_atlas"
     },
     "elements": [
         {
-            "from": [7.5, 11.5, -1.025],
-            "to": [14.5, 13.5, -1.025],
-            "rotation": {"angle": 0, "axis": "y", "origin": [8.25, 7.5, 6.4875]},
+            "from": [7, 0, -1.5],
+            "to": [9, 13, -0.5],
             "faces": {
-                "north": {"uv": [1.5625, 5, 2, 5.125], "texture": "#1"},
-                "south": {"uv": [2, 5, 1.5625, 5.125], "texture": "#1"}
+                "north": {"uv": [5.625, 2.25, 5.75, 3.0625], "texture": "#0"},
+                "east": {"uv": [5.75, 2.875, 5.8125, 3.6875], "texture": "#0"},
+                "south": {"uv": [5.625, 3.0625, 5.75, 3.875], "texture": "#0"},
+                "west": {"uv": [5.8125, 2.875, 5.875, 3.6875], "texture": "#0"},
+                "up": {"uv": [6.25, 3.375, 6.125, 3.3125], "texture": "#0"},
+                "down": {"uv": [6.25, 3.375, 6.125, 3.4375], "texture": "#0"}
             }
         }
     ]

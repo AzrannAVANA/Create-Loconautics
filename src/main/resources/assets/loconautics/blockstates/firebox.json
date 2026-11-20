@@ -1,15 +1,8 @@
 {
-  "multipart": [
-    { "when": { "facing": "north" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined" } },
-    { "when": { "facing": "east" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined", "y": 90 } },
-    { "when": { "facing": "south" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined", "y": 180 } },
-    { "when": { "facing": "west" }, "apply": { "model": "loconautics:block/boiler/firebox/shell_joined", "y": 270 } },
-    { "apply": { "model": "loconautics:block/boiler/firebox/core" } },
-    { "apply": { "model": "loconautics:block/boiler/firebox/fuel" } },
-
-    { "when": { "extension": "false", "facing": "north" }, "apply": { "model": "loconautics:block/boiler/firebox/door" } },
-    { "when": { "extension": "false", "facing": "east"  }, "apply": { "model": "loconautics:block/boiler/firebox/door", "y": 90 } },
-    { "when": { "extension": "false", "facing": "south" }, "apply": { "model": "loconautics:block/boiler/firebox/door", "y": 180 } },
-    { "when": { "extension": "false", "facing": "west"  }, "apply": { "model": "loconautics:block/boiler/firebox/door", "y": 270 } }
-  ]
+  "variants": {
+    "facing=north": { "model": "loconautics:block/boiler/firebox/body_joined" },
+    "facing=east": { "model": "loconautics:block/boiler/firebox/body_joined", "y": 90 },
+    "facing=south": { "model": "loconautics:block/boiler/firebox/body_joined", "y": 180 },
+    "facing=west": { "model": "loconautics:block/boiler/firebox/body_joined", "y": 270 }
+  }
 }
