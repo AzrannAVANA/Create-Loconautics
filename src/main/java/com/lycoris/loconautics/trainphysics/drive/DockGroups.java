@@ -119,9 +119,7 @@ public final class DockGroups {
         if (sub == null) {
             return;
         }
-        double targetSpeed = follower.targetSpeed();
         boolean reseated = SableTrainSpawner.reseatOnRail(follower, sub);
-        follower.setTargetSpeed(targetSpeed);
         LoconauticsConstants.LOGGER.info("[dockseat] follower {} rail cursor read back from its body, reseated {}",
                 follower.car().subLevelId(), reseated);
     }

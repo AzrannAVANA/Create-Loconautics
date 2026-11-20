@@ -46,6 +46,7 @@
 - Track observers see unloaded trains pass, unless the observer has a filter.
 - Knuckles lock when a panel switch bound to them is turned on.
 - Derailed cars no longer hang in the air when pushed or dragged while rerailing.
+- Editing track near a train no longer resets its speed or makes it miss its station.
 - A car with one loose bogey no longer fully derails when the track under that bogey breaks.
 - Lopsided cars stop retrying the rerail after two quick roll offs, even after nearby track edits.
 

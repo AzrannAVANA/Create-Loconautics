@@ -241,10 +241,7 @@ public final class SableTrainPersistence {
             if (sub == null) {
                 continue;
             }
-            double targetSpeed = train.targetSpeed();
-            if (SableTrainSpawner.reseatOnRail(train, sub)) {
-                train.setTargetSpeed(targetSpeed);
-            }
+            SableTrainSpawner.reseatOnRail(train, sub);
         }
     }
 

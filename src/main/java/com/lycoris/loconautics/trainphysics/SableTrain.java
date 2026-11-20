@@ -136,25 +136,27 @@ public final class SableTrain {
                 rebuilt.localTrail() != null ? rebuilt.localTrail() : car.localTrail());
     }
 
-    private void relocate(RailCarriage newCarriage, List<Bogey> newBogeys, Vector3dc lead, Vector3dc trail) {
-        traceBogeyDrop("relocate", newBogeys.size());
+    public void reseat(RailCarriage newCarriage, List<Bogey> newBogeys) {
+        traceBogeyDrop("reseat", newBogeys.size());
+        swapRails(newCarriage, newBogeys, car.localLead(), car.localTrail());
+    }
+
+    private void swapRails(RailCarriage newCarriage, List<Bogey> newBogeys, Vector3dc lead, Vector3dc trail) {
         this.car = new Car(car.subLevelId(), newCarriage, newBogeys, lead, trail);
         // a bogey that left with a split island would otherwise stay flagged here, smoking and failing to rerail forever
         offTrackBogeys.removeIf(pos -> !hasBogeyAt(newBogeys, pos));
         offTrackSince.keySet().removeIf(pos -> !hasBogeyAt(newBogeys, pos));
+    }
+
+    private void relocate(RailCarriage newCarriage, List<Bogey> newBogeys, Vector3dc lead, Vector3dc trail) {
+        traceBogeyDrop("relocate", newBogeys.size());
+        swapRails(newCarriage, newBogeys, lead, trail);
         this.speed = 0.0;
         this.targetSpeed = 0.0;
         this.stationState = StationState.RUNNING;
         this.distanceToStation = Double.MAX_VALUE;
         this.dwellTicks = 0;
         this.currentStation = null;
-    }
-
-    public void keepStop(StationState state, GlobalStation station, double distance, int dwell) {
-        this.stationState = state;
-        this.currentStation = station;
-        this.distanceToStation = distance;
-        this.dwellTicks = dwell;
     }
 
     private void traceBogeyDrop(String how, int newCount) {

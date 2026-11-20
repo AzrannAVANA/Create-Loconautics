@@ -946,9 +946,8 @@ public final class TrainResidency {
             if (sub == null) {
                 continue;
             }
-            double targetSpeed = car.targetSpeed();
-            if (!car.isDerailed() && !car.isPhysics() && SableTrainSpawner.reseatOnRail(car, sub)) {
-                car.setTargetSpeed(targetSpeed);
+            if (!car.isDerailed() && !car.isPhysics()) {
+                SableTrainSpawner.reseatOnRail(car, sub);
             }
             cacheEmbodiedState(car, sub);
             CartLifecycle.beforeTeleport(car);

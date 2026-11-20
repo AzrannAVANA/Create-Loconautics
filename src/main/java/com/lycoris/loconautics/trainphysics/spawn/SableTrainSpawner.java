@@ -1451,16 +1451,7 @@ public final class SableTrainSpawner {
             bogeys.add(new SableTrain.Bogey(bogey.localPos(), rail));
         }
 
-        double keepSpeed = train.speed();
-        SableTrain.StationState keepState = train.stationState();
-        GlobalStation keepStation = train.currentStation();
-        double keepDistance = train.distanceToStation();
-        int keepDwell = train.dwellTicks();
-        train.relocate(carriage, bogeys);
-        train.setSpeed(keepSpeed);
-        if (keepState == SableTrain.StationState.STOPPED) {
-            train.keepStop(keepState, keepStation, keepDistance, keepDwell);
-        }
+        train.reseat(carriage, bogeys);
         CartLifecycle.fire(train, CartEvent.RESEATED_IN_PLACE);
         LoconauticsConstants.LOGGER.info(
                 "[sabletrain] re-seated train {} on the live track graph (rail broken/rebuilt nearby)", train.id());

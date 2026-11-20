@@ -33,6 +33,8 @@ import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.rail.RailSeams;
 import com.lycoris.loconautics.trainphysics.TrainConsist;
 import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.simibubi.create.content.trains.entity.TravellingPoint;
 import com.simibubi.create.content.trains.graph.TrackEdge;
@@ -198,6 +200,29 @@ public final class SableScheduleRuntime implements PostalState {
         }
         return runtime;
     }
+
+    public static final CartStateStore REPLAN_ON_RESEAT = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (event != CartEvent.RESEATED_IN_PLACE) {
+                return;
+            }
+            SableScheduleRuntime runtime = forConsist(train);
+            if (runtime != null && runtime.state == State.IN_TRANSIT) {
+                runtime.quietReplan = true;
+                runtime.state = State.PRE_TRANSIT;
+            }
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            return "";
+        }
+    };
 
     @Nullable
     public static SableScheduleRuntime get(UUID trainId) {
