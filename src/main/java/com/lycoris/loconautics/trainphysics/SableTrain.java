@@ -284,6 +284,10 @@ public final class SableTrain {
         return "end_of_track".equals(derailReason);
     }
 
+    public boolean derailedByLift() {
+        return "rolled_off".equals(derailReason) || "lifted_off".equals(derailReason);
+    }
+
     public boolean setDerailedQuiet(boolean derailed) {
         if (this.derailed == derailed) {
             return false;

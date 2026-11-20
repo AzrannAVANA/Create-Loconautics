@@ -15,7 +15,6 @@ import com.lycoris.loconautics.trainphysics.drive.TrainPropulsion;
 import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
 import com.lycoris.loconautics.trainphysics.state.CartEvent;
 import com.lycoris.loconautics.trainphysics.state.CartStateStore;
-import com.lycoris.loconautics.trainphysics.spawn.RerailBalance;
 import dev.ryanhcode.sable.api.physics.PhysicsPipeline;
 import dev.ryanhcode.sable.api.physics.handle.RigidBodyHandle;
 import dev.ryanhcode.sable.api.physics.mass.MassData;
@@ -433,14 +432,10 @@ public final class RailSnap {
                     shortId(sub), f(Math.toDegrees(phi)), f(Math.toDegrees(unglue)), f(Math.toDegrees(tip)), f(vTan),
                     f(roll.curvature), curveGrace, f(roll.relief));
             train.setDerailed(true, "rolled_off");
-            ExternalForceDerail.holdAfterRoll(train);
-            RerailBalance.noteRolledOff(sub, train);
         } else if (liftedHeld) {
             LoconauticsConstants.LOGGER.warn("[rocktrace] car={} unglue lifted_off wheels={} rise={} curvature={}",
                     shortId(sub), java.util.Arrays.toString(roll.y), f(rise), f(roll.curvature));
             train.setDerailed(true, "lifted_off");
-            ExternalForceDerail.holdAfterRoll(train);
-            RerailBalance.noteRolledOff(sub, train);
         }
     }
 }

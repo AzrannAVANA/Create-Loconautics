@@ -32,6 +32,11 @@ public final class RerailBalance {
         public void forget(SableTrain train, UUID subId, CartEvent event) {
             if (clears(event)) {
                 RerailBalance.forget(train.id());
+            } else if (event == CartEvent.DERAILED && train.derailedByLift()) {
+                ServerSubLevel sub = SubLevelData.resolve(train.level(), subId);
+                if (sub != null) {
+                    noteRolledOff(sub, train);
+                }
             }
         }
 
@@ -151,7 +156,7 @@ public final class RerailBalance {
     }
 
     // the second roll off soon after an auto rerail ends the auto rerails
-    public static void noteRolledOff(ServerSubLevel sub, SableTrain train) {
+    private static void noteRolledOff(ServerSubLevel sub, SableTrain train) {
         UUID id = train.id();
         long now = sub.getLevel().getGameTime();
         Long rerailedAt = AUTO_RERAILED.remove(id);

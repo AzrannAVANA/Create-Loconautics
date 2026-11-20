@@ -44,6 +44,10 @@ public final class ExternalForceDerail {
     public static final CartStateStore STORE = new CartStateStore() {
         @Override
         public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (event == CartEvent.DERAILED && train.derailedByLift()) {
+                holdAfterRoll(train);
+                return;
+            }
             if (!clears(event)) {
                 return;
             }
@@ -232,7 +236,7 @@ public final class ExternalForceDerail {
                 .mul(1.0 / (mass * dt));
     }
 
-    public static void holdAfterRoll(SableTrain train) {
+    private static void holdAfterRoll(SableTrain train) {
         if (train.level() == null) {
             return;
         }
