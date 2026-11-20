@@ -42,6 +42,7 @@ public final class SeatBlend {
     static final java.util.Map<UUID, Quaterniond> SEAT_BLEND_Q = new java.util.HashMap<>();
     static final double SEAT_BLEND_RATE = 0.12;
     static final double SEAT_BLEND_DONE = 0.02;
+    static final double SEAT_BLEND_DONE_TURN = Math.toRadians(0.25);
     static final double SEAT_BLEND_MAX = 2.0;
 
     public static void begin(ServerSubLevel sub, Vector3d seatPos, Quaterniond seatQ) {
@@ -78,11 +79,16 @@ public final class SeatBlend {
         if (off == null) {
             return target;
         }
-        if (off.length() <= SEAT_BLEND_DONE) {
+        Quaterniond turn = SEAT_BLEND_Q.get(id);
+        if (off.length() <= SEAT_BLEND_DONE && (turn == null || turnLeft(turn) <= SEAT_BLEND_DONE_TURN)) {
             end(id);
             return target;
         }
         return new Vector3d(target).add(off);
+    }
+
+    private static double turnLeft(Quaterniond turn) {
+        return 2.0 * Math.acos(Math.min(1.0, Math.abs(turn.w)));
     }
 
     public static boolean active(UUID id) {
