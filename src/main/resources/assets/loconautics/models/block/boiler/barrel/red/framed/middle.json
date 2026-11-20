@@ -5,8 +5,8 @@
     "automatic_culling": false,
     "render_type": "minecraft:cutout",
     "visibility": {
-        "sides_front": false,
         "sides_back": false,
+        "sides_front": false,
         "cap0": false,
         "cap16": false
     },
