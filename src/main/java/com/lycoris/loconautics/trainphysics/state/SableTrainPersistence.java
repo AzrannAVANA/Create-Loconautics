@@ -171,7 +171,8 @@ public final class SableTrainPersistence {
             if (train != null) {
                 SableTrainRegistry.register(train);
                 SubLevelSplitWatcher.ensureObserver(train.level());
-                SableTrainSpawner.noteRestored(train.id());                if (!train.isGhost()) {
+                SableTrainSpawner.noteRestored(train.id());
+                if (!train.isGhost()) {
                     TrainResidency.queueReconcile(train);
                 }
                 it.remove();
@@ -216,14 +217,19 @@ public final class SableTrainPersistence {
     }
 
     private static void snapshotAll(MinecraftServer server) {
-        SableTrainStore store = SableTrainStore.get(server);
+        snapshot(SableTrainStore.get(server));
+    }
+
+    // every car of every consist is written in the same call, so the records never come from different moments
+    static void snapshot(SableTrainStore store) {
         for (SableTrain train : SableTrainRegistry.all()) {
             try {
-                store.put(train.id(), serialize(train));
-            } catch (Throwable t) {
-                LoconauticsConstants.LOGGER.error("[sabletrain] snapshot failed for train {}", train.id(), t);
+                store.records().put(train.id(), serialize(train));
+            } catch (RuntimeException failure) {
+                LoconauticsConstants.LOGGER.error("[sabletrain] snapshot failed for train {}", train.id(), failure);
             }
         }
+        store.setDirty();
     }
 
     static CompoundTag serialize(SableTrain train) {

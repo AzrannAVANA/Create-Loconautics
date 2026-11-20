@@ -39,6 +39,7 @@
 - A car that cannot load after a portal crossing no longer leaves a ghost train behind.
 - A rake with an unloaded coupled car is refused at a portal, not split.
 - Long trains no longer slow the server down.
+- A train saved while moving no longer jumps to another spot when the world loads.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

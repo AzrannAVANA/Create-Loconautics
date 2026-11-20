@@ -40,8 +40,15 @@ public final class SableTrainStore extends SavedData {
         return records;
     }
 
+    // true while trains are live, so every level save rewrites the records in the same moment sable writes the bodies
+    @Override
+    public boolean isDirty() {
+        return super.isDirty() || !SableTrainRegistry.isEmpty();
+    }
+
     @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider registries) {
+        SableTrainPersistence.snapshot(this);
         ListTag list = new ListTag();
         for (CompoundTag record : records.values()) {
             list.add(record.copy());
