@@ -33,7 +33,8 @@ public final class SeatBlend {
 
         @Override
         public boolean clears(CartEvent event) {
-            return event.moved() || event == CartEvent.GHOSTED || event == CartEvent.REMOVED;
+            return event.moved() || event == CartEvent.GHOSTED || event == CartEvent.DERAILED
+                    || event == CartEvent.REMOVED;
         }
     };
 
