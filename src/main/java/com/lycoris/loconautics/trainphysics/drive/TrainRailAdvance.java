@@ -321,7 +321,10 @@ public final class TrainRailAdvance {
         }
         boolean valid = true;
         for (SableTrain.Bogey bogey : car.bogeys()) {
-            valid &= bogey.rail().edgesValid();
+            boolean edges = bogey.rail().edgesValid();
+            if (!train.isBogeyOffTrack(bogey.localPos())) {
+                valid &= edges;
+            }
         }
         return valid;
     }

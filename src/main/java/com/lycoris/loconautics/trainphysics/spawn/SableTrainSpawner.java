@@ -1432,6 +1432,10 @@ public final class SableTrainSpawner {
 
         List<SableTrain.Bogey> bogeys = new ArrayList<>();
         for (SableTrain.Bogey bogey : train.car().bogeys()) {
+            if (train.isBogeyOffTrack(bogey.localPos())) {
+                bogeys.add(bogey);
+                continue;
+            }
             BlockPos bogeyWorld = sub.getPlot().getCenterBlock().offset(bogey.localPos());
             Vector3d w = sub.logicalPose().transformPosition(
                     new Vector3d(bogeyWorld.getX() + 0.5, bogeyWorld.getY() + 0.5, bogeyWorld.getZ() + 0.5),

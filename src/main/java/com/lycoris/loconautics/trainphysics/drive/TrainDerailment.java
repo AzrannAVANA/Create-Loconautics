@@ -150,7 +150,18 @@ public final class TrainDerailment {
             RAILS_GONE.remove(train.id());
             return true;
         }
-        if (RAILS_GONE.merge(train.id(), 1, Integer::sum) < RAILS_GONE_GRACE_TICKS) {
+        int missed = RAILS_GONE.merge(train.id(), 1, Integer::sum);
+        if (missed == 1 || missed == RAILS_GONE_GRACE_TICKS) {
+            StringBuilder bogeys = new StringBuilder();
+            for (SableTrain.Bogey bogey : train.car().bogeys()) {
+                bogeys.append(' ').append(bogey.localPos().toShortString()).append(" offTrack=")
+                        .append(train.isBogeyOffTrack(bogey.localPos())).append(" edgesValid=")
+                        .append(bogey.rail().edgesValid());
+            }
+            LoconauticsConstants.LOGGER.warn("[rerailwire] rails gone car {} missed {} of {}{}", train.id(), missed,
+                    RAILS_GONE_GRACE_TICKS, bogeys);
+        }
+        if (missed < RAILS_GONE_GRACE_TICKS) {
             return false;
         }
         RAILS_GONE.remove(train.id());
