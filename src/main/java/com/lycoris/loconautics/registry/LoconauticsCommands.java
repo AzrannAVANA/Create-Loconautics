@@ -6,6 +6,7 @@ import com.lycoris.loconautics.content.bearingaxle.AxleDebugCommand;
 import com.lycoris.loconautics.content.knuckle.KnuckleTuning;
 import com.lycoris.loconautics.content.trainlookup.commands.FindCommand;
 import com.lycoris.loconautics.content.trainlookup.commands.HistoryCommand;
+import com.lycoris.loconautics.content.trainlookup.commands.LostCommand;
 import com.lycoris.loconautics.content.trainlookup.commands.RemoveCommand;
 import com.lycoris.loconautics.content.trainlookup.commands.RetrieveCommand;
 import com.lycoris.loconautics.content.trainlookup.commands.TrainArguments;
@@ -60,6 +61,7 @@ public final class LoconauticsCommands {
         root.then(lookup(FindCommand.build()));
         root.then(lookup(HistoryCommand.build()));
         root.then(lookup(RemoveCommand.build()));
+        root.then(lookup(LostCommand.build()));
         root.then(lookup(Commands.literal("teleport")
                 .then(Commands.argument("train", StringArgumentType.greedyString())
                         .suggests(TrainArguments::suggestTrain)

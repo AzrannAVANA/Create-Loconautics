@@ -103,6 +103,8 @@ public final class TrainResidency {
     // 30 misses at 40 ticks each is a minute of looking, after that the body is checked on disk and in every level
     private static final int LOST_CHECK_MISSES = 30;
 
+    private static final int LOST_SEARCH_RADIUS = 2;
+
     private static final int DEFER_RECHECK_TICKS = 20;
 
     private static final int RESEAT_RETRY_TICKS = 40;
@@ -326,7 +328,7 @@ public final class TrainResidency {
 
     // a body that has been searched for a minute and not found, the hold for it gets the dwell cap
     public static boolean bodyLost(SableTrain train) {
-        return state(train).snatchMisses >= LOST_CHECK_MISSES;
+        return state(train).phase == Phase.LOST;
     }
 
     private static void snatchBody(SableTrain train, Vector3d cursor) {
@@ -395,6 +397,9 @@ public final class TrainResidency {
         }
         state.snatchCooldown = SNATCH_RETRY_TICKS;
         int misses = ++state.snatchMisses;
+        if (misses == LOST_CHECK_MISSES) {
+            markLost(train);
+        }
         if (!state.snatchMissLogged) {
             state.snatchMissLogged = true;
             LoconauticsConstants.LOGGER.warn("[residency] body {} of train {} was not found in any of {} candidate "
@@ -409,6 +414,61 @@ public final class TrainResidency {
             LoconauticsConstants.LOGGER.warn("[residency] body {} of train {} is still missing after {} misses, {}",
                     shortId(subId), shortId(train.id()), misses, lostReport(train, container, subId, pointer));
         }
+    }
+
+    private static void markLost(SableTrain train) {
+        setPhase(train, Phase.LOST, "body not found after " + LOST_CHECK_MISSES + " searches, kept and listed in /loconautics lost");
+        state(train).railheadHeld = false;
+        StationChunkTickets.release(train.id(), "body lost");
+        TrainSpacing.release(train);
+    }
+
+    public static String findLost(SableTrain train) {
+        ServerSubLevelContainer container = SubLevelContainer.getContainer(train.level());
+        if (container == null || train.car() == null || train.car().subLevelId() == null) {
+            return shortId(train.id()) + " has no level or body id to search for";
+        }
+        if (resolve(train) != null) {
+            state(train).reconcile = true;
+            setPhase(train, Phase.LOADING, "lost body already live");
+            return shortId(train.id()) + " body is already loaded, it will be put back on its rail";
+        }
+        UUID subId = train.car().subLevelId();
+        GlobalSavedSubLevelPointer pointer = train.bodyPointer();
+        short storageIndex = pointer == null ? 0 : pointer.storageIndex();
+        short subLevelIndex = pointer == null ? 0 : pointer.subLevelIndex();
+        List<ChunkPos> centers = new ArrayList<>(3);
+        if (pointer != null) {
+            centers.add(pointer.chunkPos());
+        }
+        if (train.bodyChunk() != null) {
+            centers.add(train.bodyChunk());
+        }
+        Vector3d cursor = railCursor(train.car());
+        if (cursor != null && !inPlotGrid(train.level(), cursor)) {
+            centers.add(chunkOf(cursor));
+        }
+        List<ChunkPos> search = new ArrayList<>();
+        for (ChunkPos center : centers) {
+            addSpan(search, center.x - LOST_SEARCH_RADIUS, center.x + LOST_SEARCH_RADIUS,
+                    center.z - LOST_SEARCH_RADIUS, center.z + LOST_SEARCH_RADIUS);
+        }
+        SubLevelHoldingChunkMap map = container.getHoldingChunkMap();
+        for (ChunkPos chunk : search) {
+            map.snatchAndLoad(new GlobalSavedSubLevelPointer(chunk, storageIndex, subLevelIndex), subId);
+            if (resolve(train) == null) {
+                continue;
+            }
+            CarState state = state(train);
+            train.setBodyChunk(chunk);
+            state.snatchMisses = 0;
+            state.snatchCooldown = 0;
+            state.snatchMissLogged = false;
+            state.reconcile = true;
+            setPhase(train, Phase.LOADING, "found by /loconautics lost find in chunk " + chunk);
+            return shortId(train.id()) + " body found in chunk " + chunk.x + " " + chunk.z + ", it will be put back on its rail";
+        }
+        return shortId(train.id()) + " body was not in any of " + search.size() + " chunks around its last known spots";
     }
 
     // sable loads a body with its chain, an unready car would pull them all back down
@@ -822,8 +882,8 @@ public final class TrainResidency {
         long now = train.level().getGameTime();
         for (UUID id : consist) {
             SableTrain other = SableTrainRegistry.bySubLevel(id);
-            if (other != null && other != train && (other.isGhost()
-                    || now - state(other).unloadedAt < MATE_UNLOAD_HOLD_TICKS)) {
+            if (other != null && other != train && !(other.isGhost() && bodyLost(other))
+                    && (other.isGhost() || now - state(other).unloadedAt < MATE_UNLOAD_HOLD_TICKS)) {
                 train.setTargetSpeed(0.0);
                 return true;
             }
@@ -850,7 +910,7 @@ public final class TrainResidency {
     }
 
     public static BlockPos ghostHoldAnchor(SableTrain train) {
-        if (!train.isGhost() || train.car() == null
+        if (!train.isGhost() || train.car() == null || bodyLost(train)
                 || !state(train).railheadHeld) {
             return null;
         }
