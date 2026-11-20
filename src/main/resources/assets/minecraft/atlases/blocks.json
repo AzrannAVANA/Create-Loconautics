@@ -69,13 +69,15 @@
       "type": "loconautics:palette_swap",
       "source": "loconautics:block/boiler/barrel/red/shell_atlas",
       "from": "red",
-      "target": "loconautics:block/boiler/barrel/{color}/shell_atlas"
+      "target": "loconautics:block/boiler/barrel/{color}/shell_atlas",
+      "ignore": [[0, 0, 256, 36], [0, 36, 128, 70]]
     },
     {
       "type": "loconautics:palette_swap",
       "source": "loconautics:block/boiler/barrel/red/shell_atlas",
       "from": "red",
       "target": "loconautics:block/boiler/barrel/{color}/shell_atlas",
+      "ignore": [[0, 0, 256, 36], [0, 36, 128, 70]],
       "colors": [
         "industrial"
       ]
@@ -85,6 +87,7 @@
       "source": "loconautics:block/boiler/barrel/red/shell_atlas",
       "from": "red",
       "target": "loconautics:block/boiler/barrel/{color}/shell_atlas",
+      "ignore": [[0, 0, 256, 36], [0, 36, 128, 70]],
       "colors": [
         "andesite",
         "brass",

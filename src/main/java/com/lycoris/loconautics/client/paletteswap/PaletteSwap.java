@@ -37,27 +37,28 @@ public final class PaletteSwap {
         return true;
     }
 
-    public static NativeImage recolor(NativeImage source, int[][] fromRamp, int[][] toRamp, Knobs knobs) {
-        List<Integer> shades = findShades(source, fromRamp);
+    public static NativeImage recolor(NativeImage source, int[][] fromRamp, int[][] toRamp, Knobs knobs,
+                                      List<List<Integer>> ignore) {
+        List<Integer> shades = findShades(source, fromRamp, ignore);
         Map<Integer, Integer> mapping = shadeMap(shades, toRamp, knobs);
         NativeImage out = new NativeImage(NativeImage.Format.RGBA, source.getWidth(), source.getHeight(), false);
         for (int y = 0; y < source.getHeight(); y++) {
             for (int x = 0; x < source.getWidth(); x++) {
                 int abgr = source.getPixelRGBA(x, y);
-                Integer swapped = mapping.get(rgb(abgr));
+                Integer swapped = ignored(ignore, x, y) ? null : mapping.get(rgb(abgr));
                 out.setPixelRGBA(x, y, swapped == null ? abgr : (abgr & 0xFF000000) | bgr(swapped));
             }
         }
         return out;
     }
 
-    static List<Integer> findShades(NativeImage image, int[][] fromRamp) {
+    static List<Integer> findShades(NativeImage image, int[][] fromRamp, List<List<Integer>> ignore) {
         List<Double> hues = rampHues(fromRamp);
         Set<Integer> found = new HashSet<>();
         for (int y = 0; y < image.getHeight(); y++) {
             for (int x = 0; x < image.getWidth(); x++) {
                 int abgr = image.getPixelRGBA(x, y);
-                if ((abgr >>> 24) != 0 && belongsToRamp(channels(rgb(abgr)), hues)) {
+                if (!ignored(ignore, x, y) && (abgr >>> 24) != 0 && belongsToRamp(channels(rgb(abgr)), hues)) {
                     found.add(rgb(abgr));
                 }
             }
@@ -65,6 +66,15 @@ public final class PaletteSwap {
         List<Integer> sorted = new ArrayList<>(found);
         sorted.sort((a, b) -> Double.compare(brightness(channels(a)), brightness(channels(b))));
         return sorted;
+    }
+
+    private static boolean ignored(List<List<Integer>> ignore, int x, int y) {
+        for (List<Integer> rect : ignore) {
+            if (x >= rect.get(0) && y >= rect.get(1) && x < rect.get(0) + rect.get(2) && y < rect.get(1) + rect.get(3)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     static Map<Integer, Integer> shadeMap(List<Integer> shades, int[][] ramp, Knobs knobs) {

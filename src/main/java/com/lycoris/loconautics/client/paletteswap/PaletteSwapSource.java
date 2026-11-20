@@ -27,7 +27,8 @@ import java.util.Optional;
 
 @OnlyIn(Dist.CLIENT)
 public record PaletteSwapSource(ResourceLocation source, String from, String target, List<String> colors,
-                                double keep, double sat, double gamma) implements SpriteSource {
+                                double keep, double sat, double gamma,
+                                List<List<Integer>> ignore) implements SpriteSource {
 
     public static final String COLOR_TOKEN = "{color}";
     public static final ResourceLocation ID = LoconauticsConstants.id("palette_swap");
@@ -40,7 +41,8 @@ public record PaletteSwapSource(ResourceLocation source, String from, String tar
             Codec.STRING.listOf().optionalFieldOf("colors", List.of()).forGetter(PaletteSwapSource::colors),
             Codec.DOUBLE.optionalFieldOf("keep", PaletteSwap.Knobs.DEFAULT.keep()).forGetter(PaletteSwapSource::keep),
             Codec.DOUBLE.optionalFieldOf("sat", PaletteSwap.Knobs.DEFAULT.sat()).forGetter(PaletteSwapSource::sat),
-            Codec.DOUBLE.optionalFieldOf("gamma", PaletteSwap.Knobs.DEFAULT.gamma()).forGetter(PaletteSwapSource::gamma)
+            Codec.DOUBLE.optionalFieldOf("gamma", PaletteSwap.Knobs.DEFAULT.gamma()).forGetter(PaletteSwapSource::gamma),
+            Codec.INT.listOf().listOf().optionalFieldOf("ignore", List.of()).forGetter(PaletteSwapSource::ignore)
     ).apply(instance, PaletteSwapSource::new));
 
     public static final SpriteSourceType TYPE = new SpriteSourceType(CODEC);
@@ -80,7 +82,7 @@ public record PaletteSwapSource(ResourceLocation source, String from, String tar
                 continue;
             }
             ResourceLocation id = ResourceLocation.parse(target.replace(COLOR_TOKEN, color.name()));
-            output.add(id, loader -> swapped(resource.get(), origin, color, knobs, id));
+            output.add(id, loader -> swapped(resource.get(), origin, color, knobs, ignore, id));
         }
     }
 
@@ -98,9 +100,10 @@ public record PaletteSwapSource(ResourceLocation source, String from, String tar
     }
 
     private static SpriteContents swapped(Resource resource, PaletteColors.Color origin, PaletteColors.Color color,
-                                          PaletteSwap.Knobs knobs, ResourceLocation id) {
+                                          PaletteSwap.Knobs knobs, List<List<Integer>> ignore,
+                                          ResourceLocation id) {
         try (InputStream stream = resource.open(); NativeImage image = NativeImage.read(stream)) {
-            NativeImage out = PaletteSwap.recolor(image, origin.ramp(), color.ramp(), knobs);
+            NativeImage out = PaletteSwap.recolor(image, origin.ramp(), color.ramp(), knobs, ignore);
             return new SpriteContents(id, new FrameSize(out.getWidth(), out.getHeight()), out, ResourceMetadata.EMPTY);
         } catch (IOException e) {
             throw new IllegalStateException("could not read palette swap source for " + id, e);
