@@ -23,6 +23,10 @@ public record BoilerStructure(
 
     public static final int MIN_BODY_BLOCKS = 1;
 
+    public static final int MAX_COUNTED_FIREBOXES = 3;
+
+    public static final int MAX_COUNTED_BODY_BLOCKS = 9;
+
     // a firebox counts as a quarter of a body for size and water
     public static final float FIREBOX_BODY_SHARE = 0.25f;
 

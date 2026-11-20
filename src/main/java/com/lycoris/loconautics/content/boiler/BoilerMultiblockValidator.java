@@ -33,9 +33,12 @@ public final class BoilerMultiblockValidator {
         Set<BlockPos> fireboxes = FireboxGroups.members(level, controllerPos);
 
         float fireboxHeat = 0f;
+        int countedFireboxes = 0;
         for (BlockPos pos : fireboxes) {
+            if (countedFireboxes++ >= BoilerStructure.MAX_COUNTED_FIREBOXES) break;
             fireboxHeat += BoilerContributions.fireboxHeatOf(level.getBlockState(pos));
         }
+        int sharingFireboxes = Math.min(fireboxes.size(), BoilerStructure.MAX_COUNTED_FIREBOXES);
 
         Set<BlockPos> bodySet = new HashSet<>();
         Queue<BlockPos> frontier = new ArrayDeque<>();
@@ -58,8 +61,8 @@ public final class BoilerMultiblockValidator {
                 claim(attached, level.getBlockState(firebox.relative(dir)), firebox.relative(dir), dir);
             }
         }
-        float boilerCapacity = fireboxes.size() * BoilerStructure.FIREBOX_BODY_SHARE;
-        int waterCapacity = Math.round(fireboxes.size() * BoilerStructure.FIREBOX_BODY_SHARE
+        float boilerCapacity = sharingFireboxes * BoilerStructure.FIREBOX_BODY_SHARE;
+        int waterCapacity = Math.round(sharingFireboxes * BoilerStructure.FIREBOX_BODY_SHARE
                 * LoconauticsConfig.BODY_WATER_CAPACITY.get());
 
         while (!frontier.isEmpty() && bodies.size() < MAX_BODY_BLOCKS) {
@@ -70,9 +73,11 @@ public final class BoilerMultiblockValidator {
                 if (bodyAxis != null && bodyAxis != axis) return new Scan(null, "align_boiler_body");
                 bodyAxis = axis;
             }
+            if (bodies.size() < BoilerStructure.MAX_COUNTED_BODY_BLOCKS) {
+                boilerCapacity += BoilerContributions.boilerCapacityOf(currentState);
+                waterCapacity += BoilerContributions.waterCapacityOf(currentState);
+            }
             bodies.add(current);
-            boilerCapacity += BoilerContributions.boilerCapacityOf(currentState);
-            waterCapacity += BoilerContributions.waterCapacityOf(currentState);
 
             for (Direction dir : Direction.values()) {
                 BlockPos neighbor = current.relative(dir);

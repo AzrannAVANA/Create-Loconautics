@@ -115,6 +115,7 @@
 - Unloaded trains now move and keep their car gaps the way Create trains do.
 - Unloaded trains load back in once their track is in a ticking chunk (Create parity).
 - Boiler bodies have new end caps and a reworked shell.
+- Boilers count 3 fireboxes and 9 body blocks, extra ones are decorative.
 
 ### Ponder
 #### Instrument Panel
