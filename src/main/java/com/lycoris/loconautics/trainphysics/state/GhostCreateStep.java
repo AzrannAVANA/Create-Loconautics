@@ -13,6 +13,11 @@ import com.simibubi.create.content.trains.entity.TravellingPoint;
 import com.simibubi.create.content.trains.graph.TrackEdge;
 import com.simibubi.create.content.trains.graph.TrackNode;
 import com.simibubi.create.content.trains.station.GlobalStation;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.DoubleTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -153,6 +158,41 @@ public final class GhostCreateStep {
     public static double exactGap(Train shadow, int pair) {
         State state = STATES.get(shadow.id);
         return state == null || pair < 0 || pair >= state.exactGaps.length ? Double.NaN : state.exactGaps[pair];
+    }
+
+    public static void writeRest(UUID trainId, CompoundTag tag) {
+        Rest rest = REST.get(trainId);
+        if (rest == null) {
+            return;
+        }
+        ListTag carts = new ListTag();
+        for (UUID cart : rest.carts()) {
+            carts.add(NbtUtils.createUUID(cart));
+        }
+        ListTag gaps = new ListTag();
+        for (double gap : rest.gaps()) {
+            gaps.add(DoubleTag.valueOf(gap));
+        }
+        tag.put("RestCarts", carts);
+        tag.put("RestGaps", gaps);
+    }
+
+    // the gaps a rake held while loaded survive a restart, so the first ghost step after a reload trusts them
+    public static void readRest(UUID trainId, CompoundTag tag) {
+        ListTag carts = tag.getList("RestCarts", Tag.TAG_INT_ARRAY);
+        ListTag gaps = tag.getList("RestGaps", Tag.TAG_DOUBLE);
+        if (carts.isEmpty() || gaps.size() != carts.size() - 1) {
+            return;
+        }
+        List<UUID> ids = new ArrayList<>(carts.size());
+        for (Tag cart : carts) {
+            ids.add(NbtUtils.loadUUID(cart));
+        }
+        double[] values = new double[gaps.size()];
+        for (int i = 0; i < values.length; i++) {
+            values[i] = gaps.getDouble(i);
+        }
+        REST.put(trainId, new Rest(ids, values));
     }
 
     // a consist comes back from one shadow state, with every pair of cars on its rest gap

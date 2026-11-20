@@ -13,6 +13,7 @@ import com.lycoris.loconautics.trainphysics.station.ConsistNose;
 import com.lycoris.loconautics.trainphysics.station.StationLanding;
 import com.lycoris.loconautics.trainphysics.station.TrainStations;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
+import com.lycoris.loconautics.trainphysics.state.CreateTrainShadow;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.simibubi.create.Create;
 import com.simibubi.create.content.trains.entity.TravellingPoint;
@@ -380,6 +381,11 @@ public final class TrainSignals {
     public static Set<UUID> consistOf(SableTrain train) {
         Set<UUID> ids = new HashSet<>();
         ids.add(train.id());
+        List<SableTrain> mates = CreateTrainShadow.ghostMates(train);
+        if (!mates.isEmpty()) {
+            mates.forEach(car -> ids.add(car.id()));
+            return ids;
+        }
         UUID subLevel = train.car() == null ? null : train.car().subLevelId();
         if (train.level() == null || subLevel == null) {
             return ids;

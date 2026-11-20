@@ -780,8 +780,10 @@ public final class SableScheduleRuntime implements PostalState {
         for (Tag id : tag.getList("Former", Tag.TAG_INT_ARRAY)) {
             former.add(NbtUtils.loadUUID(id));
         }
+        // create keeps a train in transit across a reload, so the replan must not announce a new departure
         if (state == State.IN_TRANSIT || state == State.TURNTABLE) {
             state = State.PRE_TRANSIT;
+            quietReplan = true;
         }
         if (state == State.POST_TRANSIT) {
             boolean loaded = loadConditions(tag);

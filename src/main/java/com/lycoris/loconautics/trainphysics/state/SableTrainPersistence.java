@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -154,6 +155,8 @@ public final class SableTrainPersistence {
 
     private static void drainPending(MinecraftServer server, boolean verbose) {
         boolean giveUp = restoreTicks >= RESTORE_GIVEUP_TICKS;
+        Map<UUID, SableTrain> ready = new LinkedHashMap<>();
+        Set<UUID> waiting = new HashSet<>();
         Iterator<Map.Entry<UUID, CompoundTag>> it = pending.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<UUID, CompoundTag> entry = it.next();
@@ -167,22 +170,57 @@ public final class SableTrainPersistence {
                 continue;
             }
             if (train != null) {
-                SableTrainRegistry.register(train);
-                SubLevelSplitWatcher.ensureObserver(train.level());
-                SableTrainSpawner.noteRestored(train.id());
-                if (!train.isGhost()) {
-                    TrainResidency.queueReconcile(train);
-                }
-                it.remove();
-                LoconauticsConstants.LOGGER.info("[sabletrain] restored cart {} in {}",
-                        train.id(), train.level().dimension().location());
+                ready.put(entry.getKey(), train);
             } else if (giveUp) {
                 LoconauticsConstants.LOGGER.warn(
                         "[sabletrain] giving up on train {} this session (track graph or sub-level never became available), kept on disk for next launch",
                         entry.getKey());
                 it.remove();
+            } else {
+                waiting.add(entry.getKey());
             }
         }
+        Map<UUID, UUID> recordByBody = new HashMap<>();
+        for (Map.Entry<UUID, CompoundTag> entry : pending.entrySet()) {
+            UUID body = bodyOf(entry.getValue());
+            if (body != null) {
+                recordByBody.put(body, entry.getKey());
+            }
+        }
+        // a rake comes back whole, the way create restores one train record with all its carriages
+        for (Map.Entry<UUID, SableTrain> entry : ready.entrySet()) {
+            SableTrain train = entry.getValue();
+            UUID blocker = null;
+            for (UUID mateBody : train.consistCache()) {
+                UUID mate = recordByBody.get(mateBody);
+                if (mate != null && waiting.contains(mate)) {
+                    blocker = mate;
+                    break;
+                }
+            }
+            if (blocker != null) {
+                if (verbose) {
+                    LoconauticsConstants.LOGGER.warn("[sabletrain] waiting to restore {}: coupled car {} is not ready yet, a rake comes back whole",
+                            entry.getKey(), blocker);
+                }
+                continue;
+            }
+            GhostCreateStep.readRest(train.id(), pending.get(entry.getKey()));
+            SableTrainRegistry.register(train);
+            SubLevelSplitWatcher.ensureObserver(train.level());
+            SableTrainSpawner.noteRestored(train.id());
+            if (!train.isGhost()) {
+                TrainResidency.queueReconcile(train);
+            }
+            pending.remove(entry.getKey());
+            LoconauticsConstants.LOGGER.info("[sabletrain] restored cart {} in {}",
+                    train.id(), train.level().dimension().location());
+        }
+    }
+
+    private static UUID bodyOf(CompoundTag tag) {
+        CompoundTag car = tag.contains("Car") ? tag.getCompound("Car") : tag.getList("Cars", Tag.TAG_COMPOUND).getCompound(0);
+        return car.hasUUID("SubLevel") ? car.getUUID("SubLevel") : null;
     }
 
     private static void countFailedRestore(MinecraftServer server, UUID id, CompoundTag record) {
@@ -272,6 +310,7 @@ public final class SableTrainPersistence {
             }
             tag.put("Consist", consist);
         }
+        GhostCreateStep.writeRest(train.id(), tag);
 
         DimensionPalette dims = new DimensionPalette();
         SableTrain.Car car = train.car();

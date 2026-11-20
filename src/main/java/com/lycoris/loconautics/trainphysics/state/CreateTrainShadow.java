@@ -144,6 +144,16 @@ public final class CreateTrainShadow {
         return layout == null || !isShadow(shadow) ? List.of() : layout;
     }
 
+    // a ghost has no coupler blocks to ask, its rake is the shadow it moves with
+    public static List<SableTrain> ghostMates(SableTrain train) {
+        if (!train.isGhost()) {
+            return List.of();
+        }
+        Train shadow = of(train.id());
+        List<SableTrain> cars = shadow == null ? List.of() : carsOf(shadow);
+        return cars.contains(train) ? cars : List.of();
+    }
+
     public static List<SableTrain> carsOf(Train shadow) {
         List<Member> layout = membersOf(shadow);
         if (layout.isEmpty() || layout.size() != shadow.carriages.size()) {

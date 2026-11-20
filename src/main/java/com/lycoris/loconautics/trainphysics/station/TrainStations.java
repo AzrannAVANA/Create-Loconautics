@@ -15,6 +15,7 @@ import com.lycoris.loconautics.trainphysics.drive.TrainBrakes;
 import com.lycoris.loconautics.trainphysics.door.TrainDoors;
 import com.lycoris.loconautics.trainphysics.signal.TrainSignals;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
+import com.lycoris.loconautics.trainphysics.state.CreateTrainShadow;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.simibubi.create.content.trains.entity.TravellingPoint;
 import com.simibubi.create.content.trains.entity.TravellingPoint.SteerDirection;
@@ -347,6 +348,17 @@ public final class TrainStations {
     }
 
     // lowest sub level id breaks ties, orderedchain walks a hashset so cars can disagree on the ends
+    private static List<SableTrain> registeredCars(Iterable<UUID> subLevels) {
+        List<SableTrain> out = new ArrayList<>();
+        for (UUID other : subLevels) {
+            SableTrain candidate = SableTrainRegistry.bySubLevel(other);
+            if (candidate != null) {
+                out.add(candidate);
+            }
+        }
+        return out;
+    }
+
     public static SableTrain stopOwner(SableTrain train) {
         ServerLevel level = train.level();
         UUID id = train.car() == null ? null : train.car().subLevelId();
@@ -362,10 +374,10 @@ public final class TrainStations {
             return known;
         }
         List<SableTrain> cars = new ArrayList<>();
-        for (UUID other : TrainConsist.connectedThisTick(level, id)) {
-            SableTrain candidate = SableTrainRegistry.bySubLevel(other);
-            if (candidate != null && candidate.car() != null && candidate.car().subLevelId() != null
-                    && !candidate.isDerailed()) {
+        List<SableTrain> ghostRake = CreateTrainShadow.ghostMates(train);
+        Iterable<SableTrain> pool = !ghostRake.isEmpty() ? ghostRake : registeredCars(TrainConsist.connectedThisTick(level, id));
+        for (SableTrain candidate : pool) {
+            if (candidate.car() != null && candidate.car().subLevelId() != null && !candidate.isDerailed()) {
                 cars.add(candidate);
             }
         }

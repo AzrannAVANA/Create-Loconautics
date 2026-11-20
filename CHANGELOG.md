@@ -41,6 +41,7 @@
 - Long trains no longer slow the server down.
 - A train saved while moving no longer jumps to another spot when the world loads.
 - A train whose track was removed comes back off the rails on reload, not lost.
+- Unloaded trains keep their car gaps after a reload and announce a departure once.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
