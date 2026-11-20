@@ -4,12 +4,12 @@ import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartLifecycle;
 import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
 import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
 import com.lycoris.loconautics.trainphysics.drive.TrainPropulsion;
-import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner.BogeySeat;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner.SeatPose;
@@ -109,9 +109,14 @@ public final class RerailApproach {
 
     private static final int IDLE_SCAN_INTERVAL_TICKS = 10;
 
-    private static final Map<UUID, Integer> WALKING = new HashMap<>();
+    private record Step(int count, long tick) {
+    }
 
-    private static final Map<UUID, Integer> EASING = new HashMap<>();
+    private static final int HOLD_STALE_TICKS = 1;
+
+    private static final Map<UUID, Step> WALKING = new HashMap<>();
+
+    private static final Map<UUID, Step> EASING = new HashMap<>();
 
     private static final Map<UUID, Long> GAVE_UP = new ConcurrentHashMap<>();
 
@@ -119,7 +124,17 @@ public final class RerailApproach {
 
     // every substep of an approaching car, otherwise gravity eats the step before the next game tick can add another
     public static boolean holdApproach(PhysicsPipeline pipeline, ServerSubLevel sub, SableTrain train) {
-        if (!WALKING.containsKey(train.id()) && !EASING.containsKey(train.id())) {
+        Step walk = WALKING.get(train.id());
+        Step ease = EASING.get(train.id());
+        if (walk == null && ease == null) {
+            return false;
+        }
+        Step last = walk == null ? ease : walk;
+        long age = train.level().getGameTime() - last.tick();
+        if (age > HOLD_STALE_TICKS) {
+            LoconauticsConstants.LOGGER.warn("[rerailwire] dropped stale hold car {} {} step {} age {} ticks",
+                    train.id(), walk == null ? "easing" : "walking", last.count(), age);
+            abort(train);
             return false;
         }
         Pose3d pose = sub.logicalPose();
@@ -148,6 +163,11 @@ public final class RerailApproach {
 
     static void giveUp(SableTrain train, long gameTime) {
         GAVE_UP.put(train.id(), gameTime);
+    }
+
+    private static int stepCount(Map<UUID, Step> steps, UUID trainId) {
+        Step step = steps.get(trainId);
+        return step == null ? 0 : step.count();
     }
 
     private static boolean abort(SableTrain train) {
@@ -303,7 +323,7 @@ public final class RerailApproach {
                     worst.lateral(), worst.vertical(), worst.yawDegrees()));
         }
         boolean aligned = steerPlates(train, seats);
-        int walked = WALKING.getOrDefault(train.id(), 0) + 1;
+        int walked = stepCount(WALKING, train.id()) + 1;
         if (!(aligned && worst.within(COMMIT_LATERAL, COMMIT_VERTICAL, COMMIT_YAW_DEGREES))) {
             // a seat the car never reached stays where it fell, no teleport onto a line it was never on
             if (walked >= MAX_TICKS) {
@@ -311,7 +331,7 @@ public final class RerailApproach {
                 return abort(train, String.format("walk ran out, aligned=%s worst lateral %.2f vertical %.2f yaw %.1f",
                         aligned, worst.lateral(), worst.vertical(), worst.yawDegrees()));
             }
-            WALKING.put(train.id(), walked);
+            WALKING.put(train.id(), new Step(walked, level.getGameTime()));
             BogeyEditTrace.phase(train, "walking", String.format("step %d, aligned %s, worst lateral %.2f vertical %.2f yaw %.1f",
                     walked, aligned, worst.lateral(), worst.vertical(), worst.yawDegrees()));
             stepBody(level, train, sub, landing);
@@ -362,7 +382,6 @@ public final class RerailApproach {
                 updated.add(bogey);
                 continue;
             }
-            TrainRailAdvance.seedTravelSign(seat, SableTrainSpawner.currentFacing(sub, train.car()));
             SableTrain.Bogey seated = new SableTrain.Bogey(bogey.localPos(), seat);
             updated.add(seated);
             // driveconstraintpivot glues at the first railed bogey, so that is the one the body has to line up with
@@ -381,14 +400,14 @@ public final class RerailApproach {
         }
         boolean aligned = steerSeatedPlates(train, updated, stillOff);
         if (gap.length() > EASE_DONE_GAP || !aligned) {
-            int walked = EASING.getOrDefault(train.id(), 0) + 1;
+            int walked = stepCount(EASING, train.id()) + 1;
             if (walked > MAX_TICKS) {
                 GAVE_UP.put(train.id(), level.getGameTime());
                 BogeyEditTrace.phase(train, "gaveup", "easing ran out, gap " + gap.length());
                 abort(train);
                 return BogeyRerail.NONE;
             }
-            EASING.put(train.id(), walked);
+            EASING.put(train.id(), new Step(walked, level.getGameTime()));
             BogeyEditTrace.phase(train, "easing", String.format(
                     "step %d, gap %.3f (x %.3f y %.3f z %.3f), plates aligned %s, body y %.3f", walked,
                     gap.length(), gap.x, gap.y, gap.z, aligned, sub.logicalPose().position().y())
@@ -397,13 +416,14 @@ public final class RerailApproach {
             return BogeyRerail.EASING;
         }
         easeBody(level, train, sub, gap);
+        traceSeatGaps(sub, train, updated, stillOff);
         train.setBogeys(updated);
         train.setDerailed(false);
         for (BlockPos pos : stillOff) {
             train.markBogeyAwaitingRail(pos);
         }
         EASING.remove(train.id());
-        GhostWheelBodies.clearAlign(train);
+        CartLifecycle.fire(train, CartEvent.REERAILED);
         RerailBalance.noteAutoRerail(train, level.getGameTime());
         BogeyEditTrace.seated(train);
         return BogeyRerail.SEATED;
@@ -536,6 +556,21 @@ public final class RerailApproach {
         double along = gap.x * tangent.x + gap.y * tangent.y + gap.z * tangent.z;
         gap.sub(tangent.x * along, tangent.y * along, tangent.z * along);
         return isFinite(gap) ? gap : null;
+    }
+
+    private static void traceSeatGaps(ServerSubLevel sub, SableTrain train, List<SableTrain.Bogey> updated,
+                                      List<BlockPos> stillOff) {
+        StringBuilder gaps = new StringBuilder();
+        for (SableTrain.Bogey bogey : updated) {
+            if (stillOff.contains(bogey.localPos()) || bogey.rail() == null) {
+                continue;
+            }
+            Vector3d gap = seatGap(sub, train, bogey);
+            gaps.append(' ').append(bogey.localPos().toShortString()).append('=')
+                    .append(gap == null ? "null" : String.format("%.3f", gap.length()));
+        }
+        LoconauticsConstants.LOGGER.warn("[rerailwire] ease seated car {} gaps{} stillOff {}", train.id(), gaps,
+                stillOff.size());
     }
 
     // temporary probe for the easing stall, remove once the gap x cause is settled

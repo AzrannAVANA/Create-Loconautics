@@ -45,6 +45,7 @@
 - A train that half leaves view parks as a whole instead of pulling cars with no body.
 - Track observers see unloaded trains pass, unless the observer has a filter.
 - Knuckles lock when a panel switch bound to them is turned on.
+- Derailed cars no longer hang in the air when pushed or dragged while rerailing.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
