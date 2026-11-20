@@ -53,6 +53,8 @@ public final class RerailApproach {
         public void forget(SableTrain train, UUID subId, CartEvent event) {
             if (clears(event)) {
                 RerailApproach.forget(train.id());
+            } else if (event == CartEvent.RESEATED_IN_PLACE) {
+                stopApproach(train.id());
             }
         }
 
@@ -82,7 +84,7 @@ public final class RerailApproach {
 
         @Override
         public boolean clears(CartEvent event) {
-            return event.moved() || event == CartEvent.RESEATED_IN_PLACE || event == CartEvent.REMOVED;
+            return event.moved() || event == CartEvent.REMOVED;
         }
     };
 
@@ -145,12 +147,15 @@ public final class RerailApproach {
     }
 
     public static void forget(UUID trainId) {
+        stopApproach(trainId);
+        GAVE_UP.remove(trainId);
+        BogeyEditTrace.forget(trainId);
+    }
+
+    private static void stopApproach(UUID trainId) {
         SWINGING.remove(trainId);
         WALKING.remove(trainId);
         EASING.remove(trainId);
-        GAVE_UP.remove(trainId);
-        BogeyEditTrace.forget(trainId);
-        RerailBalance.forget(trainId);
     }
 
     public static void clearAll() {

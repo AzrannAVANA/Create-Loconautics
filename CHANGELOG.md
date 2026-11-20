@@ -46,6 +46,7 @@
 - Track observers see unloaded trains pass, unless the observer has a filter.
 - Knuckles lock when a panel switch bound to them is turned on.
 - Derailed cars no longer hang in the air when pushed or dragged while rerailing.
+- Lopsided cars stop retrying the rerail after two quick roll offs, even after nearby track edits.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

@@ -50,7 +50,7 @@ public final class RerailBalance {
 
         @Override
         public boolean clears(CartEvent event) {
-            return event.moved() || event == CartEvent.RESEATED_IN_PLACE || event == CartEvent.REMOVED;
+            return event.moved() || event == CartEvent.REMOVED;
         }
     };
 
