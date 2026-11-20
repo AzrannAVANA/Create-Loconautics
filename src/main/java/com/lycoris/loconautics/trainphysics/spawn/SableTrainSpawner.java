@@ -14,7 +14,6 @@ import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.TrainLength;
 import com.lycoris.loconautics.trainphysics.TrainConsist;
 import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
-import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
 import com.lycoris.loconautics.trainphysics.drive.SeatBlend;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.rail.RailEdgeSearch;
@@ -1499,7 +1498,6 @@ public final class SableTrainSpawner {
                 updated.add(bogey);
                 continue;
             }
-            TrainRailAdvance.seedTravelSign(rail, currentFacing(sub, train.car()));
             updated.add(new SableTrain.Bogey(bogey.localPos(), rail));
             train.clearOffTrackBogey(bogey.localPos());
             anyRecovered = true;
@@ -1508,6 +1506,7 @@ public final class SableTrainSpawner {
         }
         if (anyRecovered) {
             train.setBogeys(updated);
+            CartLifecycle.fire(train, CartEvent.RESEATED_IN_PLACE);
         }
         return anyRecovered;
     }
