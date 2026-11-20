@@ -116,6 +116,7 @@
 - Unloaded trains load back in once their track is in a ticking chunk (Create parity).
 - Boiler bodies have new end caps and a reworked shell.
 - Boilers count 3 fireboxes and 9 body blocks, extra ones are decorative.
+- Boilers use more water when the bogeys draw more of the pool.
 
 ### Ponder
 #### Instrument Panel

@@ -272,6 +272,8 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return manualDoorsOpen;
     }
 
+    // the blaze burner's campfire crackle, quiet while it lights, loud when hot, weak when starved
+    // animateTick never runs for blocks on a train, so the block entity does it
     private void tickCrackle() {
         if (!getBlockState().getValue(BlockStateProperties.LIT) || dispFire <= 0f) return;
         int rarity;
@@ -292,6 +294,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
                 lowPitch + random.nextFloat() * (highPitch - lowPitch), false);
     }
 
+    // plot space positions on purpose, sable glues these to the body so they ride along with the train
     private void spawnFlames() {
         BlockState state = getBlockState();
         if (!state.getValue(BlockStateProperties.LIT) || dispFire <= 0f) return;
@@ -304,6 +307,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
             default -> base = 0.4f;
         }
         RandomSource random = level.random;
+        // behind a shut door nobody sees them, so only a few
         float expected = base * (0.3f + 0.7f * dispFire) * (open ? 1f : 0.2f);
         int count = (int) expected + (random.nextFloat() < expected - (int) expected ? 1 : 0);
         Direction face = state.getValue(BlockStateProperties.HORIZONTAL_FACING);
@@ -326,6 +330,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
         if (!open) return;
         if (random.nextInt(4) == 0) {
+            // thrown out of the door in a loose fan so they do not pile up at the sill
             double lateral = (random.nextDouble() - 0.5) * 0.3;
             double out = 0.05 + random.nextDouble() * 0.12;
             double spread = (random.nextDouble() - 0.5) * 0.08;
@@ -365,6 +370,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         doorOpenTime = Math.max(0f, Math.min(DOOR_SWING_TICKS, doorOpenTime + dir * DOOR_SWING_SPEED));
     }
 
+    // shut doors leak a little, open doors let the fumes out, and the first burst is what piled up inside
     private void spewSmoke() {
         BlockState state = getBlockState();
         if (!state.getValue(BlockStateProperties.LIT) || !dispNoStack) return;
@@ -528,6 +534,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return steamPressure;
     }
 
+    // a bogey reports every solve, a report older than this belongs to a bogey that is gone
     private static final long DEMAND_TICKS = 40L;
     private record Demand(float su, long tick) {}
 
@@ -568,11 +575,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return new BoilerPool(poolMax(), bogeyDemand(), 0f);
     }
 
+    // create counts capacity per rpm, the outputs get what the bogeys leave of the pool
     public float outputSuPerRpm() {
         float rpm = shaftRpm();
         return rpm <= 0f ? 0f : quantize2(pool().remainder()) / rpm;
     }
 
+    // a fire that just went out still has steam, the output coasts down as the pressure bleeds off
     public float drivePressure() {
         return outputFraction();
     }
@@ -609,17 +618,25 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return false;
     }
 
+    // a fire that went out leaves a hot shell, it keeps the steam up to what its warmth can hold while it cools
     private float coastRise(boolean watered) {
         float warmth = temperatureFraction();
         if (!watered || steamPressure >= warmth) return 0f;
         return (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get() * COAST_RISE_MULTIPLIER * warmth;
     }
 
+    // steam that went out of the valve was water too, full use is the same as pressure drain of 2.5 rises
     private float ventedFraction() {
         float full = (float) (double) LoconauticsConfig.PRESSURE_RISE_PER_TICK.get() * POOL_DRAW_MULTIPLIER;
         return full <= 0f ? 0f : Math.min(1f, lastVented / full);
     }
 
+    // same 1 to 2 times as the fuel burn
+    private float steamLeavingNow() {
+        return Math.max(outputFraction(), ventedFraction()) * (1f + poolUsedFraction());
+    }
+
+    // bogeys and outputs together, as a share of what the pool holds right now
     private float poolUsedFraction() {
         float outputUsed = suOutput() * Math.max(0f, Math.min(1f, lastStressRatio));
         return new BoilerPool(poolMax(), bogeyDemand(), outputUsed).usedFraction();
@@ -666,6 +683,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         sendData();
     }
 
+    // a schedule can only raise the burn signal, 0 leaves it to the redstone and the panel parts
     public void setScheduleSignal(int signal) {
         int clamped = Mth.clamp(signal, 0, SignalSpeed.OFF_SIGNAL);
         if (clamped == scheduleSignal) return;
@@ -798,7 +816,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         }
 
         float perTick = (float) WATER_PER_BODY_PER_TICK;
-        float steamLeaving = Math.max(outputFraction(), ventedFraction());
+        float steamLeaving = steamLeavingNow();
         int wanted = Math.round(structure.boilerCapacity() * perTick * steamLeaving);
         if (wanted <= 0) {
             lastWaterDrawn = 0;
@@ -912,10 +930,11 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return waterSeconds < 0 ? fuelSeconds : Math.min(fuelSeconds, waterSeconds);
     }
 
+    // minus one when the water is no limit, a supply that keeps filling the tank never runs it dry
     private int waterSecondsLeft() {
         BoilerWaterSource injector = water();
         if (injector == null || inflowCooldown > 0) return -1;
-        float steamLeaving = Math.max(outputFraction(), ventedFraction());
+        float steamLeaving = steamLeavingNow();
         float net = structure.boilerCapacity() * (float) WATER_PER_BODY_PER_TICK * steamLeaving
                 * (1f - (float) WATER_RECYCLE_FRACTION);
         if (net <= 0f) return -1;
@@ -1005,11 +1024,13 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return suPerRpm() * (float) TAKEOFF_MAX_RPM;
     }
 
+    // the grade of what burns now decides the fire limit, with no fire it is the grade of the next fuel in the slot
     private FuelGrade fireGrade() {
         if (burnTimeRemaining > 0f || firstFuel().isEmpty()) return burningGrade;
         return FuelGrades.of(firstFuel());
     }
 
+    // create counts stress capacity per rpm, so the pool at full pressure is spread over the top rpm
     public float suPerRpm() {
         if (structure == null) return 0f;
         return BoilerLevel.poolSu(structure.level(fireGrade()), (float) (double) LoconauticsConfig.SU_PER_LEVEL.get(), 1f)
@@ -1047,6 +1068,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         return quantize2(outputSuPerRpm() * shaftRpm());
     }
 
+    // with no smokestack the fumes pile up inside, open doors let them out
     private void tickWasteGas(boolean burning) {
         if (burning && !hasStack()) {
             if (doorsOpen()) {
@@ -1108,6 +1130,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         sendData();
     }
 
+    // a train that is unloaded keeps what is left of the fuel and the water, the loaded boiler hands it over
     private void syncTrainSummary() {
         if (!(Sable.HELPER.getContaining(this) instanceof ServerSubLevel sub)) return;
         SableTrain train = SableTrainRegistry.bySubLevel(sub.getUniqueId());
@@ -1152,11 +1175,12 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     private float netWaterPerTick() {
         if (structure == null) return 0f;
-        float steamLeaving = Math.max(outputFraction(), ventedFraction());
+        float steamLeaving = steamLeavingNow();
         return structure.boilerCapacity() * (float) WATER_PER_BODY_PER_TICK * steamLeaving
                 * (1f - (float) WATER_RECYCLE_FRACTION);
     }
 
+    // the same burn and water the loaded tick would have used, taken in one go when the car loads back in
     private void applySpent(float burn, int waterUsed) {
         burnFuel(burn);
         BoilerWaterSource injector = water();
@@ -1381,6 +1405,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         if (level != null) FireboxGroups.rerender(level, worldPosition);
     }
 
+    // a boiler on a train sits in plot space, a sound there is too far away to hear
     private void playAt(SoundEvent sound, float volume) {
         Vec3 at = Sable.HELPER.projectOutOfSubLevel(level, Vec3.atCenterOf(worldPosition));
         level.playSound(null, at.x, at.y, at.z, sound, SoundSource.BLOCKS, volume, 1f);
@@ -1399,6 +1424,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public void dropFuel() {
         if (level == null) return;
+        // extractitem never hands back more than one vanilla stack, and a wide firebox holds several
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack held = inventory.getStackInSlot(slot).copy();
             inventory.setStackInSlot(slot, ItemStack.EMPTY);
