@@ -131,6 +131,7 @@ public class FireboxBlock extends BaseEntityBlock
         FireboxGroups.rerender(level, pos);
     }
 
+    // two half built fireboxes touching would otherwise sit there as separate controllers
     private static void absorbNeighbors(Level level, BlockPos controller) {
         for (BlockPos member : FireboxGroups.members(level, controller)) {
             for (Direction dir : Direction.Plane.HORIZONTAL) {

@@ -47,12 +47,14 @@ public final class SubLevelSplitWatcher {
     static final Set<ServerSubLevelContainer> OBSERVED =
             Collections.newSetFromMap(new IdentityHashMap<>());
 
+    // preexisting is a snapshot of sub level ids at split time, since sables getsplitfromsublevel is already null by our tick
     record PendingSplit(ServerLevel level, UUID originalSubId, Set<UUID> preexisting) {}
 
     static final List<PendingSplit> PENDING_SPLITS = new ArrayList<>();
 
     static boolean splitListenerRegistered;
 
+    // true while sables own unload walk is inside our observer, taking a sub level out there kills it
     private static boolean inRemovalCallback;
 
     public static boolean inRemovalCallback() {
@@ -166,6 +168,7 @@ public final class SubLevelSplitWatcher {
                     newTrain.markBogeyOffTrack(pos);
                 }
                 if (!offTrackLocal.isEmpty() && offTrackLocal.size() >= newCar.bogeys().size()) {
+                    // every bogey this island got was already derailed before the break, it never had a rail to begin with
                     newTrain.setDerailedQuiet(true);
                 }
                 SableTrainRegistry.register(newTrain);
@@ -185,6 +188,7 @@ public final class SubLevelSplitWatcher {
 
     private static final Set<UUID> BOGEYLESS_SUSPECTS = new HashSet<>();
 
+    // a bogey broken or lost without a split event never reaches the split path, so the train would outlive its last bogey
     public static void dropBogeylessTrains() {
         Set<UUID> seen = new HashSet<>();
         for (SableTrain train : new ArrayList<>(SableTrainRegistry.all())) {
@@ -209,6 +213,7 @@ public final class SubLevelSplitWatcher {
         BOGEYLESS_SUSPECTS.addAll(seen);
     }
 
+    // a bogey placed into a body that is already a train is in no car list, so it never ran until the body was rebuilt
     public static void adoptNewBogeys() {
         for (SableTrain train : new ArrayList<>(SableTrainRegistry.all())) {
             if (train.isGhost() || train.car() == null) {
@@ -226,6 +231,7 @@ public final class SubLevelSplitWatcher {
             List<BlockPos> found = scanBogeyPlotPositions(sub.getPlot());
             Set<BlockPos> ignored = IGNORED_BOGEYS.computeIfAbsent(train.id(), id -> new HashSet<>());
             ignored.retainAll(found);
+            // a bogey placed before the car reached a rail stays ignored forever, so give it another go every two seconds
             long now = train.level().getGameTime();
             Long lastRetry = IGNORED_RETRY_AT.get(train.id());
             if (lastRetry == null || now - lastRetry >= IGNORED_RETRY_TICKS) {
@@ -524,6 +530,7 @@ public final class SubLevelSplitWatcher {
                 offTrackLocal, DONOR_MATCH_RADIUS_SQ, null, false);
     }
 
+    // a merge keeps every bogey of both trains, the per carriage cap is for assembly and would drop the middle pair of a 2 plus 2
     static SableTrain.Car buildMergedCar(ServerLevel level, ServerSubLevel sub, Vec3 railDir,
                                          List<SableTrain.Bogey> donors, RailCarriage reference) {
         return buildCarFromSubLevelScan(level, sub, railDir, donors, reference, null, null, new ArrayList<>(),
@@ -558,6 +565,7 @@ public final class SubLevelSplitWatcher {
                 own == null ? seatFrom.get(0) : own.from(), true);
     }
 
+    // walks a copy of the nearest old bogeys rail to the new block, so a rail under it on another network never gets a say
     private static BogeySeat seatOnOwnRail(List<SableTrain.Bogey> seatFrom, Vector3d bogeyWorld, ServerSubLevel sub) {
         SableTrain.Bogey nearest = null;
         double best = Double.MAX_VALUE;
@@ -683,6 +691,7 @@ public final class SubLevelSplitWatcher {
                     new Vector3d());
             SableTrain.Bogey donor = takeDonorBogey(donors, bogeyWorld, origSub, donorRadiusSq);
             RailCarriage bogeyRail = donor == null ? null : donor.rail();
+            // a wholly derailed car never flagged its bogeys one by one, every bogey it hands over is off the rail
             boolean wasOffTrack = donor != null && originalTrain != null
                     && (originalTrain.isDerailed() || originalTrain.isBogeyOffTrack(donor.localPos()));
             if (bogeyRail == null && adoption != null) {
@@ -698,6 +707,7 @@ public final class SubLevelSplitWatcher {
                 alignToBogey(bogeyRail, bogeyWorld);
             }
             if (merge && donor != null) {
+                // the glue pull moved the blocks after the rail was seated, so slide the rail to where the bogey really is
                 alignToBogey(bogeyRail, bogeyWorld);
                 if (lateralMiss(bogeyRail, bogeyWorld) > MERGE_OFF_CHAIN_LATERAL) {
                     bogeyRail.setIndependent(true);
@@ -738,6 +748,7 @@ public final class SubLevelSplitWatcher {
         RailCarriage carriage = RailCarriage.seededAt(seedRail.seedPoint(), seedRail.graph(),
                 seedRail.upNormal(), spacing, 0.0);
         if (carriage == null) return null;
+        // a seed past a portal hands back far graph points, and without its frame they read as coordinates in home
         carriage.setPortal(seedRail.portal());
         if (bogeyWorlds.size() >= 2) {
             Vec3 seedFwd = carriage.forward();
@@ -764,6 +775,7 @@ public final class SubLevelSplitWatcher {
         return new SableTrain.Car(sub.getUniqueId(), carriage, bogeys, localLead, localTrail);
     }
 
+    // the frame the blocks were laid out in, which is what creates rotation anchors are keyed to and is the only thing that never flips
     static Vec3 referenceSortDirection(RailCarriage reference, Vec3 railDir) {
         Vector3d frame = reference == null ? null : reference.referenceForward();
         if (frame == null || frame.lengthSquared() < 1.0e-9) {
@@ -772,6 +784,7 @@ public final class SubLevelSplitWatcher {
         return new Vec3(frame.x, frame.y, frame.z);
     }
 
+    // nearest donors own block position, never its rail follower, which drifts the moment a bogey derails
     static SableTrain.Bogey takeDonorBogey(List<SableTrain.Bogey> donors, Vector3d bogeyWorld, ServerSubLevel origSub,
                                            double radiusSq) {
         if (donors == null || donors.isEmpty()) {
@@ -869,6 +882,7 @@ public final class SubLevelSplitWatcher {
     }
 
     private static void subLevelRemoved(SubLevel subLevel, SubLevelRemovalReason reason) {
+        // unloaded means the sub level will come back, so only removed drops the cart, or every shutdown would wipe persistence
         if (reason != SubLevelRemovalReason.REMOVED) {
             if (reason == SubLevelRemovalReason.UNLOADED) {
                 com.lycoris.loconautics.trainphysics.debug.HostThrashTrace.unloaded(subLevel);

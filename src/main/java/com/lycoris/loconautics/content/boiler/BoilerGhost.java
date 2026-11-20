@@ -5,6 +5,7 @@ import com.lycoris.loconautics.trainphysics.SableTrain;
 import java.util.List;
 
 // server only, an unloaded boiler burns its fuel and water
+// server only, the unloaded step of a boiler, called from the ghost consist step with the leading car
 public final class BoilerGhost {
 
     private BoilerGhost() {

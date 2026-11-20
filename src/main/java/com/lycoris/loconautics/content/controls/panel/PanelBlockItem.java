@@ -2,14 +2,22 @@ package com.lycoris.loconautics.content.controls.panel;
 
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.advancement.TrainAdvancements;
+import com.lycoris.loconautics.registry.LoconauticsRegistries;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.InteractionResultHolder;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
@@ -20,6 +28,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public abstract class PanelBlockItem extends BlockItem {
 
@@ -34,6 +44,66 @@ public abstract class PanelBlockItem extends BlockItem {
     }
 
     protected void notifyCannotPlace(Player player) {
+    }
+
+    @Nullable
+    protected BlockPos boundTarget(ItemStack stack) {
+        return null;
+    }
+
+    protected final void announceBound(ItemStack stack, @Nullable Player player, BlockState state) {
+        stack.set(LoconauticsRegistries.BOUND_BLOCK.get(), BuiltInRegistries.BLOCK.getKey(state.getBlock()));
+        if (player != null) {
+            player.displayClientMessage(Component.translatable("gui.loconautics.bound_message",
+                    state.getBlock().getName()).withStyle(ChatFormatting.GREEN), true);
+        }
+    }
+
+    protected final void forgetBoundBlock(ItemStack stack) {
+        stack.remove(LoconauticsRegistries.BOUND_BLOCK.get());
+    }
+
+    protected abstract void clearTarget(ItemStack stack);
+
+    protected abstract String clearedKey();
+
+    private boolean tryUnbind(ItemStack stack, @Nullable Player player, Level level) {
+        if (player == null || !player.isShiftKeyDown() || boundTarget(stack) == null) return false;
+        if (!level.isClientSide) {
+            clearTarget(stack);
+            forgetBoundBlock(stack);
+            player.displayClientMessage(Component.translatable(clearedKey()).withStyle(ChatFormatting.RED), true);
+        }
+        return true;
+    }
+
+    @Override
+    public InteractionResult onItemUseFirst(ItemStack stack, UseOnContext context) {
+        if (tryUnbind(stack, context.getPlayer(), context.getLevel())) return InteractionResult.SUCCESS;
+        return super.onItemUseFirst(stack, context);
+    }
+
+    @Override
+    public InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        ItemStack stack = player.getItemInHand(hand);
+        if (tryUnbind(stack, player, level)) return InteractionResultHolder.success(stack);
+        return super.use(level, player, hand);
+    }
+
+    @Override
+    public boolean isFoil(ItemStack stack) {
+        return boundTarget(stack) != null;
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, context, tooltip, flag);
+        ResourceLocation bound = stack.get(LoconauticsRegistries.BOUND_BLOCK.get());
+        if (boundTarget(stack) != null && bound != null) {
+            tooltip.add(Component.translatable("gui.loconautics.bound_to",
+                            BuiltInRegistries.BLOCK.get(bound).getName())
+                    .withStyle(ChatFormatting.GREEN));
+        }
     }
 
     @Override

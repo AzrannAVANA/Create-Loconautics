@@ -26,6 +26,7 @@ public final class FuelGrades {
         event.register(DATA_MAP);
     }
 
+    // tags win, anything else is graded by how long one item burns
     public static FuelGrade of(ItemStack stack) {
         FuelGradeEntry entry = stack.getItemHolder().getData(DATA_MAP);
         if (entry != null) return entry.grade();

@@ -83,6 +83,7 @@ public final class TrainDerailment {
             }
             return;
         }
+        // a car with one bogey loose never went through the full derail path, so nothing was putting it back
         if (train.hasOffTrackBogey() && !ExternalForceDerail.holdsRerail(train)
                 && SableTrainSpawner.tryRerailOffTrackBogeys(train)
                 && !train.hasOffTrackBogey()) {
@@ -139,6 +140,7 @@ public final class TrainDerailment {
 
     static final java.util.Map<UUID, Integer> RAILS_GONE = new java.util.HashMap<>();
 
+    // false means stop here
     static boolean checkRailsGone(SableTrain train, ServerSubLevel sub) {
         if (TrainRailAdvance.railsValid(train)) {
             RAILS_GONE.remove(train.id());
@@ -160,6 +162,7 @@ public final class TrainDerailment {
         return false;
     }
 
+    // an overturned rail has to hold the angle rather than catch one bad frame while a weld or a remap lands
     static final int TILT_DERAIL_TICKS = 5;
 
     static final java.util.Map<UUID, Integer> TILT_OVER = new java.util.HashMap<>();
@@ -214,6 +217,7 @@ public final class TrainDerailment {
         return onRail.isEmpty() ? null : TrainStations.frontBogey(train, onRail);
     }
 
+    // create gives up at 4, we shed the one bogey being dragged apart well before that
     static final double MAX_COUPLING_STRESS = 1.5;
 
     static boolean checkCouplingStress(SableTrain train, ServerSubLevel sub) {

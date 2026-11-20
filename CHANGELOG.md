@@ -117,6 +117,7 @@
 - Boiler bodies have new end caps and a reworked shell.
 - Boilers count 3 fireboxes and 9 body blocks, extra ones are decorative.
 - Boilers use more water when the bogeys draw more of the pool.
+- Bound panel parts glint and name their block, shift right click unbinds them.
 
 ### Ponder
 #### Instrument Panel

@@ -6,17 +6,13 @@ import com.lycoris.loconautics.content.controls.panel.PanelPart;
 import com.lycoris.loconautics.content.controls.panel.PanelSlot;
 import com.lycoris.loconautics.registry.LoconauticsRegistries;
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.List;
 
 public class GaugeBlockItem extends PanelBlockItem {
 
@@ -45,34 +41,19 @@ public class GaugeBlockItem extends PanelBlockItem {
     }
 
     @Override
-    public net.minecraft.world.InteractionResultHolder<ItemStack> use(
-            Level level, Player player, net.minecraft.world.InteractionHand hand) {
-        ItemStack stack = player.getItemInHand(hand);
-        if (player.isShiftKeyDown() && boundFirebox(stack) != null) {
-            if (!level.isClientSide) {
-                stack.remove(LoconauticsRegistries.LOCOMOTIVE_GAUGE_TARGET.get());
-                player.displayClientMessage(
-                        Component.translatable("gui.loconautics.locomotive_gauge.cleared"), true);
-            }
-            return net.minecraft.world.InteractionResultHolder.success(stack);
-        }
-        return super.use(level, player, hand);
+    protected void clearTarget(ItemStack stack) {
+        stack.remove(LoconauticsRegistries.LOCOMOTIVE_GAUGE_TARGET.get());
+    }
+
+    @Override
+    protected String clearedKey() {
+        return "gui.loconautics.locomotive_gauge.cleared";
     }
 
     @Override
     public InteractionResult useOn(UseOnContext context) {
         Level level = context.getLevel();
         BlockPos pos = context.getClickedPos();
-
-        Player shifter = context.getPlayer();
-        if (shifter != null && shifter.isShiftKeyDown() && boundFirebox(context.getItemInHand()) != null) {
-            if (!level.isClientSide) {
-                context.getItemInHand().remove(LoconauticsRegistries.LOCOMOTIVE_GAUGE_TARGET.get());
-                shifter.displayClientMessage(
-                        Component.translatable("gui.loconautics.locomotive_gauge.cleared"), true);
-            }
-            return InteractionResult.SUCCESS;
-        }
 
         GaugeMetric.Group group = GaugeMetric.Group.of(level.getBlockEntity(pos));
         if (group != null) {
@@ -81,6 +62,7 @@ public class GaugeBlockItem extends PanelBlockItem {
                 stack.set(LoconauticsRegistries.LOCOMOTIVE_GAUGE_TARGET.get(), pos);
                 stack.set(LoconauticsRegistries.LOCOMOTIVE_GAUGE_METRIC.get(),
                         GaugeMetric.defaultFor(group));
+                announceBound(stack, context.getPlayer(), level.getBlockState(pos));
             }
             return InteractionResult.SUCCESS;
         }
@@ -105,13 +87,8 @@ public class GaugeBlockItem extends PanelBlockItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, context, tooltip, flag);
-        BlockPos firebox = boundFirebox(stack);
-        if (firebox != null) {
-            tooltip.add(Component.translatable("gui.loconautics.locomotive_gauge.bound_to",
-                            firebox.getX(), firebox.getY(), firebox.getZ())
-                    .withStyle(net.minecraft.ChatFormatting.GREEN));
-        }
+    @Nullable
+    protected BlockPos boundTarget(ItemStack stack) {
+        return boundFirebox(stack);
     }
 }

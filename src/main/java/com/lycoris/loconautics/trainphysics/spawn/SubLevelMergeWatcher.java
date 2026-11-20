@@ -60,6 +60,7 @@ public final class SubLevelMergeWatcher {
         if (sub == null) {
             return;
         }
+        // a plain piece with no bogey only adds weight, so the car stays glued and is not seated again
         if (gone == null && !host.isTrackless()
                 && SubLevelSplitWatcher.scanBogeyPlotPositions(sub.getPlot()).size() <= host.car().bogeys().size()) {
             releaseStaffLock(level, sub);
@@ -181,6 +182,7 @@ public final class SubLevelMergeWatcher {
         return true;
     }
 
+    // the body being pulled and the body it merges into, both are shoved by the pull and neither is a crash
     public static boolean merging(ServerLevel level, UUID subId) {
         if (pulling(level, subId)) {
             return true;

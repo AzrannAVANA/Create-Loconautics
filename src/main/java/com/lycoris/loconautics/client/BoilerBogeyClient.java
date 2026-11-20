@@ -12,6 +12,7 @@ public final class BoilerBogeyClient {
     private BoilerBogeyClient() {
     }
 
+    // stand in, the steam bogey draws like creates small bogey until it has its own model
     public static BogeyStyle.SizeRenderer smallRenderer() {
         return new BogeyStyle.SizeRenderer(new BoilerBogeyRenderer(), BoilerBogeyVisual::new);
     }

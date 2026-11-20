@@ -163,6 +163,7 @@ public final class TrainKnockback {
             if (sub == null || sub.isRemoved()) {
                 continue;
             }
+            // registered trains have their own recoil, pushing them with global knockback breaks the rail constraint
             if (SableTrainRegistry.bySubLevel(sub.getUniqueId()) != null) {
                 continue;
             }

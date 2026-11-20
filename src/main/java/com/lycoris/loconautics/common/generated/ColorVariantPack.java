@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+// both sides, only common classes. the client copy serves assets, the server copy serves data.
 public final class ColorVariantPack implements PackResources {
 
     private static final String RULES_FILE = "/data/loconautics/color_variants.json";

@@ -1065,6 +1065,7 @@ public class HoseScenes {
         return scene;
     }
 
+    // a casing sunk into the plate stays out of sight until the parts that turn it are shown
     private static CreateSceneBuilder open(SceneBuilder builder, String id, String title, BlockPos sunk) {
         CreateSceneBuilder scene = new CreateSceneBuilder(builder);
         scene.title(id, title);
