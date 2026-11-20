@@ -17,6 +17,7 @@ import com.lycoris.loconautics.trainphysics.debug.HostThrashTrace;
 import com.lycoris.loconautics.trainphysics.drive.ConsistPower;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
 import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
+import com.lycoris.loconautics.trainphysics.drive.observer.TrainObservers;
 import com.lycoris.loconautics.trainphysics.portal.TrainPortalCrossing;
 import com.lycoris.loconautics.trainphysics.rail.RailFrame;
 import com.lycoris.loconautics.trainphysics.signal.TrainSignals;
@@ -281,6 +282,7 @@ public final class TrainResidency {
             TrainStations.tickStation(train, null);
             TrainSignals.tickSignals(train);
             stepGhostConsist(train, split);
+            TrainObservers.tick(train);
         }
 
         cursor = railCursor(car);
