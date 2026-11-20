@@ -54,6 +54,7 @@
     "sable.plunger.PlungerPullDerailMixin",
     "sable.train.HandleConsistPullMixin",
     "sable.SubLevelTrackingLevelMixin",
+    "sable.HoldingReadyMixin",
     "sable.portal.PortalTwinForcesMixin",
     "sable.ChunkWaitTraceMixin",
     "ServerLevelCollisionParticleMixin",
