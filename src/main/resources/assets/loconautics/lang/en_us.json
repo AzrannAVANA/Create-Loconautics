@@ -727,6 +727,7 @@
   "loconautics.train.status.signal_cleared": "Signal cleared, moving off",
   "loconautics.train.status.waiting_for_platform": "Waiting for %1$s to clear, another train holds it",
   "loconautics.train.status.track_missing": "Tracks are missing beneath the Train",
+  "loconautics.train.status.teleport": "A Carriage came out of a Portal with no Track to land on",
   "loconautics.train.status.turntable_no_power": "The Turntable under the Train has no Rotation reaching it",
   "loconautics.train.status.turntable_overhang": "The Train is longer than the Turntable and cannot be turned",
   "loconautics.train.status.turntable_ready": "Turntable aligned, moving off",
