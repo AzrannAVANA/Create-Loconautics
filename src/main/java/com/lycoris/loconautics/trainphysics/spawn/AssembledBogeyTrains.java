@@ -85,6 +85,7 @@ public final class AssembledBogeyTrains {
         SableTrainSyncPacket.broadcast(train);
         LoconauticsConstants.LOGGER.info("[sabletrain] assembled body {} became train {}, {} bogey(s), {}",
                 sub.getUniqueId(), train.id(), car.bogeys().size(), railed ? "on rail" : "trackless and derailed");
+        BogeyPlotChanges.traceTilt("became train", train);
         return true;
     }
 }

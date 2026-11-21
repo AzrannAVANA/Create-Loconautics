@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.trainphysics.spawn;
 
 import com.lycoris.loconautics.LoconauticsConstants;
+import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import dev.ryanhcode.sable.Sable;
@@ -10,6 +11,7 @@ import net.minecraft.server.level.ServerLevel;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,6 +40,19 @@ public final class BogeyPlotChanges {
 
     public static void removed(ServerLevel level, BlockPos plotPos) {
         WheelColliders.clearPadsAround(level, plotPos);
+    }
+
+    public static void traceTilt(String when, SableTrain train) {
+        if (train.car() == null) {
+            return;
+        }
+        ServerSubLevel sub = SubLevelData.resolve(train.level(), train.car().subLevelId());
+        if (sub == null) {
+            return;
+        }
+        double tilt = Math.toDegrees(Math.acos(Math.max(-1.0, Math.min(1.0, SubLevelData.up(sub).y))));
+        LoconauticsConstants.TRACE.info("[bogeyplace] {} train {} body {} tilt {} deg, {} bogey(s)", when, train.id(),
+                sub.getUniqueId(), String.format(Locale.ROOT, "%.2f", tilt), train.car().bogeys().size());
     }
 
     static List<UUID> takeMarked() {
