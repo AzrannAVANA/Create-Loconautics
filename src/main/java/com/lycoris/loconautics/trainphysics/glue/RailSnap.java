@@ -419,7 +419,8 @@ public final class RailSnap {
         roll.speed = vTan;
         long now = sub.getLevel().getGameTime();
         // unglue uses the measured phi on purpose, the log shows the damped one
-        if (settling || train.isDerailed()) {
+        if (settling || train.isDerailed()
+                || curveGrace && !LoconauticsConfig.DERAIL_ON_CURVE.get() && !ExternalForceDerail.holdsLift(sub, train)) {
             roll.rolledOff.reset();
             roll.liftedOff.reset();
             return;
