@@ -136,6 +136,7 @@ public final class Loconautics {
                 com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail.STORE,
                 com.lycoris.loconautics.trainphysics.drive.TrainDerailment.STORE,
                 com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.STORE,
+                com.lycoris.loconautics.trainphysics.spawn.SubLevelSplitWatcher.IGNORED_STORE,
                 new com.lycoris.loconautics.trainphysics.state.TravelSignSeed(),
                 com.lycoris.loconautics.trainphysics.state.GhostCreateStep.STORE,
                 com.lycoris.loconautics.trainphysics.state.TrainResidency.STORE,

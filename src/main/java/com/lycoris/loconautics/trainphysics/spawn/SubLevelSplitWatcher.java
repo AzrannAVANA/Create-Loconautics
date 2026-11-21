@@ -10,6 +10,7 @@ import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.state.CartEvent;
 import com.lycoris.loconautics.trainphysics.state.CartLifecycle;
+import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.trainphysics.state.SableTrainPersistence;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
@@ -531,6 +532,35 @@ public final class SubLevelSplitWatcher {
     private static final Map<UUID, Long> IGNORED_RETRY_AT = new HashMap<>();
 
     private static final long IGNORED_RETRY_TICKS = 40L;
+
+    public static final CartStateStore IGNORED_STORE = new CartStateStore() {
+        @Override
+        public void forget(SableTrain train, UUID subId, CartEvent event) {
+            if (!clears(event)) {
+                return;
+            }
+            IGNORED_BOGEYS.remove(train.id());
+            IGNORED_RETRY_AT.remove(train.id());
+        }
+
+        @Override
+        public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
+            IGNORED_BOGEYS.keySet().retainAll(liveTrains);
+            IGNORED_RETRY_AT.keySet().retainAll(liveTrains);
+        }
+
+        @Override
+        public String describe(UUID trainId, UUID subId) {
+            int ignored = ignoredCount(trainId);
+            return ignored == 0 ? "" : "ignoredBogeys=" + ignored;
+        }
+
+        @Override
+        public boolean clears(CartEvent event) {
+            return event.moved() || event == CartEvent.REERAILED || event == CartEvent.RESEATED_IN_PLACE
+                    || event == CartEvent.REMOVED;
+        }
+    };
 
     static int ignoredCount(UUID trainId) {
         Set<BlockPos> ignored = IGNORED_BOGEYS.get(trainId);
