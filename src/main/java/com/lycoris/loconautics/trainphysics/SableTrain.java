@@ -137,7 +137,6 @@ public final class SableTrain {
     }
 
     public void reseat(RailCarriage newCarriage, List<Bogey> newBogeys) {
-        traceBogeyDrop("reseat", newBogeys.size());
         swapRails(newCarriage, newBogeys, car.localLead(), car.localTrail());
     }
 
@@ -150,7 +149,6 @@ public final class SableTrain {
     }
 
     private void relocate(RailCarriage newCarriage, List<Bogey> newBogeys, Vector3dc lead, Vector3dc trail) {
-        traceBogeyDrop("relocate", newBogeys.size());
         swapRails(newCarriage, newBogeys, lead, trail);
         this.speed = 0.0;
         this.targetSpeed = 0.0;
@@ -160,23 +158,11 @@ public final class SableTrain {
         this.currentStation = null;
     }
 
-    private void traceBogeyDrop(String how, int newCount) {
-        if (car == null || newCount >= car.bogeys().size()) {
-            return;
-        }
-        StringBuilder callers = new StringBuilder();
-        StackWalker.getInstance().walk(frames -> frames.skip(2).limit(5).map(f -> f.getClassName()
-                .substring(f.getClassName().lastIndexOf('.') + 1) + "." + f.getMethodName() + ":" + f.getLineNumber())
-                .toList()).forEach(s -> callers.append(s).append(" < "));
-    }
-
     public void replaceCar(Car newCar) {
-        traceBogeyDrop("replaceCar", newCar.bogeys().size());
         this.car = newCar;
     }
 
     public void setBogeys(List<Bogey> newBogeys) {
-        traceBogeyDrop("setBogeys", newBogeys.size());
         this.car = new Car(car.subLevelId(), car.carriage(), newBogeys, car.localLead(), car.localTrail());
         offTrackBogeys.removeIf(pos -> !hasBogeyAt(newBogeys, pos));
         bogeyFront.keySet().removeIf(pos -> !hasBogeyAt(newBogeys, pos));
