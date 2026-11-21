@@ -1,14 +1,17 @@
 package com.lycoris.loconautics.content.hose.rope;
 
 import com.lycoris.loconautics.common.strand.AttachedRopePhysicsObject;
+import com.lycoris.loconautics.common.strand.RopeContactFilter;
 import com.lycoris.loconautics.content.hose.HoseType;
 import com.lycoris.loconautics.content.hose.nozzle.HoseNozzleBlockEntity;
 import dev.ryanhcode.sable.api.physics.constraint.PhysicsConstraintHandle;
 import dev.ryanhcode.sable.api.physics.object.rope.RopeHandle;
+import dev.ryanhcode.sable.sublevel.storage.holding.SubLevelHoldingChunkMap;
 import dev.ryanhcode.sable.sublevel.system.SubLevelPhysicsSystem;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.level.ChunkPos;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 import org.joml.Vector3dc;
@@ -23,6 +26,7 @@ public final class HoseRope extends AttachedRopePhysicsObject {
     public static final double COLLISION_RADIUS = 0.125;
 
     private static final double MIN_EXTENSION = 1.0;
+    private static final int NOZZLE_PASS_SEGMENTS = 1;
 
     private final HoseType type;
 
@@ -201,5 +205,18 @@ public final class HoseRope extends AttachedRopePhysicsObject {
         super.onAddition(physicsSystem);
         setFirstSegmentLength(extensionGoal);
         applyAttachments(physicsSystem.getLevel());
+        RopeContactFilter.allow(physicsSystem.getLevel(), this, RopeHandle.AttachmentPoint.END, NOZZLE_PASS_SEGMENTS);
+    }
+
+    @Override
+    public void onRemoved() {
+        RopeContactFilter.clear(this);
+        super.onRemoved();
+    }
+
+    @Override
+    public void onUnloaded(SubLevelHoldingChunkMap holdingChunkMap, ChunkPos chunkPos) {
+        RopeContactFilter.clear(this);
+        super.onUnloaded(holdingChunkMap, chunkPos);
     }
 }

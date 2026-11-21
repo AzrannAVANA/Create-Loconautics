@@ -68,6 +68,7 @@
 - Hoses and steel cables no longer show up in another dimension.
 - Hose Winches keep working after a reload, no need to break and place them back.
 - Hose Nozzles no longer get flung away when hooked to a Hose Winch.
+- Hose Nozzles turn freely again, the hose no longer fights the nozzle it is hooked to.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
