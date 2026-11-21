@@ -862,6 +862,7 @@ public final class SableTrainDriver {
             SubLevelSplitWatcher.dropBogeylessTrains();
             SubLevelSplitWatcher.adoptNewBogeys();
         }
+        SubLevelSplitWatcher.adoptMarkedBogeys();
         com.lycoris.loconautics.trainphysics.spawn.AssembledBogeyTrains.processPending();
         com.lycoris.loconautics.trainphysics.spawn.ArticulationLinks.processPending(event.getServer());
         forgetDeadTrains();
