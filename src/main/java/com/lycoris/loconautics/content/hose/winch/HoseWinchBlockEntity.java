@@ -674,6 +674,8 @@ public class HoseWinchBlockEntity extends GeneratingKineticBlockEntity implement
             if (!clientHasStrand) {
                 ponderPtsIncoming = ponderPtsCurr = ponderPtsPrev = null;
             }
+        } else {
+            reActivateSource = true;
         }
     }
 
