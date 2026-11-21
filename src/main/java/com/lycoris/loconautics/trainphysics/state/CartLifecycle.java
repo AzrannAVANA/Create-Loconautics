@@ -20,7 +20,7 @@ public final class CartLifecycle {
     private static final int ROUTE_WATCH_NEAR_TICKS = 40;
     private static final int ROUTE_WATCH_FAR_TICKS = 200;
 
-    private static volatile boolean watching;
+    private static volatile boolean watching = com.lycoris.loconautics.config.LoconauticsConfig.DEBUG;
 
     private CartLifecycle() {
     }
