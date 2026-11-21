@@ -163,7 +163,7 @@ public final class ExternalForceDerail {
             return;
         }
         if (staffHolds(sub) && !dragged) {
-            forget(train.id());
+            clearLiftCount(train.id());
             PEAK.remove(sub.getUniqueId());
             traceSkip(sub, train, "held by the physics staff", now);
             return;
@@ -383,7 +383,7 @@ public final class ExternalForceDerail {
         Push push = PEAK.remove(sub.getUniqueId());
         if (push == null || TrainPropulsion.isMonorail(train)
                 || sub.getLevel().getGameTime() - push.gameTime() > STALE_TICKS) {
-            forget(train.id());
+            clearLiftCount(train.id());
             return false;
         }
         double gravity = DimensionPhysicsData.getGravity(sub.getLevel()).length();
@@ -402,7 +402,7 @@ public final class ExternalForceDerail {
         if (LIFTED.merge(train.id(), 1, Integer::sum) < LIFT_TICKS) {
             return false;
         }
-        forget(train.id());
+        clearLiftCount(train.id());
         train.setDerailed(true, "lifted_off");
         if (train.level() != null) {
             RELEASED.put(train.id(), train.level().getGameTime() + RELEASE_TICKS);
@@ -412,7 +412,7 @@ public final class ExternalForceDerail {
         return true;
     }
 
-    private static void forget(UUID trainId) {
+    private static void clearLiftCount(UUID trainId) {
         LIFTED.remove(trainId);
     }
 
