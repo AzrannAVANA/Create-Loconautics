@@ -93,8 +93,7 @@ public final class RerailApproach {
             LoconauticsConstants.RAIL_HEAD_HEIGHT - LoconauticsConstants.TRACK_COLLISION_HEIGHT;
 
     private static final double ACQUIRE_LATERAL = 0.75;
-    private static final double ACQUIRE_RISE = 0.5;
-    private static final double ACQUIRE_DROP = 0.5;
+    private static final double ACQUIRE_VERTICAL = 0.5;
     private static final double ACQUIRE_YAW_DEGREES = 60.0;
 
     private static final double COMMIT_LATERAL = 0.2;
@@ -242,6 +241,10 @@ public final class RerailApproach {
                 || !(container.getSubLevel(subLevelId) instanceof ServerSubLevel sub) || sub.isRemoved()) {
             return abort(train);
         }
+        if (!WALKING.containsKey(train.id()) && !EASING.containsKey(train.id())
+                && (level.getGameTime() + train.id().hashCode()) % IDLE_SCAN_INTERVAL_TICKS != 0) {
+            return false;
+        }
         if (heldFromOutside(level, sub)) {
             BogeyEditTrace.refuse(train, "held from outside");
             BogeyEditTrace.phase(train, "held", ExternalForceDerail.staffHolds(sub) ? "physics staff" : "rope");
@@ -253,10 +256,6 @@ public final class RerailApproach {
             BogeyEditTrace.refuse(train, "gave up cooldown");
             BogeyEditTrace.phase(train, "cooldown",
                     "left " + (RETRY_COOLDOWN_TICKS - (level.getGameTime() - gaveUp)) + " ticks");
-            return false;
-        }
-        if (!WALKING.containsKey(train.id()) && !EASING.containsKey(train.id())
-                && (level.getGameTime() + train.id().hashCode()) % IDLE_SCAN_INTERVAL_TICKS != 0) {
             return false;
         }
         if (!WALKING.containsKey(train.id()) && !EASING.containsKey(train.id())
@@ -654,7 +653,7 @@ public final class RerailApproach {
     private static boolean canAcquire(ServerLevel level, ServerSubLevel sub, SableTrain train, List<BogeySeat> seats,
                                       SeatPose landing, Error worst) {
         boolean ok = worst.lateral() <= ACQUIRE_LATERAL
-                && worst.vertical() <= Math.max(ACQUIRE_RISE, ACQUIRE_DROP)
+                && worst.vertical() <= ACQUIRE_VERTICAL
                 && worst.yawDegrees() <= ACQUIRE_YAW_DEGREES
                 && !anyViewBlocked(level, sub, seats, landing);
         return ok;
