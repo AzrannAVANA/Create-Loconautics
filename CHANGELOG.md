@@ -54,6 +54,7 @@
 - Chat says a car left a portal with no track instead of a raw text key.
 - A strong plunger pull can lift a car off the rail again.
 - A bogey that slips off later no longer loses its pull as if it ran off a track end.
+- Cars lifted off the rail keep the speed they had instead of nearly stopping.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
