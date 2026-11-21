@@ -247,6 +247,7 @@ public final class Loconautics {
     private void onAddReloadListeners(net.neoforged.neoforge.event.AddReloadListenerEvent event) {
         event.addListener(new HoseSprayLoader());
         event.addListener(new BoilerContributions());
+        event.addListener(new com.lycoris.loconautics.content.combustion.CombustionFuelLoader());
         event.addListener(new com.lycoris.loconautics.content.variantpicker.data.VariantFamilyLoader());
     }
 
