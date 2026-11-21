@@ -282,9 +282,10 @@ public final class ExternalForceDerail {
         return PEAK.containsKey(sub.getUniqueId()) || LIFTED.containsKey(train.id());
     }
 
-    // a rolling car leaves its height free, so while the staff drags it the guide holds it down and the lift guard has a force to read
+    // a rolling car leaves its height free, so while the staff drags it the guide holds it down and the lift guard has a force to read.
+    // with the lift guard off it still holds, or the drag alone lifts the wheels past the flange and the roll check throws the car off
     static boolean holdDownForStaff(ServerSubLevel sub) {
-        return LoconauticsConfig.DERAIL_ON_EXTERNAL_FORCE.get() && staffDrags(sub);
+        return staffDrags(sub);
     }
 
     static boolean staffDrags(ServerSubLevel sub) {

@@ -55,6 +55,7 @@
 - A strong plunger pull can lift a car off the rail again.
 - A bogey that slips off later no longer loses its pull as if it ran off a track end.
 - Cars lifted off the rail keep the speed they had instead of nearly stopping.
+- The Physics Staff no longer throws cars off the rail with external force derail off.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
