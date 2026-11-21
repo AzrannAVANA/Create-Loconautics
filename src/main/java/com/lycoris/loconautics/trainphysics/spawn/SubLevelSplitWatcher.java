@@ -148,13 +148,13 @@ public final class SubLevelSplitWatcher {
                 List<BlockPos> offTrackLocal = new ArrayList<>();
                 SableTrain.Car newCar = buildCarFromSubLevelScan(level, island, railDir, donors, referenceRail,
                         originalTrain, origSub, offTrackLocal);
-                boolean trackless = newCar == null && originalTrain != null && originalTrain.isTrackless();
+                boolean trackless = newCar == null && !scanBogeyPlotPositions(island.getPlot()).isEmpty();
                 if (trackless) {
                     newCar = TracklessCars.build(island);
                 }
                 if (newCar == null) {
                     LoconauticsConstants.LOGGER.info(
-                            "[sabletrain] split island {} has no railed bogey, left as a bodyless sub-level",
+                            "[sabletrain] split island {} has no bogey, left as a plain body",
                             island.getUniqueId());
                     continue;
                 }
