@@ -146,6 +146,7 @@ public final class SableTrain {
         // a bogey that left with a split island would otherwise stay flagged here, smoking and failing to rerail forever
         offTrackBogeys.removeIf(pos -> !hasBogeyAt(newBogeys, pos));
         offTrackSince.keySet().removeIf(pos -> !hasBogeyAt(newBogeys, pos));
+        dropReasonWhenRailed();
     }
 
     private void relocate(RailCarriage newCarriage, List<Bogey> newBogeys, Vector3dc lead, Vector3dc trail) {
@@ -179,6 +180,7 @@ public final class SableTrain {
         this.car = new Car(car.subLevelId(), car.carriage(), newBogeys, car.localLead(), car.localTrail());
         offTrackBogeys.removeIf(pos -> !hasBogeyAt(newBogeys, pos));
         bogeyFront.keySet().removeIf(pos -> !hasBogeyAt(newBogeys, pos));
+        dropReasonWhenRailed();
     }
 
     private static boolean hasBogeyAt(List<Bogey> bogeys, BlockPos localPos) {
@@ -331,10 +333,20 @@ public final class SableTrain {
 
     public void clearOffTrackBogeys() {
         offTrackBogeys.clear();
+        dropReasonWhenRailed();
     }
 
     public boolean clearOffTrackBogey(BlockPos localPos) {
-        return offTrackBogeys.remove(localPos);
+        boolean removed = offTrackBogeys.remove(localPos);
+        dropReasonWhenRailed();
+        return removed;
+    }
+
+    // a reason left over from a bogey that already landed would brand the next loose one with it
+    private void dropReasonWhenRailed() {
+        if (!derailed && offTrackBogeys.isEmpty()) {
+            derailReason = "";
+        }
     }
 
     public net.minecraft.core.Direction bogeyFrontOverride(BlockPos localPos) {
