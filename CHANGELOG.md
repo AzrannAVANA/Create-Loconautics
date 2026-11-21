@@ -61,6 +61,7 @@
 - Breaking the track under a moving car drops it at once instead of two seconds later.
 - A derail plays one crash, and the heavy thud waits until the car hits the ground.
 - Chat says a car lost its bogeys instead of claiming the track is missing.
+- The coupling stress warning reaches the driver when one bogey is pulled off.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
