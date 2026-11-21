@@ -63,6 +63,10 @@ public final class GrabClientHandler {
         return grabSub != null || grabStrand != null || grabKnotStrand != null;
     }
 
+    public static boolean canRotate() {
+        return grabbing() && grabKnotStrand == null;
+    }
+
     @Nullable
     public static UUID grabbedStrand() {
         return grabStrand;

@@ -413,6 +413,7 @@
   "key.categories.loconautics": "Create: Loconautics",
   "key.loconautics.casing_picker": "Swap Casing or Bogey",
   "key.loconautics.grab_rotate": "Rotate Grabbed Object",
+  "gui.loconautics.grab.rotate_hint": "Hold [%s] to rotate",
   "key.loconautics.variant_picker": "Swap Block Variant",
   "gui.loconautics.variant_picker": "Swap Block Variant",
   "gui.loconautics.variant_picker.right_click": "RIGHT CLICK",
