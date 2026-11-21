@@ -1387,6 +1387,26 @@ public final class SableTrainSpawner {
         return out;
     }
 
+    public static boolean trackUnderRailedBogey(SableTrain train, ServerSubLevel sub) {
+        Vec3 fwd = train.car().carriage().forward();
+        if (train.car().bogeys().isEmpty()) {
+            Vector3dc p = sub.logicalPose().position();
+            return findRailBelow(train.level(), BlockPos.containing(p.x(), p.y(), p.z()), fwd) != null;
+        }
+        for (SableTrain.Bogey bogey : train.car().bogeys()) {
+            if (train.isBogeyOffTrack(bogey.localPos())) {
+                continue;
+            }
+            BlockPos at = sub.getPlot().getCenterBlock().offset(bogey.localPos());
+            Vector3d w = sub.logicalPose().transformPosition(
+                    new Vector3d(at.getX() + 0.5, at.getY() + 0.5, at.getZ() + 0.5), new Vector3d());
+            if (findRailBelow(train.level(), BlockPos.containing(w.x, w.y, w.z), fwd) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean reseatOnRail(SableTrain train, ServerSubLevel sub) {
         ServerLevel level = train.level();
         Vec3 fwd = train.car().carriage().forward();

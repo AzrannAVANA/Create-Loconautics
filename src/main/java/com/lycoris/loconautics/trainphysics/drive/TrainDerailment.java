@@ -137,7 +137,9 @@ public final class TrainDerailment {
             RAILS_GONE.remove(train.id());
             return true;
         }
-        int missed = RAILS_GONE.merge(train.id(), 1, Integer::sum);
+        // the grace is for a graph rebuilt under track that is still there, broken track releases the car at once
+        int missed = SableTrainSpawner.trackUnderRailedBogey(train, sub)
+                ? RAILS_GONE.merge(train.id(), 1, Integer::sum) : RAILS_GONE_GRACE_TICKS;
         if (missed == 1 || missed == RAILS_GONE_GRACE_TICKS) {
             StringBuilder bogeys = new StringBuilder();
             for (SableTrain.Bogey bogey : train.car().bogeys()) {
