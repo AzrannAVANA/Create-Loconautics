@@ -76,6 +76,8 @@ public final class SableTrainDriver {
     static final double MAX_SUBSTEP_SLIDE = 2.0;
 
     static final java.util.Set<UUID> DEAD_END = new java.util.HashSet<>();
+    // the sign of the speed that carried the car into the buffer, the drive may only pull it back out
+    static final java.util.Map<UUID, Integer> BUFFER_HELD = new java.util.HashMap<>();
     // block scan is pricey and a buffered car stays ended anyway, so every few substeps is enough
     static final java.util.Map<UUID, Integer> HOP_SCAN = new java.util.HashMap<>();
     static final int HOP_SCAN_STEPS = 5;
@@ -225,7 +227,8 @@ public final class SableTrainDriver {
 
     public static boolean endPending(UUID bodyId) {
         return LoconauticsConfig.DERAIL_AT_TRACK_END.get()
-                && (DEAD_END.contains(bodyId) || DEAD_END_MISS.containsKey(bodyId));
+                && (DEAD_END.contains(bodyId) || DEAD_END_MISS.containsKey(bodyId))
+                && !BUFFER_HELD.containsKey(bodyId);
     }
 
     static void updateDeadEnd(ServerSubLevel bodySub, Car car, SableTrain train) {
@@ -258,14 +261,36 @@ public final class SableTrainDriver {
 
     // released in the substep that finds the end, a game tick later the glue has already carried the car past it
     private static boolean ranOffEnd(ServerSubLevel bodySub, Car car, SableTrain train) {
-        if (!LoconauticsConfig.DERAIL_AT_TRACK_END.get() || !DEAD_END.contains(bodySub.getUniqueId())
-                || !TrainDerailment.runOffEnd(train, car)) {
+        UUID bodyId = bodySub.getUniqueId();
+        if (!DEAD_END.contains(bodyId)) {
+            if (BUFFER_HELD.remove(bodyId) != null) {
+                TrainStatusChat.trackOK(train);
+            }
+            return false;
+        }
+        if (BUFFER_HELD.containsKey(bodyId)) {
+            return false;
+        }
+        double speed = train.speed();
+        if (!LoconauticsConfig.DERAIL_AT_TRACK_END.get()
+                || Math.abs(speed) * 20.0 < LoconauticsConfig.BUFFER_STOP_SPEED.get()) {
+            double into = speed != 0.0 ? speed : train.targetSpeed();
+            BUFFER_HELD.put(bodyId, into < 0.0 ? -1 : 1);
+            TrainStatusChat.endOfTrack(train);
+            return false;
+        }
+        if (!TrainDerailment.runOffEnd(train, car)) {
             return false;
         }
         if (train.isDerailed()) {
             RailGlue.releaseConstraint(bodySub.getUniqueId());
         }
         return true;
+    }
+
+    private static boolean pushesIntoBuffer(UUID bodyId, SableTrain train) {
+        Integer into = BUFFER_HELD.get(bodyId);
+        return into != null && train.targetSpeed() * into >= 0.0;
     }
 
     static void driveConstraintGlued(PhysicsPipeline pipeline, ServerSubLevel bodySub,
@@ -363,7 +388,7 @@ public final class SableTrainDriver {
         }
         CarriageRoll.noteLock(bodyId, lock);
 
-        if (train.isPowered() || train.servoBrake()) {
+        if ((train.isPowered() || train.servoBrake()) && !pushesIntoBuffer(bodyId, train)) {
             applyTangentialDrive(pipeline, bodySub, trackSub, railPoint, tangent, dt, train);
         }
 
@@ -491,7 +516,8 @@ public final class SableTrainDriver {
 
         // braking cuts the axle, which reads as unpowered, so a commanded brake has to open this gate too
         boolean runningOff = train.derailedAtTrackEnd();
-        if (!runningOff && (train.isPowered() || train.servoBrake())) {
+        if (!runningOff && (train.isPowered() || train.servoBrake())
+                && !pushesIntoBuffer(bodySub.getUniqueId(), train)) {
             applyTangentialDrive(pipeline, bodySub, pivotTrackSub, railPoint, tangent, dt, train);
         }
         TrainBrakes.applyResistance(bodySub, pivotTrackSub, railPoint, tangent, dt,
@@ -683,6 +709,7 @@ public final class SableTrainDriver {
         java.util.Set<UUID> live = RailGlue.sweepStaleConstraints();
         RailSnap.retain(live);
         DEAD_END.retainAll(live);
+        BUFFER_HELD.keySet().retainAll(live);
         DEAD_END_MISS.keySet().retainAll(live);
         HOP_SCAN.keySet().retainAll(live);
         SeatBlend.retain(live);
@@ -707,6 +734,7 @@ public final class SableTrainDriver {
 
     static void clearCrossState(UUID id) {
         DEAD_END.remove(id);
+        BUFFER_HELD.remove(id);
         DEAD_END_MISS.remove(id);
         HOP_SCAN.remove(id);
         LAST_TRACTION_V.remove(id);

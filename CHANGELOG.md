@@ -133,6 +133,7 @@
 - Boilers use more water when the bogeys draw more of the pool.
 - Bound panel parts glint and name their block, shift right click unbinds them.
 - Rope and Physics Staff lift limits are configs again, the staff one can be 0.
+- A slow car stops at a track end like a Create train instead of running off.
 
 ### Ponder
 #### Instrument Panel

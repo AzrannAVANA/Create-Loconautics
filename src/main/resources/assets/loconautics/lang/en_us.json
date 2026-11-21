@@ -966,6 +966,8 @@
   "loconautics.configuration.patch.enablePloughPatch": "Mechanical Plough Patch",
   "loconautics.configuration.patch.enableRollerPatch": "Mechanical Roller Patch",
   "loconautics.configuration.patch.requireMaterialConsumption": "Require Materials",
+  "loconautics.configuration.track.derailment.bufferStopSpeed": "Buffer Stop Speed",
+  "loconautics.configuration.track.derailment.bufferStopSpeed.tooltip": "A carriage reaching a track end slower than this, in blocks per second, stops there instead of running off.",
   "loconautics.configuration.track.derailment.collisionDerailSpeed": "Collision Derail Threshold",
   "loconautics.configuration.track.derailment.collisionDerailSpeed.tooltip": "How much a collision must change a carriage's speed, in blocks per second, to derail it.",
   "loconautics.configuration.track.derailment.coupledCollisionDerail": "Coupled Collision Derail",

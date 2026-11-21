@@ -40,6 +40,7 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.DoubleValue DERAIL_STAFF_LIFT_RATIO;
     public static ModConfigSpec.BooleanValue DERAIL_ON_CURVE;
     public static ModConfigSpec.BooleanValue DERAIL_AT_TRACK_END;
+    public static ModConfigSpec.DoubleValue BUFFER_STOP_SPEED;
     public static ModConfigSpec.DoubleValue DERAILED_SLIP_FACTOR;
     public static ModConfigSpec.DoubleValue DERAIL_COLLISION_SPEED;
     public static ModConfigSpec.BooleanValue DERAIL_COUPLED_COLLISION;
@@ -263,6 +264,11 @@ public final class LoconauticsConfig {
         DERAIL_AT_TRACK_END = BUILDER
                 .translation(TRANSLATION_PREFIX + "track.derailment.derailAtTrackEnd")
                 .define("derailAtTrackEnd", true);
+
+        BUFFER_STOP_SPEED = BUILDER
+                .comment("A Carriage reaching a track end slower than this, in blocks per second, stops at the end like a Create Train. Faster, it runs off.")
+                .translation(TRANSLATION_PREFIX + "track.derailment.bufferStopSpeed")
+                .defineInRange("bufferStopSpeed", 2.0, 0.0, 100.0);
 
         DERAILED_SLIP_FACTOR = BUILDER
                 .translation(TRANSLATION_PREFIX + "track.derailment.derailedSlipFactor")
