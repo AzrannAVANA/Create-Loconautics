@@ -36,6 +36,8 @@ public final class LoconauticsConfig {
 
     public static ModConfigSpec.DoubleValue DERAIL_MAX_TILT_DEGREES;
     public static ModConfigSpec.BooleanValue DERAIL_ON_EXTERNAL_FORCE;
+    public static ModConfigSpec.DoubleValue DERAIL_EXTERNAL_LIFT_RATIO;
+    public static ModConfigSpec.DoubleValue DERAIL_STAFF_LIFT_RATIO;
     public static ModConfigSpec.BooleanValue DERAIL_ON_CURVE;
     public static ModConfigSpec.BooleanValue DERAIL_AT_TRACK_END;
     public static ModConfigSpec.DoubleValue DERAILED_SLIP_FACTOR;
@@ -243,6 +245,16 @@ public final class LoconauticsConfig {
                 .comment("On, a strong enough upward push such as the Physics Staff lifts a Train off the rail. Off, nothing can lift it off.")
                 .translation(TRANSLATION_PREFIX + "track.derailment.derailOnExternalForce")
                 .define("derailOnExternalForce", true);
+
+        DERAIL_EXTERNAL_LIFT_RATIO = BUILDER
+                .comment("How many times its own weight an upward pull such as a rope must lift a Carriage with, for 5 ticks, before it leaves the rail.")
+                .translation(TRANSLATION_PREFIX + "track.derailment.externalLiftRatio")
+                .defineInRange("externalLiftRatio", 100.0, 1.0, 1000.0);
+
+        DERAIL_STAFF_LIFT_RATIO = BUILDER
+                .comment("The same limit while the Physics Staff drags a Carriage. At 0 the Physics Staff never lifts a Carriage off the rail.")
+                .translation(TRANSLATION_PREFIX + "track.derailment.staffLiftRatio")
+                .defineInRange("staffLiftRatio", 25.0, 0.0, 1000.0);
 
         DERAIL_ON_CURVE = BUILDER
                 .comment("Off, a car leans outward on its springs in a curve and its wheels stay on the rail. On, the wheels lift from the real overturning force and a car taken too fast tips off.")

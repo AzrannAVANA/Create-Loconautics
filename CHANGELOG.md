@@ -131,6 +131,7 @@
 - Boilers count 3 fireboxes and 9 body blocks, extra ones are decorative.
 - Boilers use more water when the bogeys draw more of the pool.
 - Bound panel parts glint and name their block, shift right click unbinds them.
+- Rope and Physics Staff lift limits are configs again, the staff one can be 0.
 
 ### Ponder
 #### Instrument Panel

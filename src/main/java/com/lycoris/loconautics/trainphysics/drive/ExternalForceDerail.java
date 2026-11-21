@@ -35,7 +35,6 @@ import static com.lycoris.loconautics.foundation.LogFormat.shortId;
 import static com.lycoris.loconautics.foundation.math.VecMath.perpendicularUp;
 
 public final class ExternalForceDerail {
-    static final double ROLLING_LIFT_RATIO = 25.0;
 
 
     private ExternalForceDerail() {
@@ -92,7 +91,6 @@ public final class ExternalForceDerail {
     };
 
     private static final int LIFT_TICKS = 5;
-    private static final double LIFT_RATIO = 100.0;
     private static final double NOISE = 1.0e-6;
     private static final long STALE_TICKS = 1;
     private static final int REGRIP_TICKS = 40;
@@ -209,7 +207,8 @@ public final class ExternalForceDerail {
         }
 
         double gravity = DimensionPhysicsData.getGravity(sub.getLevel()).length();
-        if (lift > gravity * liftRatio(sub)) {
+        double ratio = liftRatio(sub);
+        if (ratio > 0.0 && lift > gravity * ratio) {
             REGRIP.put(train.id(), now + REGRIP_TICKS);
         }
         Push seen = PEAK.get(sub.getUniqueId());
@@ -399,8 +398,13 @@ public final class ExternalForceDerail {
             LIFTED.remove(train.id());
             return false;
         }
+        double ratio = liftRatio(sub);
+        if (ratio <= 0.0) {
+            LIFTED.remove(train.id());
+            return false;
+        }
         double gravity = DimensionPhysicsData.getGravity(sub.getLevel()).length();
-        if (!checkLift(LIFTED, train, push, gravity * liftRatio(sub))) {
+        if (!checkLift(LIFTED, train, push, gravity * ratio)) {
             return false;
         }
         noteRelease(sub, train);
@@ -417,7 +421,8 @@ public final class ExternalForceDerail {
     }
 
     private static double liftRatio(ServerSubLevel sub) {
-        return CarriageRoll.isRolling(sub.getUniqueId()) ? ROLLING_LIFT_RATIO : LIFT_RATIO;
+        return staffDrags(sub) ? LoconauticsConfig.DERAIL_STAFF_LIFT_RATIO.get()
+                : LoconauticsConfig.DERAIL_EXTERNAL_LIFT_RATIO.get();
     }
 
     private static boolean checkLift(Map<UUID, Integer> counter, SableTrain train, Push push, double limit) {
