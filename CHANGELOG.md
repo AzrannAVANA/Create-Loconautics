@@ -62,6 +62,7 @@
 - A derail plays one crash, and the heavy thud waits until the car hits the ground.
 - Chat says a car lost its bogeys instead of claiming the track is missing.
 - The coupling stress warning reaches the driver when one bogey is pulled off.
+- Cars thrown off with the physics staff keep rerailing instead of being called too lopsided.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
