@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.trainphysics.spawn;
 
+import com.lycoris.loconautics.trainphysics.DerailReason;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.SubLevelAssemblyUtil;
 import com.lycoris.loconautics.common.sable.SableTeleportation;
@@ -711,7 +712,7 @@ public final class SableTrainSpawner {
             msg(player, "that cart is already off the rails");
             return 0;
         }
-        best.setDerailed(true);
+        best.setDerailed(true, DerailReason.COMMAND);
         SableTrainPersistence.persist(best);
         SableTrainSyncPacket.broadcast(best);
         msg(player, "derailed cart " + best.id().toString().substring(0, 8) + ", released from the rail");
@@ -1202,7 +1203,7 @@ public final class SableTrainSpawner {
         }
 
         train.relocate(carriage, bogeys);
-        train.setDerailed(false);
+        train.setDerailed(false, null);
         train.setSpeed(0.0);
         train.setTargetSpeed(0.0);
         train.setStationState(SableTrain.StationState.RUNNING);

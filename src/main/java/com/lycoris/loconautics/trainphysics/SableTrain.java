@@ -55,7 +55,7 @@ public final class SableTrain {
     private double handbrake;
     private boolean powered;
     private boolean derailed;
-    private String derailReason = "";
+    private DerailReason derailReason;
     private Residency residency = Residency.EMBODIED;
     // only readable while the body is live, so it is grabbed at unload and persisted, without it a ghost cannot find its body again
     private GlobalSavedSubLevelPointer bodyPointer;
@@ -247,17 +247,13 @@ public final class SableTrain {
         return car != null && car.carriage() == null;
     }
 
-    public void setDerailed(boolean derailed) {
-        setDerailed(derailed, "track_missing");
-    }
-
-    public void setDerailed(boolean derailed, String statusKey) {
+    public void setDerailed(boolean derailed, DerailReason reason) {
         if (!setDerailedQuiet(derailed)) {
             return;
         }
-        derailReason = derailed ? statusKey : "";
+        derailReason = derailed ? reason : null;
         if (derailed) {
-            TrainStatusChat.derailed(this, statusKey);
+            TrainStatusChat.derailed(this, reason.statusKey());
             com.lycoris.loconautics.trainphysics.state.CartLifecycle.fire(this,
                     com.lycoris.loconautics.trainphysics.state.CartEvent.DERAILED);
         } else {
@@ -266,16 +262,16 @@ public final class SableTrain {
         CcEvents.queue(this, derailed ? "train_derailed" : "train_rerailed");
     }
 
-    public void setDerailReason(String reason) {
+    public void setDerailReason(DerailReason reason) {
         derailReason = reason;
     }
 
     public boolean derailedAtTrackEnd() {
-        return "end_of_track".equals(derailReason);
+        return derailReason == DerailReason.END_OF_TRACK;
     }
 
     public boolean derailedByLift() {
-        return "rolled_off".equals(derailReason) || "lifted_off".equals(derailReason);
+        return derailReason == DerailReason.ROLLED_OFF || derailReason == DerailReason.LIFTED_OFF;
     }
 
     public boolean setDerailedQuiet(boolean derailed) {
@@ -331,7 +327,7 @@ public final class SableTrain {
     // a reason left over from a bogey that already landed would brand the next loose one with it
     private void dropReasonWhenRailed() {
         if (!derailed && offTrackBogeys.isEmpty()) {
-            derailReason = "";
+            derailReason = null;
         }
     }
 

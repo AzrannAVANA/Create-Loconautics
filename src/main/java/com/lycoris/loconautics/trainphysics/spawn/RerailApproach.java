@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.trainphysics.spawn;
 
+import com.lycoris.loconautics.trainphysics.DerailReason;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.SableTrain;
@@ -438,7 +439,7 @@ public final class RerailApproach {
             }
         }
         train.setBogeys(updated);
-        train.setDerailed(false);
+        train.setDerailed(false, null);
         EASING.remove(train.id());
         CartLifecycle.fire(train, CartEvent.REERAILED);
         RerailBalance.noteAutoRerail(train, level.getGameTime());

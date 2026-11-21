@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.trainphysics.drive;
 
+import com.lycoris.loconautics.trainphysics.DerailReason;
 import com.lycoris.loconautics.common.impact.TrainKnockback;
 import com.lycoris.loconautics.common.train.TrainStatusChat;
 import com.lycoris.loconautics.trainphysics.debug.GhostConsistTrace;
@@ -382,7 +383,7 @@ public final class SableTrainDriver {
             }
         } else if (!RailGlue.glueBody(pipeline, bodySub, localAnchor, railPoint, tangent,
                 RailGlue.limitGlueRotation(bodyId, q), RailGlue.GlueMode.RIGID, trackSub)) {
-            train.setDerailed(true, "glue_refused");
+            train.setDerailed(true, DerailReason.GLUE_REFUSED);
             CarriageRoll.noteLock(bodyId, "released");
             return;
         }
@@ -413,7 +414,7 @@ public final class SableTrainDriver {
         if (!RailGlue.glueBody(pipeline, bodySub, pivotLocal, pivotRail, frame.tangent, frame.up, seats.level().orientation(),
                 ExternalForceDerail.holdDownForStaff(bodySub) ? RailGlue.GlueMode.ROLLING_HELD : RailGlue.GlueMode.ROLLING,
                 trackSub)) {
-            train.setDerailed(true, "glue_refused");
+            train.setDerailed(true, DerailReason.GLUE_REFUSED);
             return RollOutcome.DERAILED;
         }
         if (RailGlue.glueModeOf(bodySub).equals("none")) {
@@ -510,7 +511,7 @@ public final class SableTrainDriver {
         if (!RailGlue.glueBody(pipeline, bodySub, localAnchor, railPoint, tangent,
                 new Quaterniond(bodySub.logicalPose().orientation()), RailGlue.GlueMode.PIVOT,
                 pivotTrackSub)) {
-            train.setDerailed(true, "glue_refused");
+            train.setDerailed(true, DerailReason.GLUE_REFUSED);
             return;
         }
 

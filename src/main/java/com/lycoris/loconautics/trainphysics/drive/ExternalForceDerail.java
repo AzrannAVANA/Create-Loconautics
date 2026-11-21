@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.trainphysics.drive;
 
+import com.lycoris.loconautics.trainphysics.DerailReason;
 import com.lycoris.loconautics.trainphysics.glue.CarriageRoll;
 import com.lycoris.loconautics.trainphysics.glue.RailGlue;
 import com.lycoris.loconautics.trainphysics.debug.force.ForceSource;
@@ -434,7 +435,7 @@ public final class ExternalForceDerail {
             return false;
         }
         clearLiftCount(train.id());
-        train.setDerailed(true, "lifted_off");
+        train.setDerailed(true, DerailReason.LIFTED_OFF);
         LoconauticsConstants.LOGGER.info("[sabletrain] car {} was lifted off the rail, {} b/s2 up against {}",
                 train.id(), SableTrainDriver.f(push.lift()), SableTrainDriver.f(limit));
         return true;

@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.trainphysics.spawn;
 
+import com.lycoris.loconautics.trainphysics.DerailReason;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.network.packets.train.SableTrainSyncPacket;
 import com.lycoris.loconautics.trainphysics.SableTrain;
@@ -497,7 +498,7 @@ public final class SubLevelSplitWatcher {
         } else if (scanBogeyPlotPositions(sub.getPlot()).isEmpty()) {
             SubLevelMergeWatcher.dropTrain(level, originalTrain);
         } else if (!originalTrain.isDerailed()) {
-            originalTrain.setDerailed(true);
+            originalTrain.setDerailed(true, DerailReason.BOGEYS_LOST);
             SableTrainPersistence.persist(originalTrain);
             SableTrainSyncPacket.broadcast(originalTrain);
             LoconauticsConstants.LOGGER.info(

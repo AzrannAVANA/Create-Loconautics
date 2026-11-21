@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.trainphysics.glue;
 
+import com.lycoris.loconautics.trainphysics.DerailReason;
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.PoseTweak;
@@ -432,11 +433,11 @@ public final class RailSnap {
                     "[rocktrace] car={} unglue rolled_off phi={} deg limit={} deg tip={} deg speed={} curvature={} grace={} relief={}",
                     shortId(sub), f(Math.toDegrees(phi)), f(Math.toDegrees(unglue)), f(Math.toDegrees(tip)), f(vTan),
                     f(roll.curvature), curveGrace, f(roll.relief));
-            train.setDerailed(true, "rolled_off");
+            train.setDerailed(true, DerailReason.ROLLED_OFF);
         } else if (liftedHeld) {
             LoconauticsConstants.TRACE.warn("[rocktrace] car={} unglue lifted_off wheels={} rise={} curvature={}",
                     shortId(sub), java.util.Arrays.toString(roll.y), f(rise), f(roll.curvature));
-            train.setDerailed(true, "lifted_off");
+            train.setDerailed(true, DerailReason.LIFTED_OFF);
         }
     }
 }
