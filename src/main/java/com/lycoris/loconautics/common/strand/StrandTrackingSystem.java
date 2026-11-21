@@ -7,7 +7,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.neoforged.neoforge.network.PacketDistributor;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
@@ -66,11 +65,11 @@ public final class StrandTrackingSystem<R extends AttachedRopePhysicsObject> imp
         }
     }
 
-    private void send(@Nullable R rope, int interpolationTick) {
+    private void send(R rope, int interpolationTick) {
         if (rope.needsSync()) {
             rope.setNetworkingStopped(false);
             PacketDistributor.sendToPlayersInDimension(level, new StrandPointsPacket(
-                    kindOf.apply(rope), rope.getUUID(), interpolationTick, false, List.copyOf(rope.getPoints()),
+                    kindOf.apply(rope), rope.getUUID(), interpolationTick, false, RopeGeometry.copyPoints(rope.getPoints()),
                     rope.endOf(RopeHandle.AttachmentPoint.START), rope.endOf(RopeHandle.AttachmentPoint.END)));
             rope.justSynced();
             return;
@@ -80,7 +79,7 @@ public final class StrandTrackingSystem<R extends AttachedRopePhysicsObject> imp
         }
         rope.setNetworkingStopped(true);
         PacketDistributor.sendToPlayersInDimension(level, new StrandPointsPacket(
-                kindOf.apply(rope), rope.getUUID(), interpolationTick, true, List.copyOf(rope.getPoints()),
-                    rope.endOf(RopeHandle.AttachmentPoint.START), rope.endOf(RopeHandle.AttachmentPoint.END)));
+                kindOf.apply(rope), rope.getUUID(), interpolationTick, true, RopeGeometry.copyPoints(rope.getPoints()),
+                rope.endOf(RopeHandle.AttachmentPoint.START), rope.endOf(RopeHandle.AttachmentPoint.END)));
     }
 }

@@ -103,6 +103,11 @@ public final class Loconautics {
                             serverContainer.getLevel(),
                             com.lycoris.loconautics.content.steelcable.rope.SteelCableRope::kind,
                             com.lycoris.loconautics.content.steelcable.rope.SteelCableRopeManager::get));
+            serverContainer.trackingSystem().addTrackingPlugin(
+                    new com.lycoris.loconautics.common.strand.StrandTrackingSystem<>(
+                            serverContainer.getLevel(),
+                            rope -> com.lycoris.loconautics.common.strand.StrandKind.WINCH_HOSE,
+                            HoseRopeManager::get));
             com.lycoris.loconautics.content.knuckle.KnuckleConnectionManager.watch(serverContainer);
             com.lycoris.loconautics.content.buffer.BufferContactManager.watch(serverContainer);
             com.lycoris.loconautics.common.strand.RemovedSubLevels.watch(serverContainer);

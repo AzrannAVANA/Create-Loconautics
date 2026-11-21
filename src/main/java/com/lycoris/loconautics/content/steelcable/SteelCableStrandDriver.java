@@ -2,6 +2,7 @@ package com.lycoris.loconautics.content.steelcable;
 
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.strand.RemovedSubLevels;
+import com.lycoris.loconautics.common.strand.RopeGeometry;
 import com.lycoris.loconautics.common.strand.StrandEndpoints;
 import com.lycoris.loconautics.common.strand.StrandSnap;
 import com.lycoris.loconautics.content.steelcable.rope.SteelCableRope;
@@ -29,7 +30,6 @@ import net.neoforged.neoforge.network.PacketDistributor;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector3d;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -112,7 +112,7 @@ public final class SteelCableStrandDriver {
                 return;
             }
         }
-        strand.points = new ArrayList<>(rope.getPoints());
+        strand.points = RopeGeometry.copyPoints(rope.getPoints());
         strand.extensionGoal = rope.getExtension();
         strands.touch();
     }

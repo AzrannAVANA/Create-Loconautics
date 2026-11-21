@@ -64,6 +64,7 @@
 - The coupling stress warning reaches the driver when one bogey is pulled off.
 - Cars thrown off with the physics staff keep rerailing instead of being called too lopsided.
 - Derailed carts no longer twitch on the spot when only one bogey can reach the rail.
+- Winch hoses no longer jump or lag behind the nozzle on a moving train.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

@@ -267,9 +267,6 @@ public final class LoconauticsClient {
                 new ItemDescription.Modifier(LoconauticsRegistries.KNUCKLE_ITEM.get(),
                         net.createmod.catnip.lang.FontHelper.Palette.STANDARD_CREATE));
 
-        com.lycoris.loconautics.common.strand.StrandKnotPicker.registerSource(
-                new com.lycoris.loconautics.content.hose.winch.HoseWinchKnotSource());
-
         registerTooltip(com.lycoris.loconautics.content.cerisene.CeriseneBlocks.RAW_CERISENE.get(), "item.loconautics.raw_cerisene");
         registerTooltip(com.lycoris.loconautics.content.cerisene.CeriseneBlocks.CERISENE_BLOCK_ITEM.get(), "block.loconautics.cerisene_block");
         registerTooltip(LoconauticsRegistries.HOSE.get(), "item.loconautics.hose");
