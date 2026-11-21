@@ -134,7 +134,7 @@ public final class RerailApproach {
         Step last = walk == null ? ease : walk;
         long age = train.level().getGameTime() - last.tick();
         if (age > HOLD_STALE_TICKS) {
-            LoconauticsConstants.LOGGER.warn("[rerailwire] dropped stale hold car {} {} step {} age {} ticks",
+            LoconauticsConstants.TRACE.warn("[rerailwire] dropped stale hold car {} {} step {} age {} ticks",
                     train.id(), walk == null ? "easing" : "walking", last.count(), age);
             abort(train);
             return false;
@@ -297,7 +297,7 @@ public final class RerailApproach {
         if (bodyHit == null) {
             bodyHit = seats.get(0).hit();
         } else if (!onSeatEdge(bodyHit, seats)) {
-            LoconauticsConstants.LOGGER.warn("[rerailwire] landing edge is no bogey edge car {} body {} seats {}",
+            LoconauticsConstants.TRACE.warn("[rerailwire] landing edge is no bogey edge car {} body {} seats {}",
                     train.id(), bodyHit.location().edge, seats.stream().map(seat -> seat.hit().location().edge).toList());
         }
         // the plates swing to the rails own sign while they steer, which says nothing about which way the car faces
@@ -591,7 +591,7 @@ public final class RerailApproach {
             gaps.append(' ').append(bogey.localPos().toShortString()).append('=')
                     .append(gap == null ? "null" : String.format("%.3f", gap.length()));
         }
-        LoconauticsConstants.LOGGER.warn("[rerailwire] ease seated car {} gaps{} stillOff {}", train.id(), gaps,
+        LoconauticsConstants.TRACE.warn("[rerailwire] ease seated car {} gaps{} stillOff {}", train.id(), gaps,
                 stillOff.size());
     }
 

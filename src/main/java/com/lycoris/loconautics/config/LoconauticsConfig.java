@@ -2,6 +2,7 @@ package com.lycoris.loconautics.config;
 
 import com.lycoris.loconautics.LoconauticsConstants;
 import net.neoforged.fml.ModList;
+import net.neoforged.fml.loading.FMLLoader;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class LoconauticsConfig {
@@ -88,7 +89,7 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.DoubleValue EXPLOSION_SUBLEVEL_PUSH_STRENGTH;
     public static ModConfigSpec.DoubleValue EXPLOSION_SUBLEVEL_PUSH_UPWARD;
 
-    public static final boolean DEBUG = false;
+    public static final boolean DEBUG = !FMLLoader.isProduction();
 
     public static ModConfigSpec.BooleanValue CBC_DERAIL_ENABLED;
     public static ModConfigSpec.BooleanValue CBC_RECOIL_ENABLED;

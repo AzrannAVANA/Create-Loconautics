@@ -158,7 +158,7 @@ public final class TrainDerailment {
                         .append(train.isBogeyOffTrack(bogey.localPos())).append(" edgesValid=")
                         .append(bogey.rail().edgesValid());
             }
-            LoconauticsConstants.LOGGER.warn("[rerailwire] rails gone car {} missed {} of {}{}", train.id(), missed,
+            LoconauticsConstants.TRACE.warn("[rerailwire] rails gone car {} missed {} of {}{}", train.id(), missed,
                     RAILS_GONE_GRACE_TICKS, bogeys);
         }
         if (missed < RAILS_GONE_GRACE_TICKS) {

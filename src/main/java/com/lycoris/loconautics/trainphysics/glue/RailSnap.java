@@ -311,7 +311,7 @@ public final class RailSnap {
                 omegaWritten = omegaR * phi > 0.0 ? 0.0 : omegaR;
                 if (!roll.curveClamped) {
                     roll.curveClamped = true;
-                    LoconauticsConstants.LOGGER.warn("[rocktrace] car={} curve clamp phi {} -> {} deg curvature={} speed={}",
+                    LoconauticsConstants.TRACE.warn("[rocktrace] car={} curve clamp phi {} -> {} deg curvature={} speed={}",
                             shortId(sub), f(Math.toDegrees(phi)), f(Math.toDegrees(written)), f(roll.curvature),
                             f(new Vector3d(vel).sub(railVel).dot(frame.tangent)));
                 }
@@ -427,13 +427,13 @@ public final class RailSnap {
         boolean rolledHeld = roll.rolledOff.update(Math.abs(phi) > unglue, now);
         boolean liftedHeld = roll.liftedOff.update(roll.allBeyondFlange(), now);
         if (rolledHeld) {
-            LoconauticsConstants.LOGGER.warn(
+            LoconauticsConstants.TRACE.warn(
                     "[rocktrace] car={} unglue rolled_off phi={} deg limit={} deg tip={} deg speed={} curvature={} grace={} relief={}",
                     shortId(sub), f(Math.toDegrees(phi)), f(Math.toDegrees(unglue)), f(Math.toDegrees(tip)), f(vTan),
                     f(roll.curvature), curveGrace, f(roll.relief));
             train.setDerailed(true, "rolled_off");
         } else if (liftedHeld) {
-            LoconauticsConstants.LOGGER.warn("[rocktrace] car={} unglue lifted_off wheels={} rise={} curvature={}",
+            LoconauticsConstants.TRACE.warn("[rocktrace] car={} unglue lifted_off wheels={} rise={} curvature={}",
                     shortId(sub), java.util.Arrays.toString(roll.y), f(rise), f(roll.curvature));
             train.setDerailed(true, "lifted_off");
         }
