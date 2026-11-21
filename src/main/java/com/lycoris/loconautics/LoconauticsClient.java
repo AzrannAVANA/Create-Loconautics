@@ -574,6 +574,7 @@ public final class LoconauticsClient {
             com.lycoris.loconautics.trainphysics.portal.PortalCutsClient.onLevelUnload(level);
             com.lycoris.loconautics.foundation.particle.LateParticles.clear();
             com.lycoris.loconautics.content.analogcontroller.AnalogControllerClientHandler.clear();
+            com.lycoris.loconautics.common.strand.ClientStrands.clearAll();
         }
     }
 

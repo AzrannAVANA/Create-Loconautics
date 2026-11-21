@@ -53,7 +53,7 @@ public final class SteelCableStrandDriver {
                 continue;
             }
             for (SteelCableStrand strand : List.copyOf(strands.all())) {
-                if (StrandEndpoints.drivenBy(level, strand.subA, strand.subB)) {
+                if (StrandEndpoints.drivenBy(level, strand.subA, strand.subB, strand.dimension)) {
                     driveStrand(level, container, system, strands, ropes, strand);
                 }
             }

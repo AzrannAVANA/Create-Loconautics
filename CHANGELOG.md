@@ -65,6 +65,7 @@
 - Cars thrown off with the physics staff keep rerailing instead of being called too lopsided.
 - Derailed carts no longer twitch on the spot when only one bogey can reach the rail.
 - Winch hoses no longer jump or lag behind the nozzle on a moving train.
+- Hoses and steel cables no longer show up in another dimension.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
