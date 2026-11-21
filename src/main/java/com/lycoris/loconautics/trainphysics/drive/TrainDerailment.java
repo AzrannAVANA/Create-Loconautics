@@ -32,11 +32,15 @@ public final class TrainDerailment {
             }
             RAILS_GONE.remove(train.id());
             TILT_OVER.remove(train.id());
+            if (subId != null) {
+                BUFFER_HELD.remove(subId);
+            }
         }
 
         @Override
         public void retain(Set<UUID> liveTrains, Set<UUID> liveSubs) {
             TrainDerailment.retain(liveTrains);
+            BUFFER_HELD.keySet().retainAll(liveSubs);
         }
 
         @Override
@@ -121,6 +125,8 @@ public final class TrainDerailment {
     static final int RAILS_GONE_GRACE_TICKS = 40;
 
     static final java.util.Map<UUID, Integer> RAILS_GONE = new java.util.HashMap<>();
+    // keyed by body, the sign of the speed that carried the car into the buffer, the drive may only pull it back out
+    static final java.util.Map<UUID, Integer> BUFFER_HELD = new java.util.HashMap<>();
 
     // false means stop here
     static boolean checkRailsGone(SableTrain train, ServerSubLevel sub) {
