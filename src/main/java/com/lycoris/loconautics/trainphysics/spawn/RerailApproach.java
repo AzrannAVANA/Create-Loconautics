@@ -407,6 +407,12 @@ public final class RerailApproach {
             BogeyEditTrace.refuse(train, "bogey rerail, pivot gap " + (gap == null ? "null" : gap.length()));
             return BogeyRerail.NONE;
         }
+        String follower = followerOutOfReach(sub, train, updated, stillOff, pivot, gap);
+        if (follower != null) {
+            EASING.remove(train.id());
+            BogeyEditTrace.refuse(train, "bogey rerail, follower " + follower);
+            return BogeyRerail.NONE;
+        }
         boolean aligned = steerSeatedPlates(train, updated, stillOff);
         if (gap.length() > EASE_DONE_GAP || !aligned) {
             int walked = stepCount(EASING, train.id()) + 1;
@@ -426,18 +432,6 @@ public final class RerailApproach {
         }
         easeBody(level, train, sub, gap);
         traceSeatGaps(sub, train, updated, stillOff);
-        for (SableTrain.Bogey seated : updated) {
-            if (seated == pivot) {
-                continue;
-            }
-            Vector3d far = stillOff.contains(seated.localPos()) ? null : seatGap(sub, train, seated);
-            if (far == null || far.length() > COMMIT_LATERAL) {
-                EASING.remove(train.id());
-                BogeyEditTrace.refuse(train, "bogey rerail, follower " + seated.localPos().toShortString()
-                        + (far == null ? " has no seat" : String.format(" gap %.3f", far.length())));
-                return BogeyRerail.NONE;
-            }
-        }
         train.setBogeys(updated);
         train.setDerailed(false, null);
         EASING.remove(train.id());
@@ -445,6 +439,28 @@ public final class RerailApproach {
         RerailBalance.noteAutoRerail(train, level.getGameTime());
         BogeyEditTrace.seated(train);
         return BogeyRerail.SEATED;
+    }
+
+    @Nullable
+    private static String followerOutOfReach(ServerSubLevel sub, SableTrain train, List<SableTrain.Bogey> updated,
+                                             List<BlockPos> stillOff, SableTrain.Bogey pivot, Vector3d pivotGap) {
+        for (SableTrain.Bogey bogey : updated) {
+            if (bogey == pivot) {
+                continue;
+            }
+            Vector3d far = stillOff.contains(bogey.localPos()) ? null : seatGap(sub, train, bogey);
+            if (far == null) {
+                return bogey.localPos().toShortString() + " has no seat";
+            }
+            far.sub(pivotGap);
+            Vec3 tangent = bogey.rail().forward();
+            double along = far.x * tangent.x + far.y * tangent.y + far.z * tangent.z;
+            far.sub(tangent.x * along, tangent.y * along, tangent.z * along);
+            if (far.length() > COMMIT_LATERAL) {
+                return bogey.localPos().toShortString() + String.format(" would be %.3f off", far.length());
+            }
+        }
+        return null;
     }
 
     private static final double SWING_ACQUIRE_DEGREES = 35.0;
