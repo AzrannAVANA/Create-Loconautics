@@ -50,6 +50,7 @@
 - A car with one loose bogey no longer fully derails when the track under that bogey breaks.
 - Lopsided cars stop retrying the rerail after two quick roll offs, even after nearby track edits.
 - Rerailed cars turn into place over a second instead of snapping the last few degrees.
+- Derailed cars no longer rerail with one bogey left off the track.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

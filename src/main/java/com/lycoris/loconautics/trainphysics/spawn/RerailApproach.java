@@ -96,7 +96,7 @@ public final class RerailApproach {
     private static final double ACQUIRE_VERTICAL = 0.5;
     private static final double ACQUIRE_YAW_DEGREES = 60.0;
 
-    private static final double COMMIT_LATERAL = 0.2;
+    static final double COMMIT_LATERAL = 0.2;
     private static final double COMMIT_VERTICAL = 0.2;
     private static final double COMMIT_YAW_DEGREES = 6.0;
 
@@ -425,11 +425,20 @@ public final class RerailApproach {
         }
         easeBody(level, train, sub, gap);
         traceSeatGaps(sub, train, updated, stillOff);
+        for (SableTrain.Bogey seated : updated) {
+            if (seated == pivot) {
+                continue;
+            }
+            Vector3d far = stillOff.contains(seated.localPos()) ? null : seatGap(sub, train, seated);
+            if (far == null || far.length() > COMMIT_LATERAL) {
+                EASING.remove(train.id());
+                BogeyEditTrace.refuse(train, "bogey rerail, follower " + seated.localPos().toShortString()
+                        + (far == null ? " has no seat" : String.format(" gap %.3f", far.length())));
+                return BogeyRerail.NONE;
+            }
+        }
         train.setBogeys(updated);
         train.setDerailed(false);
-        for (BlockPos pos : stillOff) {
-            train.markBogeyAwaitingRail(pos);
-        }
         EASING.remove(train.id());
         CartLifecycle.fire(train, CartEvent.REERAILED);
         RerailBalance.noteAutoRerail(train, level.getGameTime());
@@ -483,12 +492,15 @@ public final class RerailApproach {
         if (loose == null || arm.length() < 1.0) {
             return stopSwing(train);
         }
-        // a loose bogey with rail of its own under it seats there, swinging it onto the pivot rail would drag it off
-        if (SableTrainSpawner.acceptableSeatFor(level, sub, loose, train.car().carriage().forward(), null,
-                SableTrainSpawner.RERAIL_MAX_LATERAL) != null) {
-            return stopSwing(train);
+        RailCarriage own = SableTrainSpawner.acceptableSeatFor(level, sub, loose, train.car().carriage().forward(),
+                null, SableTrainSpawner.RERAIL_MAX_LATERAL);
+        if (own != null) {
+            LandingGap ownGap = landingGap(sub, train, new SableTrain.Bogey(loose.localPos(), own));
+            if (ownGap != null && ownGap.gentle()) {
+                return stopSwing(train);
+            }
         }
-        RailCarriage target = railAlongPivot(pivot.rail(), anchor, arm);
+        RailCarriage target = own != null ? own : railAlongPivot(pivot.rail(), anchor, arm);
         Vector3d seat = target == null ? null : target.center();
         if (seat == null) {
             return stopSwing(train);
@@ -550,8 +562,25 @@ public final class RerailApproach {
         return walker.reachedEnd() ? null : walker;
     }
 
+    record LandingGap(double lateral, double vertical) {
+        boolean gentle() {
+            return lateral <= COMMIT_LATERAL && vertical <= ACQUIRE_VERTICAL;
+        }
+    }
+
     @Nullable
-    private static Vector3d seatGap(ServerSubLevel sub, SableTrain train, SableTrain.Bogey pivot) {
+    static LandingGap landingGap(ServerSubLevel sub, SableTrain train, SableTrain.Bogey bogey) {
+        Vector3d gap = seatGap(sub, train, bogey);
+        if (gap == null) {
+            return null;
+        }
+        Vec3 up = bogey.rail().upNormal();
+        double vertical = up == null ? 0.0 : gap.x * up.x + gap.y * up.y + gap.z * up.z;
+        return new LandingGap(Math.sqrt(Math.max(0.0, gap.lengthSquared() - vertical * vertical)), Math.abs(vertical));
+    }
+
+    @Nullable
+    static Vector3d seatGap(ServerSubLevel sub, SableTrain train, SableTrain.Bogey pivot) {
         Vector3d railPoint = pivot.rail().center();
         if (railPoint == null) {
             return null;

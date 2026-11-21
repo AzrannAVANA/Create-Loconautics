@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.trainphysics.spawn;
 
 import com.lycoris.loconautics.common.sable.SubLevelData;
+import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.train.TrainStatusChat;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.state.CartEvent;
@@ -167,6 +168,9 @@ public final class RerailBalance {
         if (md != null && !md.isInvalid()) {
             LOOPING.put(id, new Snapshot(md.getMass(), new Vector3d(md.getCenterOfMass())));
         }
+        LoconauticsConstants.TRACE.warn("[rerailwire] loop guard tripped car {} after {} roll offs, {} ticks after the rerail",
+                id, loops, now - rerailedAt);
+        TrainStatusChat.tooLopsided(train);
         RerailApproach.giveUp(train, now);
     }
 

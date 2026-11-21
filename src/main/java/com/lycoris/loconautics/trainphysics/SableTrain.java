@@ -323,11 +323,6 @@ public final class SableTrain {
         return offTrackBogeys.add(localPos);
     }
 
-    public void markBogeyAwaitingRail(BlockPos localPos) {
-        offTrackSince.remove(localPos);
-        offTrackBogeys.add(localPos);
-    }
-
     public boolean bogeyRerailReady(BlockPos localPos, int cooldownTicks) {
         Long since = offTrackSince.get(localPos);
         return since == null || level == null || level.getGameTime() - since >= cooldownTicks;
