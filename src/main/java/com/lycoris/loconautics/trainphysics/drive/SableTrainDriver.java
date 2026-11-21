@@ -256,6 +256,18 @@ public final class SableTrainDriver {
         }
     }
 
+    // released in the substep that finds the end, a game tick later the glue has already carried the car past it
+    private static boolean ranOffEnd(ServerSubLevel bodySub, Car car, SableTrain train) {
+        if (!LoconauticsConfig.DERAIL_AT_TRACK_END.get() || !DEAD_END.contains(bodySub.getUniqueId())
+                || !TrainDerailment.runOffEnd(train, car)) {
+            return false;
+        }
+        if (train.isDerailed()) {
+            RailGlue.releaseConstraint(bodySub.getUniqueId());
+        }
+        return true;
+    }
+
     static void driveConstraintGlued(PhysicsPipeline pipeline, ServerSubLevel bodySub,
                                              Car car, double dt, SableTrain train) {
         if (train.hasOffTrackBogey()) {
@@ -289,6 +301,12 @@ public final class SableTrainDriver {
         GhostConsistTrace.noteSubstep(train, bodySub, "glued", dt, slide);
 
         updateDeadEnd(bodySub, car, train);
+        if (ranOffEnd(bodySub, car, train)) {
+            if (!train.isDerailed()) {
+                driveConstraintPivot(pipeline, bodySub, car, dt, train);
+            }
+            return;
+        }
 
         Quaterniond q;
         ref = TrainRailAdvance.bogeyReference(bodySub, car);
@@ -453,6 +471,9 @@ public final class SableTrainDriver {
         railed.rail().setSpeed(slide);
         railed.rail().tick();
         updateDeadEnd(bodySub, car, train);
+        if (ranOffEnd(bodySub, car, train)) {
+            return;
+        }
 
         railPoint = railed.rail().center();
         tangent = TrainRailAdvance.railTangentOf(railed);

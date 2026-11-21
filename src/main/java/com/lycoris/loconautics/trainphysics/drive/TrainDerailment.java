@@ -114,22 +114,9 @@ public final class TrainDerailment {
         if (ExternalForceDerail.check(train, sub)) {
             return;
         }
-        if (LoconauticsConfig.DERAIL_AT_TRACK_END.get() && SableTrainDriver.DEAD_END.contains(sub.getUniqueId())) {
-            boolean full = false;
-            for (SableTrain.Bogey bogey : car.bogeys()) {
-                if (!train.isBogeyOffTrack(bogey.localPos()) && bogey.rail().reachedEnd()) {
-                    full |= derailBogey(train, car, bogey, "end_of_track");
-                }
-            }
-            if (full) {
-                LoconauticsConstants.LOGGER.info(
-                        "[sabletrain] car {} ran every bogey off the track end at {} b/s",
-                        train.id(), SableTrainDriver.f(train.speed() * 20.0));
-                return;
-            }
-            if (train.hasOffTrackBogey()) {
-                return;
-            }
+        if (LoconauticsConfig.DERAIL_AT_TRACK_END.get() && SableTrainDriver.DEAD_END.contains(sub.getUniqueId())
+                && (runOffEnd(train, car) || train.hasOffTrackBogey())) {
+            return;
         }
         if (!TrainPropulsion.isMonorail(train) && checkCouplingStress(train, sub)) {
             return;
@@ -198,6 +185,22 @@ public final class TrainDerailment {
         LoconauticsConstants.LOGGER.info("[sabletrain] car {} fell off a rail leaning {} deg, past {}",
                 train.id(), SableTrainDriver.f(tilt), SableTrainDriver.f(limit));
         return true;
+    }
+
+    static boolean runOffEnd(SableTrain train, Car car) {
+        boolean any = false;
+        boolean full = false;
+        for (SableTrain.Bogey bogey : car.bogeys()) {
+            if (!train.isBogeyOffTrack(bogey.localPos()) && bogey.rail().reachedEnd()) {
+                any = true;
+                full |= derailBogey(train, car, bogey, "end_of_track");
+            }
+        }
+        if (full) {
+            LoconauticsConstants.LOGGER.info("[sabletrain] car {} ran every bogey off the track end at {} b/s",
+                    train.id(), SableTrainDriver.f(train.speed() * 20.0));
+        }
+        return any;
     }
 
     static boolean derailBogey(SableTrain train, Car car, SableTrain.Bogey bogey, String statusKey) {

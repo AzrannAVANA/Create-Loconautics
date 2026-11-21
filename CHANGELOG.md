@@ -57,6 +57,7 @@
 - Cars lifted off the rail keep the speed they had instead of nearly stopping.
 - The Physics Staff no longer throws cars off the rail with external force derail off.
 - With curve derail off, cars no longer roll off the rail in curves.
+- Cars drop off a track end right away instead of floating past it first.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
