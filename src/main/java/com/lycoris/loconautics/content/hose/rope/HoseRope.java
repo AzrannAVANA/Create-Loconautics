@@ -43,17 +43,16 @@ public final class HoseRope extends AttachedRopePhysicsObject {
                                  Vector3dc nozzleWorld, double length) {
         double dist = Math.max(0.5, Math.min(length, type.maxLength() + 1.0));
         double straight = new Vector3d(winchWorld).sub(nozzleWorld).length();
-        double span = Math.max(straight, MIN_EXTENSION);
-        int whole = (int) Math.floor(span);
-        double first = span - whole;
-        if (first < MIN_EXTENSION && whole > 0) {
-            whole--;
-            first += 1.0;
-        }
+        int whole = (int) Math.floor(straight);
+        double first = straight - whole;
         List<Vector3d> points = new ArrayList<>();
         points.add(new Vector3d(winchWorld));
-        for (int k = 0; k <= whole; k++) {
-            points.add(winchWorld.lerp(nozzleWorld, (first + k) / span, new Vector3d()));
+        if (straight < 1.0e-6) {
+            points.add(new Vector3d(nozzleWorld));
+        } else {
+            for (int k = 0; k <= whole; k++) {
+                points.add(winchWorld.lerp(nozzleWorld, (first + k) / straight, new Vector3d()));
+            }
         }
         HoseRope rope = new HoseRope(id, points, type);
         rope.putAttachment(RopeHandle.AttachmentPoint.START, winchSubLevelId, winchPos);
@@ -62,6 +61,9 @@ public final class HoseRope extends AttachedRopePhysicsObject {
         while (extension > 1.0) {
             rope.addPoint(winchWorld);
             extension -= 1.0;
+        }
+        if (extension < MIN_EXTENSION && rope.getPoints().size() <= 2) {
+            extension = MIN_EXTENSION;
         }
         rope.extensionGoal = extension;
         rope.lastExtensionGoal = extension;

@@ -67,6 +67,7 @@
 - Winch hoses no longer jump or lag behind the nozzle on a moving train.
 - Hoses and steel cables no longer show up in another dimension.
 - Hose Winches keep working after a reload, no need to break and place them back.
+- Hose Nozzles no longer get flung away when hooked to a Hose Winch.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
