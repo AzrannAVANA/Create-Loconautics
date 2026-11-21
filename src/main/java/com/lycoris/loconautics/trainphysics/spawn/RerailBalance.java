@@ -150,11 +150,6 @@ public final class RerailBalance {
         AUTO_RERAILED.put(train.id(), gameTime);
     }
 
-    // a hand placed rerail starts the count over
-    public static void noteManualRerail(SableTrain train) {
-        forget(train.id());
-    }
-
     // the second roll off soon after an auto rerail ends the auto rerails
     private static void noteRolledOff(ServerSubLevel sub, SableTrain train) {
         UUID id = train.id();

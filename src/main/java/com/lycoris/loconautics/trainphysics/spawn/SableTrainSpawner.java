@@ -331,7 +331,7 @@ public final class SableTrainSpawner {
     }
 
     public static void remove(SableTrain train) {
-        com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.releaseAll(train);
+        CartLifecycle.fire(train, CartEvent.REMOVED);
         ServerSubLevelContainer container = SubLevelContainer.getContainer(train.level());
         if (container != null) {
             SableTrain.Car car = train.car();
@@ -573,7 +573,7 @@ public final class SableTrainSpawner {
             return false;
         }
         // squaring up rebuilds ghost wheels, so they get stripped after, not before
-        com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies.releaseAll(train);
+        CartLifecycle.fire(train, CartEvent.REMOVED);
 
         BlockPos anchor = sub.getPlot().getCenterBlock();
         ServerSubLevel host = train.car().carriage() == null ? null : train.car().carriage().activeSub();
@@ -590,7 +590,6 @@ public final class SableTrainSpawner {
         SimAssemblyHelper.disassembleSubLevel(level, sub, anchor, goal, rotation, true);
 
         SableTrainRegistry.remove(train.id());
-        RerailApproach.forget(train.id());
         SableTrainPersistence.unpersist(level.getServer(), train.id());
         SableTrainSyncPacket.broadcastRemoval(subId);
         // emptying the plot marks the husk removed but leaves it ticking, and a pending heat map split then crashes
