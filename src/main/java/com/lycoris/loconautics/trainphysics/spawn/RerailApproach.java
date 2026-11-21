@@ -15,6 +15,7 @@ import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner.BogeySeat;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner.SeatPose;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner.TrackHit;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
+import com.simibubi.create.content.trains.graph.TrackGraphLocation;
 import com.lycoris.loconautics.trainphysics.wheels.GhostWheelBodies;
 import dev.simulated_team.simulated.content.blocks.rope.strand.server.RopeAttachment;
 import dev.simulated_team.simulated.content.blocks.rope.strand.server.ServerLevelRopeManager;
@@ -296,6 +297,9 @@ public final class RerailApproach {
                 BlockPos.containing(anchor.x, anchor.y, anchor.z), fwd);
         if (bodyHit == null) {
             bodyHit = seats.get(0).hit();
+        } else if (!onSeatEdge(bodyHit, seats)) {
+            LoconauticsConstants.LOGGER.warn("[rerailwire] landing edge is no bogey edge car {} body {} seats {}",
+                    train.id(), bodyHit.location().edge, seats.stream().map(seat -> seat.hit().location().edge).toList());
         }
         // the plates swing to the rails own sign while they steer, which says nothing about which way the car faces
         Vec3 facing = SableTrainSpawner.currentFacing(sub, train.car());
@@ -561,6 +565,20 @@ public final class RerailApproach {
         double along = gap.x * tangent.x + gap.y * tangent.y + gap.z * tangent.z;
         gap.sub(tangent.x * along, tangent.y * along, tangent.z * along);
         return isFinite(gap) ? gap : null;
+    }
+
+    private static boolean onSeatEdge(TrackHit bodyHit, List<BogeySeat> seats) {
+        TrackGraphLocation body = bodyHit.location();
+        for (BogeySeat seat : seats) {
+            TrackGraphLocation at = seat.hit().location();
+            if (at.graph == body.graph && (at.edge.getFirst().equals(body.edge.getFirst())
+                    && at.edge.getSecond().equals(body.edge.getSecond())
+                    || at.edge.getFirst().equals(body.edge.getSecond())
+                    && at.edge.getSecond().equals(body.edge.getFirst()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void traceSeatGaps(ServerSubLevel sub, SableTrain train, List<SableTrain.Bogey> updated,
