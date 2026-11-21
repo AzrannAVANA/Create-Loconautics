@@ -107,6 +107,7 @@
 - Hold Alt over a boiler body or firebox to see its water capacity.
 - Single bogey cars lift their wheels on one side like other cars.
 - The /loconautics lost command lists trains whose body went missing and can find them again.
+- Grabbed objects keep the angle you turned them to and turn with your view.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.
