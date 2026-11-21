@@ -41,7 +41,7 @@ public final class StrandTrackingSystem<R extends AttachedRopePhysicsObject> imp
                 if (rope.isActive()) {
                     rope.updatePose();
                     RopePullTrace.ends(rope, level);
-                    moving |= grab.engaged() || rope.needsSync();
+                    moving |= grab.engaged() || rope.needsSync() || !rope.isNetworkingStopped();
                 }
             }
         }
