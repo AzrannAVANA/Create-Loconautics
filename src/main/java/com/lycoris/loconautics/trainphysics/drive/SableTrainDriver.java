@@ -520,8 +520,16 @@ public final class SableTrainDriver {
                 && !pushesIntoBuffer(bodySub.getUniqueId(), train)) {
             applyTangentialDrive(pipeline, bodySub, pivotTrackSub, railPoint, tangent, dt, train);
         }
+        // only the wheels still on the rail drag, the loose end hangs and scrapes on its own contacts
+        int railedCount = 0;
+        for (SableTrain.Bogey bogey : bogeys) {
+            if (!train.isBogeyOffTrack(bogey.localPos())) {
+                railedCount++;
+            }
+        }
+        double railedShare = (double) railedCount / bogeys.size();
         TrainBrakes.applyResistance(bodySub, pivotTrackSub, railPoint, tangent, dt,
-                train.isBraked() ? train.brakeScale() : TrainBrakes.rollingScale(train, bodySub),
+                railedShare * (train.isBraked() ? train.brakeScale() : TrainBrakes.rollingScale(train, bodySub)),
                 train.isBraked() ? ForceSource.BRAKE : ForceSource.ROLLING);
         if (!runningOff) {
             TrainBrakes.relieveSlopeGravity(bodySub, railPoint, tangent, dt);
