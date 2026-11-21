@@ -70,6 +70,7 @@
 - Hose Nozzles no longer get flung away when hooked to a Hose Winch.
 - Hose Nozzles turn freely again, the hose no longer fights the nozzle it is hooked to.
 - A bogey placed on a physics body turns it into a train right away, untested.
+- A train made from a placed bogey no longer jerks around on its first rerail, untested.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

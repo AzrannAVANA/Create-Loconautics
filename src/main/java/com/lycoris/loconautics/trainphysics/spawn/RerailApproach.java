@@ -368,9 +368,6 @@ public final class RerailApproach {
     private static final double BOGEY_RERAIL_UPRIGHT = 0.9;
 
     private static BogeyRerail tryBogeyRerail(ServerLevel level, ServerSubLevel sub, SableTrain train) {
-        if (train.isTrackless()) {
-            return BogeyRerail.NONE;
-        }
         if (WALKING.containsKey(train.id())) {
             return BogeyRerail.NONE;
         }
@@ -432,7 +429,23 @@ public final class RerailApproach {
         }
         easeBody(level, train, sub, gap);
         traceSeatGaps(sub, train, updated, stillOff);
-        train.setBogeys(updated);
+        boolean trackless = train.isTrackless();
+        if (trackless) {
+            List<BlockPos> offTrack = new ArrayList<>();
+            SableTrain.Car railed = SubLevelSplitWatcher.buildCarFromSubLevelScan(level, sub, pivot.rail().forward(),
+                    new ArrayList<>(), null, null, null, offTrack);
+            if (railed == null) {
+                EASING.remove(train.id());
+                BogeyEditTrace.refuse(train, "bogey rerail, trackless car found no rail to take");
+                return BogeyRerail.NONE;
+            }
+            train.relocate(railed);
+            for (BlockPos pos : offTrack) {
+                train.markBogeyOffTrack(pos);
+            }
+        } else {
+            train.setBogeys(updated);
+        }
         train.setDerailed(false, null);
         EASING.remove(train.id());
         CartLifecycle.fire(train, CartEvent.REERAILED);
