@@ -7,7 +7,6 @@ import com.lycoris.loconautics.client.connected.ConnectedBlock;
 import com.lycoris.loconautics.client.connected.ConnectionBounds;
 import com.lycoris.loconautics.client.copycat.CopycatMaterialSource;
 import com.lycoris.loconautics.client.copycat.CopycatQuads;
-import com.lycoris.loconautics.compat.cbc.BoilerImpactCallback;
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
 import com.lycoris.loconautics.content.boiler.BoilerPlacement;
 import com.lycoris.loconautics.content.boiler.BoilerShapes;
@@ -18,8 +17,6 @@ import dev.ryanhcode.sable.api.block.BlockSubLevelAssemblyListener;
 import dev.ryanhcode.sable.api.block.BlockSubLevelCollisionShape;
 import net.createmod.catnip.placement.IPlacementHelper;
 import net.createmod.catnip.placement.PlacementHelpers;
-import dev.ryanhcode.sable.api.block.BlockWithSubLevelCollisionCallback;
-import dev.ryanhcode.sable.api.physics.callback.BlockSubLevelCollisionCallback;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -51,7 +48,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
 public class FireboxBlock extends BaseEntityBlock
-        implements BlockWithSubLevelCollisionCallback, BlockSubLevelAssemblyListener, IWrenchable, ConnectedBlock,
+        implements BlockSubLevelAssemblyListener, IWrenchable, ConnectedBlock,
         CopycatMaterialSource, BlockSubLevelCollisionShape, OversizeShape {
 
     public static final BooleanProperty EXTENSION = BooleanProperty.create("extension");
@@ -198,11 +195,6 @@ public class FireboxBlock extends BaseEntityBlock
     @Override
     public VoxelShape getSubLevelCollisionShape(BlockGetter level, BlockState state) {
         return BoilerShapes.fireboxCollision(state.getValue(BlockStateProperties.HORIZONTAL_FACING).getAxis());
-    }
-
-    @Override
-    public BlockSubLevelCollisionCallback sable$getCallback() {
-        return BoilerImpactCallback.INSTANCE;
     }
 
     @Override

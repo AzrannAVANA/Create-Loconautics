@@ -72,10 +72,6 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.IntValue CROWN_SHEET_TICKS;
     public static ModConfigSpec.IntValue DRAFT_CHOKE_TICKS;
 
-    public static ModConfigSpec.BooleanValue CRASH_EXPLODE_ENABLED;
-    public static ModConfigSpec.DoubleValue CRASH_IMPACT_THRESHOLD;
-    public static ModConfigSpec.DoubleValue CRASH_EXPLOSION_POWER;
-
     public static ModConfigSpec.DoubleValue OPPOSED_STRESS_FACTOR;
     public static ModConfigSpec.IntValue ANALOG_DECAY_TICKS;
     public static ModConfigSpec.DoubleValue TRANSMISSION_SU_IMPACT;
@@ -380,19 +376,6 @@ public final class LoconauticsConfig {
 
         CROWN_SHEET_TICKS = BUILDER
                 .defineInRange("crownSheetTicks", 600, 20, 72000);
-
-        BUILDER.pop();
-
-        BUILDER.push("crash");
-
-        CRASH_EXPLODE_ENABLED = BUILDER
-                .define("explodeOnCrash", true);
-
-        CRASH_IMPACT_THRESHOLD = BUILDER
-                .defineInRange("crashImpactThreshold", 4.0, 0.0, 1000.0);
-
-        CRASH_EXPLOSION_POWER = BUILDER
-                .defineInRange("explosionPower", 4.0, 0.0, 100.0);
 
         BUILDER.pop();
 
