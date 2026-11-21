@@ -295,7 +295,7 @@ public final class SubLevelSplitWatcher {
             return;
         }
         logPivot("before", train, sub);
-        train.replaceCar(rebuilt);
+        train.reshape(rebuilt);
         logPivot("after", train, sub);
         SableTrainPersistence.persist(train);
         SableTrainSyncPacket.broadcast(train);
@@ -386,7 +386,7 @@ public final class SubLevelSplitWatcher {
         if (rebuilt == null || rebuilt.bogeys().size() <= train.car().bogeys().size()) {
             return;
         }
-        train.replaceCar(rebuilt);
+        train.reshape(rebuilt);
         SableTrainPersistence.persist(train);
         SableTrainSyncPacket.broadcast(train);
     }
@@ -470,6 +470,7 @@ public final class SubLevelSplitWatcher {
             SableTrain.Car rebuilt = TracklessCars.build(sub);
             if (rebuilt != null) {
                 originalTrain.replaceCar(rebuilt);
+                CartLifecycle.fire(originalTrain, CartEvent.SPLIT);
                 SableTrainPersistence.persist(originalTrain);
                 SableTrainSyncPacket.broadcast(originalTrain);
             }

@@ -5,6 +5,8 @@ import com.lycoris.loconautics.registry.LoconauticsRegistries;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.SableTrain.Bogey;
 import com.lycoris.loconautics.trainphysics.SableTrain.Car;
+import com.lycoris.loconautics.trainphysics.state.CartEvent;
+import com.lycoris.loconautics.trainphysics.state.CartLifecycle;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
@@ -132,6 +134,7 @@ public final class WheelColliders {
             BogeyEditTrace.refuse(train, "reconcile dropped " + (car.bogeys().size() - alive.size()) + " bogey(s)");
             train.setBogeys(alive);
             SubLevelSplitWatcher.refitAfterBogeyDrop(train, sub, alive);
+            CartLifecycle.fire(train, CartEvent.RESHAPED);
         }
     }
 
