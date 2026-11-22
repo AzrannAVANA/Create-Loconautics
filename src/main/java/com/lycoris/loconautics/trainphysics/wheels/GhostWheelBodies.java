@@ -693,6 +693,10 @@ public final class GhostWheelBodies {
             Quaterniond swing = rig == null || container == null ? null : swingOf(container, rig, carQ);
             BogeyYawVisual.setWheelSwing(be, swing == null ? null
                     : new Quaternionf((float) swing.x, (float) swing.y, (float) swing.z, (float) swing.w));
+            Quaterniond rest = swing == null ? null
+                    : new Quaterniond(rig.wheelRest()).conjugate().mul(rig.carRest()).normalize();
+            BogeyYawVisual.setWheelPlate(be, rest == null ? null : rig.wheelSub(), rest == null ? null
+                    : new Quaternionf((float) rest.x, (float) rest.y, (float) rest.z, (float) rest.w));
         }
     }
 

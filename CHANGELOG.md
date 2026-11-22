@@ -74,6 +74,7 @@
 - Cars with long wheel plates no longer flip over right after they rerail.
 - Derailed Railways cars only rerail onto track their bogeys can run on, untested.
 - Bogeys no longer bounce when a car drops onto the track.
+- Loose bogeys follow their wheel plate smoothly instead of skipping some ticks.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.

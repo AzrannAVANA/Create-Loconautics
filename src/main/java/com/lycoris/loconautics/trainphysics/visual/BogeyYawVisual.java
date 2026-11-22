@@ -25,6 +25,11 @@ public final class BogeyYawVisual {
     private static final String SWING_Y_KEY = "LoconauticsWheelSwingY";
     private static final String SWING_Z_KEY = "LoconauticsWheelSwingZ";
     private static final String SWING_W_KEY = "LoconauticsWheelSwingW";
+    private static final String PLATE_KEY = "LoconauticsWheelPlate";
+    private static final String PLATE_REST_X_KEY = "LoconauticsWheelPlateRestX";
+    private static final String PLATE_REST_Y_KEY = "LoconauticsWheelPlateRestY";
+    private static final String PLATE_REST_Z_KEY = "LoconauticsWheelPlateRestZ";
+    private static final String PLATE_REST_W_KEY = "LoconauticsWheelPlateRestW";
 
     private BogeyYawVisual() {
     }
@@ -76,6 +81,48 @@ public final class BogeyYawVisual {
         }
         return dest.set(data.getFloat(SWING_X_KEY), data.getFloat(SWING_Y_KEY), data.getFloat(SWING_Z_KEY),
                 data.getFloat(SWING_W_KEY));
+    }
+
+    public static java.util.UUID getWheelPlate(AbstractBogeyBlockEntity be) {
+        CompoundTag data = be.getBogeyData();
+        return data == null || !data.hasUUID(PLATE_KEY) ? null : data.getUUID(PLATE_KEY);
+    }
+
+    public static Quaternionf getWheelPlateRest(AbstractBogeyBlockEntity be, Quaternionf dest) {
+        CompoundTag data = be.getBogeyData();
+        if (data == null || !data.contains(PLATE_REST_W_KEY)) {
+            return null;
+        }
+        return dest.set(data.getFloat(PLATE_REST_X_KEY), data.getFloat(PLATE_REST_Y_KEY),
+                data.getFloat(PLATE_REST_Z_KEY), data.getFloat(PLATE_REST_W_KEY));
+    }
+
+    public static void setWheelPlate(AbstractBogeyBlockEntity be, java.util.UUID plate, Quaternionf rest) {
+        CompoundTag data = be.getBogeyData();
+        java.util.UUID had = data == null || !data.hasUUID(PLATE_KEY) ? null : data.getUUID(PLATE_KEY);
+        if (plate == null || rest == null) {
+            if (had == null) {
+                return;
+            }
+            for (String key : new String[] { PLATE_KEY, PLATE_REST_X_KEY, PLATE_REST_Y_KEY, PLATE_REST_Z_KEY,
+                    PLATE_REST_W_KEY }) {
+                data.remove(key);
+            }
+        } else {
+            if (plate.equals(had)) {
+                return;
+            }
+            if (data == null) {
+                data = new CompoundTag();
+            }
+            data.putUUID(PLATE_KEY, plate);
+            data.putFloat(PLATE_REST_X_KEY, rest.x);
+            data.putFloat(PLATE_REST_Y_KEY, rest.y);
+            data.putFloat(PLATE_REST_Z_KEY, rest.z);
+            data.putFloat(PLATE_REST_W_KEY, rest.w);
+        }
+        be.setBogeyData(data);
+        sync(be);
     }
 
     public static void setWheelSwing(AbstractBogeyBlockEntity be, Quaternionf swing) {

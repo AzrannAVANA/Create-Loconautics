@@ -5,6 +5,7 @@ import com.lycoris.loconautics.config.BogeyRenderConfig;
 import com.lycoris.loconautics.trainphysics.state.SableTrainClientRegistry;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlock;
 import com.simibubi.create.content.trains.bogey.AbstractBogeyBlockEntity;
+import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import net.minecraft.core.Direction;
 import net.neoforged.api.distmarker.Dist;
@@ -48,7 +49,9 @@ public final class BogeyRenderFrame {
             double yaw = (axisX ? 90.0 : 0.0) + (RAILED_BACKWARDS.contains(be) ? 180.0 : 0.0);
             local.rotationY((float) Math.toRadians(yaw));
             if (swing != null) {
-                local.premul(BogeySwingSmoother.interp(be, swing, partialTick, new Quaternionf())).normalize();
+                Quaternionf live = plateSwing(be, sub);
+                local.premul(live != null ? live
+                        : BogeySwingSmoother.interp(be, swing, partialTick, new Quaternionf())).normalize();
             }
             sway.zero();
         } else {
@@ -79,6 +82,23 @@ public final class BogeyRenderFrame {
 
         Vector3f counter = railed ? BogeyYawVisual.getBodyCounter(be, new Vector3f()) : new Vector3f();
         return new Frame(local, sway, offset, counter, railed);
+    }
+
+    private static Quaternionf plateSwing(AbstractBogeyBlockEntity be, ClientSubLevel sub) {
+        java.util.UUID plateId = BogeyYawVisual.getWheelPlate(be);
+        Quaternionf rest = plateId == null ? null : BogeyYawVisual.getWheelPlateRest(be, new Quaternionf());
+        if (rest == null || sub == null || be.getLevel() == null) {
+            return null;
+        }
+        var container = SubLevelContainer.getContainer(be.getLevel());
+        if (container == null || !(container.getSubLevel(plateId) instanceof ClientSubLevel plate)) {
+            return null;
+        }
+        Quaterniondc carQ = sub.renderPose().orientation();
+        Quaterniondc plateQ = plate.renderPose().orientation();
+        return new Quaternionf((float) carQ.x(), (float) carQ.y(), (float) carQ.z(), (float) carQ.w()).conjugate()
+                .mul(new Quaternionf((float) plateQ.x(), (float) plateQ.y(), (float) plateQ.z(), (float) plateQ.w()))
+                .mul(rest).normalize();
     }
 
     private static boolean derailed(ClientSubLevel sub) {
