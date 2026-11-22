@@ -62,6 +62,7 @@ public final class LoconauticsConfig {
     public static ModConfigSpec.IntValue FIRE_LEVELS_POOR;
     public static ModConfigSpec.IntValue FIRE_LEVELS_NORMAL;
     public static ModConfigSpec.IntValue FIRE_LEVELS_PREMIUM;
+    public static ModConfigSpec.DoubleValue WHEEL_PAIR_BONUS;
     public static ModConfigSpec.IntValue POOR_FUEL_BURN_LIMIT;
     public static ModConfigSpec.IntValue PREMIUM_FUEL_BURN_LIMIT;
     public static ModConfigSpec.IntValue BODY_WATER_CAPACITY;
@@ -344,6 +345,10 @@ public final class LoconauticsConfig {
         FIRE_LEVELS_PREMIUM = BUILDER
                 .comment("Levels each firebox adds to the fire limit with premium fuel like coal blocks.")
                 .defineInRange("fireLevelsPremium", 4, 1, 16);
+
+        WHEEL_PAIR_BONUS = BUILDER
+                .comment("Extra pull and extra pool draw a boiler bogey gets for each wheel pair after the first.")
+                .defineInRange("wheelPairBonus", 0.25, 0.0, 2.0);
 
         POOR_FUEL_BURN_LIMIT = BUILDER
                 .comment("Fuel that burns this many ticks or less counts as poor, unless a fuel tag says otherwise.")

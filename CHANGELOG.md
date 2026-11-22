@@ -147,6 +147,7 @@
 - Boiler bodies have new end caps and a reworked shell.
 - Boilers count 3 fireboxes and 9 body blocks, extra ones are decorative.
 - Boilers use more water when the bogeys draw more of the pool.
+- Boiler Bogeys pull harder and draw more steam for each wheel pair after the first.
 - Bound panel parts glint and name their block, shift right click unbinds them.
 - Rope and Physics Staff lift limits are configs again, the staff one can be 0.
 - A slow car stops at a track end like a Create train instead of running off.

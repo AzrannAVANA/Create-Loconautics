@@ -916,6 +916,8 @@
   "loconautics.configuration.boiler.fireLevelsPoor.tooltip": "Levels each firebox adds to the fire limit with poor fuel like wood.",
   "loconautics.configuration.boiler.fireLevelsPremium": "Fire Levels Premium Fuel",
   "loconautics.configuration.boiler.fireLevelsPremium.tooltip": "Levels each firebox adds to the fire limit with premium fuel like coal blocks.",
+  "loconautics.configuration.boiler.wheelPairBonus": "Wheel Pair Bonus",
+  "loconautics.configuration.boiler.wheelPairBonus.tooltip": "Extra pull and extra pool draw a boiler bogey gets for each wheel pair after the first.",
   "loconautics.configuration.boiler.poorFuelBurnLimit": "Poor Fuel Burn Limit",
   "loconautics.configuration.boiler.poorFuelBurnLimit.tooltip": "Fuel that burns this many ticks or less counts as poor, unless a fuel tag says otherwise.",
   "loconautics.configuration.boiler.premiumFuelBurnLimit": "Premium Fuel Burn Limit",
