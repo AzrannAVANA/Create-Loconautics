@@ -112,6 +112,7 @@
 - Grabbed objects keep the angle you turned them to and turn with your view.
 - Holding something shows which key rotates it, like Create's hints.
 - Datapacks can add engine fuels, with RPM and burn time per fluid.
+- Sneak placing a Firebox raises it, and parts on it rise too.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.

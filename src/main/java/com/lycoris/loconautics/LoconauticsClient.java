@@ -159,6 +159,13 @@ public final class LoconauticsClient {
             if (block instanceof com.simibubi.create.content.trains.bogey.AbstractBogeyBlock<?>) {
                 registerDrivenBogey(block);
             }
+            if (block.defaultBlockState().hasProperty(com.lycoris.loconautics.content.boiler.BoilerAttach.LIFTED)
+                    || block instanceof com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelBlock
+                    || block instanceof com.lycoris.loconautics.content.boiler.firebox.FireboxBlock) {
+                com.simibubi.create.CreateClient.MODEL_SWAPPER.getCustomBlockModels().register(
+                        net.createmod.catnip.registry.RegisteredObjectsHelper.getKeyOrThrow(block),
+                        com.lycoris.loconautics.content.boiler.RaisedBoilerModel::new);
+            }
         }
     }
 
