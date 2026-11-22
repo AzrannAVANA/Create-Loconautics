@@ -76,34 +76,38 @@ public final class RollerWorldActor {
 
         if (TrainActorControls.isDisabled(roller)) return;
 
-        BlockState paveWith = resolvePavingBlock(roller);
-        if (paveWith == null || paveWith.isAir()) return;
-
         if (GhostWheelBodies.isWheelBodyAt(world, pavingPos)) return;
 
-        if (world.getBlockState(pavingPos).is(paveWith.getBlock())) return;
-        if (!consumePavingItem(subLevel, roller)) return;
+        BlockState paveWith = resolvePavingBlock(roller);
+        boolean canPave = paveWith != null && !paveWith.isAir();
 
         if (roller.mode.getValue() == TUNNEL_PAVE_MODE) {
-            clearHeadroom(world, localPos, pavingPos, worldUp);
+            int startingY = canPave && hasPavingItem(subLevel, roller) ? 0 : 1;
+            clearHeadroom(world, localPos, pavingPos, worldUp, startingY, canPave ? paveWith : null);
         }
+
+        if (!canPave) return;
+        if (world.getBlockState(pavingPos).is(paveWith.getBlock())) return;
+        if (!consumePavingItem(subLevel, roller)) return;
         pave(world, pavingPos, paveWith);
     }
 
-    private static void clearHeadroom(ServerLevel world, BlockPos rollerPos, BlockPos surface, Direction up) {
-        int depth = HEADROOM_CLEAR_DEPTH;
-        for (int i = 1; i <= depth; i++) {
-            BlockPos above = surface.relative(up, i);
-            if (GhostWheelBodies.isWheelBodyAt(world, above)) continue;
-            BlockState state = world.getBlockState(above);
-            if (canBreak(world, above, state)) {
-                breakInto(world, rollerPos, above, state);
+    private static void clearHeadroom(ServerLevel world, BlockPos rollerPos, BlockPos surface, Direction up,
+                                      int startingY, BlockState paveWith) {
+        for (int i = startingY; i <= HEADROOM_CLEAR_DEPTH; i++) {
+            BlockPos target = surface.relative(up, i);
+            if (GhostWheelBodies.isWheelBodyAt(world, target)) continue;
+            BlockState state = world.getBlockState(target);
+            if (i == 0 && paveWith != null && state.is(paveWith.getBlock())) continue;
+            if (canBreak(world, target, state)) {
+                breakInto(world, rollerPos, target, state);
             }
         }
     }
 
     private static boolean canBreak(ServerLevel world, BlockPos pos, BlockState state) {
         if (!BlockBreakingKineticBlockEntity.isBreakable(state, state.getDestroySpeed(world, pos))) return false;
+        if (state.getCollisionShape(world, pos).isEmpty()) return false;
         if (AllTags.AllBlockTags.TRACKS.matches(state)) return false;
         for (Direction side : Direction.values()) {
             if (world.getBlockState(pos.relative(side)).is(BlockTags.PORTALS)) return false;
@@ -132,13 +136,21 @@ public final class RollerWorldActor {
     }
 
     private static boolean consumePavingItem(ServerSubLevel subLevel, RollerBlockEntity roller) {
+        return extractPavingItem(subLevel, roller, false);
+    }
+
+    private static boolean hasPavingItem(ServerSubLevel subLevel, RollerBlockEntity roller) {
+        return extractPavingItem(subLevel, roller, true);
+    }
+
+    private static boolean extractPavingItem(ServerSubLevel subLevel, RollerBlockEntity roller, boolean simulate) {
         FilteringBehaviour filter = roller.getBehaviour(FilteringBehaviour.TYPE);
         if (filter == null) return false;
         ItemStack wanted = filter.getFilter();
         if (wanted.isEmpty()) return false;
 
         IItemHandlerModifiable items = SablePsiHandlers.carriageItems(subLevel, () -> {});
-        ItemStack taken = ItemHelper.extract(items, stack -> ItemStack.isSameItemSameComponents(stack, wanted), 1, false);
+        ItemStack taken = ItemHelper.extract(items, stack -> ItemStack.isSameItemSameComponents(stack, wanted), 1, simulate);
         return !taken.isEmpty();
     }
 
