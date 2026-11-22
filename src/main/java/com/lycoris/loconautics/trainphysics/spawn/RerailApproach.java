@@ -123,6 +123,11 @@ public final class RerailApproach {
 
     private static final Map<UUID, Integer> SWINGING = new HashMap<>();
 
+    private record Held(Vector3d position, Quaterniond orientation) {
+    }
+
+    private static final Map<UUID, Held> HELD = new HashMap<>();
+
     // every substep of an approaching car, otherwise gravity eats the step before the next game tick can add another
     public static boolean holdApproach(PhysicsPipeline pipeline, ServerSubLevel sub, SableTrain train) {
         Step walk = WALKING.get(train.id());
@@ -138,8 +143,10 @@ public final class RerailApproach {
             abort(train);
             return false;
         }
+        Held held = HELD.get(train.id());
         Pose3d pose = sub.logicalPose();
-        pipeline.teleport(sub, pose.position(), pose.orientation());
+        pipeline.teleport(sub, held == null ? pose.position() : held.position(),
+                held == null ? pose.orientation() : held.orientation());
         pipeline.resetVelocity(sub);
         GhostWheelBodies.settleWheels(train);
         return true;
@@ -155,12 +162,14 @@ public final class RerailApproach {
         SWINGING.remove(trainId);
         WALKING.remove(trainId);
         EASING.remove(trainId);
+        HELD.remove(trainId);
     }
 
     public static void clearAll() {
         SWINGING.clear();
         WALKING.clear();
         EASING.clear();
+        HELD.clear();
         GAVE_UP.clear();
         RerailBalance.clearAll();
     }
@@ -177,6 +186,7 @@ public final class RerailApproach {
     private static boolean abort(SableTrain train) {
         WALKING.remove(train.id());
         EASING.remove(train.id());
+        HELD.remove(train.id());
         GhostWheelBodies.clearAlign(train);
         return false;
     }
@@ -378,7 +388,8 @@ public final class RerailApproach {
     private static final double EASE_MAX_GAP = 1.25;
     private static final double EASE_DONE_GAP = 0.05;
 
-    private static final double BOGEY_RERAIL_UPRIGHT = 0.9;
+    private static final double BOGEY_RERAIL_UPRIGHT = -1.0;
+    private static final double BOGEY_SEAT_UPRIGHT = 0.99;
 
     private static BogeyRerail tryBogeyRerail(ServerLevel level, ServerSubLevel sub, SableTrain train) {
         if (WALKING.containsKey(train.id())) {
@@ -424,7 +435,10 @@ public final class RerailApproach {
             return BogeyRerail.NONE;
         }
         boolean aligned = steerSeatedPlates(train, updated, stillOff);
-        if (gap.length() > EASE_DONE_GAP || !aligned) {
+        boolean standing = SubLevelData.isUpright(sub, BOGEY_SEAT_UPRIGHT);
+        double yawOff = SubLevelData.axisDiffDeg(SubLevelData.of(SableTrainSpawner.currentFacing(sub, train.car())),
+                SubLevelData.of(pivot.rail().forward()));
+        if (gap.length() > EASE_DONE_GAP || !aligned || !standing || yawOff > COMMIT_YAW_DEGREES) {
             int walked = stepCount(EASING, train.id()) + 1;
             if (walked > MAX_TICKS) {
                 GAVE_UP.put(train.id(), level.getGameTime());
@@ -434,13 +448,13 @@ public final class RerailApproach {
             }
             EASING.put(train.id(), new Step(walked, level.getGameTime()));
             BogeyEditTrace.phase(train, "easing", String.format(
-                    "step %d, gap %.3f (x %.3f y %.3f z %.3f), plates aligned %s, body y %.3f", walked,
-                    gap.length(), gap.x, gap.y, gap.z, aligned, sub.logicalPose().position().y())
+                    "step %d, gap %.3f (x %.3f y %.3f z %.3f), plates aligned %s, yaw off %.1f, body y %.3f", walked,
+                    gap.length(), gap.x, gap.y, gap.z, aligned, yawOff, sub.logicalPose().position().y())
                     + easeProbe(sub, train, pivot));
-            easeBody(level, train, sub, gap);
+            easeBody(level, train, sub, pivot, gap);
             return BogeyRerail.EASING;
         }
-        easeBody(level, train, sub, gap);
+        easeBody(level, train, sub, pivot, gap);
         traceSeatGaps(sub, train, updated, stillOff);
         boolean trackless = train.isTrackless();
         if (trackless) {
@@ -683,7 +697,8 @@ public final class RerailApproach {
                 fwd.x, fwd.y, fwd.z, gap.x * fwd.x + gap.y * fwd.y + gap.z * fwd.z, pivot.rail().reachedEnd());
     }
 
-    private static void easeBody(ServerLevel level, SableTrain train, ServerSubLevel sub, Vector3d gap) {
+    private static void easeBody(ServerLevel level, SableTrain train, ServerSubLevel sub, SableTrain.Bogey pivot,
+                                 Vector3d gap) {
         double length = gap.length();
         double step = Math.min(1.0, Math.max(MIN_STEP / Math.max(length, 1.0e-9), STEP_GAIN));
         Vector3d move = new Vector3d(gap).mul(step);
@@ -692,12 +707,42 @@ public final class RerailApproach {
         }
         Vector3d from = new Vector3d(sub.logicalPose().position());
         Quaterniond q = new Quaterniond(sub.logicalPose().orientation());
-        Vector3d next = new Vector3d(from).add(move);
-        if (!isFinite(next)) {
+        Quaterniond upright = new Quaterniond().rotationTo(SubLevelData.up(sub), new Vector3d(0.0, 1.0, 0.0));
+        Quaterniond turn = new Quaterniond(headingTurn(sub, train, pivot))
+                .mul(new Quaterniond().slerp(upright, TURN_GAIN)).normalize();
+        Vector3d anchor = SubLevelData.worldOf(sub,
+                new Vector3d(SableTrainDriver.pivotLocalAnchor(sub, train.car(), pivot)));
+        Quaterniond nextQ = new Quaterniond(turn).mul(q).normalize();
+        Vector3d next = turn.transform(new Vector3d(from).sub(anchor)).add(anchor).add(move);
+        if (!isFinite(next) || !isFinite(nextQ)) {
             return;
         }
-        SableTrainSpawner.writePose(level, sub, next, q);
-        GhostWheelBodies.carryWheels(train, from, q, next, q);
+        SableTrainSpawner.writePose(level, sub, next, nextQ);
+        HELD.put(train.id(), new Held(new Vector3d(next), new Quaterniond(nextQ)));
+        GhostWheelBodies.carryWheels(train, from, q, next, nextQ);
+    }
+
+    private static Quaterniond headingTurn(ServerSubLevel sub, SableTrain train, SableTrain.Bogey pivot) {
+        Vec3 facing = SableTrainSpawner.currentFacing(sub, train.car());
+        Vec3 rail = pivot.rail().forward();
+        Vector3d f = new Vector3d(facing.x, 0.0, facing.z);
+        Vector3d r = new Vector3d(rail.x, 0.0, rail.z);
+        if (f.lengthSquared() < 1.0e-9 || r.lengthSquared() < 1.0e-9) {
+            return new Quaterniond();
+        }
+        f.normalize();
+        r.normalize();
+        if (f.dot(r) < 0.0) {
+            r.negate();
+        }
+        Quaterniond full = new Quaterniond().rotationTo(f, r);
+        double angle = Math.toDegrees(full.angle());
+        if (angle < 1.0e-3) {
+            return new Quaterniond();
+        }
+        double stepDeg = Math.min(SWING_MAX_STEP_DEGREES, Math.max(Math.min(angle, SWING_MIN_STEP_DEGREES),
+                angle * SWING_GAIN));
+        return new Quaterniond().slerp(full, Math.min(1.0, stepDeg / angle)).normalize();
     }
 
     // the worst of the per bogey errors, since the car only lands once every one of its wheels is on its own rail
@@ -809,6 +854,7 @@ public final class RerailApproach {
             return;
         }
         SableTrainSpawner.writePose(level, sub, next, nextQ);
+        HELD.put(train.id(), new Held(new Vector3d(next), new Quaterniond(nextQ)));
         GhostWheelBodies.carryWheels(train, pos, q, next, nextQ);
     }
 

@@ -1487,6 +1487,7 @@ public final class SableTrainSpawner {
 
     static final double RERAIL_MAX_LATERAL = 1.25;
     private static final double RERAIL_MAX_DROP = 1.5;
+    private static final double RERAIL_DROP_TOLERANCE = 0.15;
     private static final double RERAIL_MAX_YAW_DEGREES = 45.0;
 
     public static boolean tryRerailOffTrackBogeys(SableTrain train) {
@@ -1590,7 +1591,7 @@ public final class SableTrainSpawner {
         Vector3d world = SubLevelData.worldOfOffset(sub, bogey.localPos());
         BlockState bogeyState = level.getBlockState(sub.getPlot().getCenterBlock().offset(bogey.localPos()));
         double drop = WheelColliders.isUpsideDown(bogeyState) ? center.y - world.y : world.y - center.y;
-        if (drop < 0.0 || drop > RERAIL_MAX_DROP
+        if (drop < -RERAIL_DROP_TOLERANCE || drop > RERAIL_MAX_DROP
                 || Math.hypot(world.x - center.x, world.z - center.z) > maxLateral) {
             return false;
         }

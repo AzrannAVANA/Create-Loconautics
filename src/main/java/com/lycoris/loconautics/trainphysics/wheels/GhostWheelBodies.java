@@ -95,6 +95,13 @@ public final class GhostWheelBodies {
 
     private static final Map<Key, Double> ALIGNING = new HashMap<>();
 
+    private static final Map<Key, Quaterniond> ALIGN_TARGET = new HashMap<>();
+
+    private record PlateHold(Vector3d position, Quaterniond orientation) {
+    }
+
+    private static final Map<UUID, PlateHold> PLATE_HOLD = new HashMap<>();
+
     private static final Map<UUID, ServerLevel> PENDING_WIPE = new LinkedHashMap<>();
 
     private GhostWheelBodies() {
@@ -138,6 +145,8 @@ public final class GhostWheelBodies {
         RIGS.clear();
         DANGLING.clear();
         ALIGNING.clear();
+        ALIGN_TARGET.clear();
+        PLATE_HOLD.clear();
         SEEN.clear();
         WHEEL_BODIES.clear();
         SETTLING.clear();
@@ -412,16 +421,24 @@ public final class GhostWheelBodies {
     }
 
     public static void settleWheels(SableTrain train) {
-        forEachPlate(train, (level, wheel) ->
-                SableTeleportation.writePose(level, wheel, new Vector3d(wheel.logicalPose().position()),
-                        new Quaterniond(wheel.logicalPose().orientation())));
+        forEachPlate(train, (level, wheel) -> {
+            PlateHold hold = PLATE_HOLD.get(wheel.getUniqueId());
+            SableTeleportation.writePose(level, wheel,
+                    new Vector3d(hold == null ? wheel.logicalPose().position() : hold.position()),
+                    new Quaterniond(hold == null ? wheel.logicalPose().orientation() : hold.orientation()));
+        });
     }
 
     // the plate is welded at the bogey pivot, so a teleported body has to carry it the same way the joint would have
     public static void carryWheels(SableTrain train, Vector3d fromPos, Quaterniond fromQ, Vector3d toPos,
                                    Quaterniond toQ) {
         Quaterniond turn = new Quaterniond(toQ).mul(new Quaterniond(fromQ).conjugate()).normalize();
+        forEachPlate(train, (level, wheel) -> PLATE_HOLD.remove(wheel.getUniqueId()));
+        Set<UUID> held = holdAlignedPlates(train, toQ);
         forEachPlate(train, (level, wheel) -> {
+            if (held.contains(wheel.getUniqueId())) {
+                return;
+            }
             Vector3d local = new Quaterniond(fromQ).conjugate()
                     .transform(new Vector3d(wheel.logicalPose().position()).sub(fromPos));
             Vector3d moved = new Quaterniond(toQ).transform(local).add(toPos);
@@ -431,6 +448,47 @@ public final class GhostWheelBodies {
             }
             SableTeleportation.writePose(level, wheel, moved, turned);
         });
+    }
+
+    private static Set<UUID> holdAlignedPlates(SableTrain train, Quaterniond carQ) {
+        Set<UUID> held = new HashSet<>();
+        ServerSubLevel carSub = resolveSub(train);
+        if (!ENABLED || carSub == null || train.car() == null) {
+            return held;
+        }
+        ServerSubLevelContainer container = SubLevelContainer.getContainer(carSub.getLevel());
+        if (container == null) {
+            return held;
+        }
+        for (SableTrain.Bogey bogey : train.car().bogeys()) {
+            Key key = new Key(carSub.getUniqueId(), bogey.localPos());
+            Rig rig = RIGS.get(key);
+            Quaterniond target = ALIGNING.containsKey(key) ? ALIGN_TARGET.get(key) : null;
+            if (rig == null || target == null || !rig.constraint().isValid()
+                    || !(container.getSubLevel(rig.wheelSub()) instanceof ServerSubLevel wheel) || wheel.isRemoved()) {
+                continue;
+            }
+            Vector3d anchor = carSub.logicalPose().transformPosition(
+                    new Vector3d(pivotFor(carSub, train, rig.pivotInCar())), new Vector3d());
+            BlockPos plot = wheel.getPlot().getCenterBlock();
+            Quaterniond nowQ = new Quaterniond(wheel.logicalPose().orientation());
+            Quaterniond wanted = new Quaterniond(target).mul(new Quaterniond(rig.restChord()).conjugate())
+                    .mul(rig.wheelRest()).normalize();
+            Vector3d pivot = wheel.logicalPose().transformPosition(
+                    new Vector3d(plot.getX() + 0.5, plot.getY() + 0.5, plot.getZ() + 0.5), new Vector3d());
+            Vector3d reach = new Quaterniond(wanted).mul(new Quaterniond(nowQ).conjugate())
+                    .transform(new Vector3d(pivot).sub(wheel.logicalPose().position()));
+            Vector3d moved = new Vector3d(anchor).sub(reach);
+            if (!moved.isFinite() || !Double.isFinite(wanted.w)) {
+                continue;
+            }
+            rig.constraint().setFrame1(pivotFor(carSub, train, rig.pivotInCar()),
+                    new Quaterniond(carQ).conjugate().mul(target).normalize());
+            SableTeleportation.writePose(carSub.getLevel(), wheel, moved, wanted);
+            PLATE_HOLD.put(wheel.getUniqueId(), new PlateHold(new Vector3d(moved), new Quaterniond(wanted)));
+            held.add(wheel.getUniqueId());
+        }
+        return held;
     }
 
     private static final double PIVOT_SLIP_LIMIT = 0.35;
@@ -664,6 +722,7 @@ public final class GhostWheelBodies {
             destroy(level, entry.getValue());
             DANGLING.remove(entry.getKey());
             ALIGNING.remove(entry.getKey());
+            ALIGN_TARGET.remove(entry.getKey());
             it.remove();
         }
     }
@@ -735,8 +794,16 @@ public final class GhostWheelBodies {
             return true;
         }
         Quaterniond carQ = new Quaterniond(carSub.logicalPose().orientation());
+        Vector3d before = facingOf(container, rig);
+        Quaterniond target = new Quaterniond(railChord);
+        Vector3d chordForward = target.transform(new Vector3d(0.0, 0.0, 1.0));
+        boolean flipped = before != null && before.dot(chordForward) < 0.0;
+        if (flipped) {
+            target.rotateY(Math.PI);
+        }
         rig.constraint().setFrame1(pivotFor(carSub, train, rig.pivotInCar()),
-                new Quaterniond(carQ).conjugate().mul(railChord).normalize());
+                new Quaterniond(carQ).conjugate().mul(target).normalize());
+        ALIGN_TARGET.put(key, target);
 
         double cone = Math.max(0.0, ALIGNING.getOrDefault(key, 1.0) - ALIGN_STEP);
         ALIGNING.put(key, cone);
@@ -769,11 +836,39 @@ public final class GhostWheelBodies {
         for (SableTrain.Bogey bogey : train.car().bogeys()) {
             Key key = new Key(carId, bogey.localPos());
             Rig rig = RIGS.get(key);
+            if (rig != null && !train.isBogeyOffTrack(bogey.localPos()) && bogey.rail() != null) {
+                placeOnChord(carSub, train, bogey, rig);
+            }
             if (rig != null && DANGLING.contains(key)) {
                 setDangling(carSub, train, key, rig, false);
             }
             ALIGNING.remove(key);
         }
+    }
+
+    private static void placeOnChord(ServerSubLevel carSub, SableTrain train, SableTrain.Bogey bogey, Rig rig) {
+        Quaterniond chord = bogey.rail().chordFrameQuaternion();
+        ServerLevel level = carSub.getLevel();
+        ServerSubLevelContainer container = SubLevelContainer.getContainer(level);
+        if (chord == null || container == null || !wheelAlive(level, rig)
+                || !(container.getSubLevel(rig.wheelSub()) instanceof ServerSubLevel wheel)) {
+            return;
+        }
+        Quaterniond wheelQ = new Quaterniond(wheel.logicalPose().orientation());
+        Quaterniond target = new Quaterniond(chord).mul(new Quaterniond(rig.restChord()).conjugate())
+                .mul(rig.wheelRest()).normalize();
+        Vector3d anchor = carSub.logicalPose().transformPosition(
+                new Vector3d(pivotFor(carSub, train, rig.pivotInCar())), new Vector3d());
+        BlockPos wheelPlot = wheel.getPlot().getCenterBlock();
+        Vector3d pivotInWheel = new Vector3d(wheelPlot.getX() + 0.5, wheelPlot.getY() + 0.5, wheelPlot.getZ() + 0.5);
+        wheel.logicalPose().orientation().set(target);
+        Vector3d heldAfter = wheel.logicalPose().transformPosition(new Vector3d(pivotInWheel), new Vector3d());
+        wheel.logicalPose().orientation().set(wheelQ);
+        Vector3d moved = new Vector3d(wheel.logicalPose().position()).add(anchor).sub(heldAfter);
+        if (!moved.isFinite() || !Double.isFinite(target.x + target.y + target.z + target.w)) {
+            return;
+        }
+        SableTeleportation.writePose(level, wheel, moved, target);
     }
 
     public static void clearAlign(SableTrain train, BlockPos bogeyLocal) {
@@ -879,6 +974,7 @@ public final class GhostWheelBodies {
     }
 
     private static void destroy(ServerLevel level, Rig rig) {
+        PLATE_HOLD.remove(rig.wheelSub());
         if (rig.constraint().isValid()) {
             rig.constraint().remove();
         }

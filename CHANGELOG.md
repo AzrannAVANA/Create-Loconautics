@@ -71,6 +71,7 @@
 - Hose Nozzles turn freely again, the hose no longer fights the nozzle it is hooked to.
 - A bogey placed on a physics body turns it into a train right away, untested.
 - A train made from a placed bogey no longer jerks around on its first rerail, untested.
+- Cars with long wheel plates no longer flip over right after they rerail.
 - Derailed Railways cars only rerail onto track their bogeys can run on, untested.
 
 ### Added
