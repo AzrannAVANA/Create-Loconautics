@@ -5,6 +5,7 @@ import com.lycoris.loconautics.common.advancement.TrainAdvancements;
 import com.lycoris.loconautics.common.sable.SableTeleportation;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.common.sable.SubLevelData;
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.drive.TrainRailAdvance;
 import com.lycoris.loconautics.trainphysics.rail.RailCarriage;
 import com.lycoris.loconautics.trainphysics.spawn.SableTrainSpawner;
@@ -44,10 +45,6 @@ public final class TrainPortalCrossing {
     private static final int CLEAR_HOLD = 20;
 
     private static final Map<UUID, Long> ISSUE278_UNTIL = new HashMap<>();
-
-    private static long JAM_LAST_NANOS = System.nanoTime();
-
-    private static long JAM_LAST_GC;
 
     private TrainPortalCrossing() {
     }
@@ -100,12 +97,15 @@ public final class TrainPortalCrossing {
         long straddleStart = System.nanoTime();
         straddle(train, car, master, frame);
         long straddleMicros = (System.nanoTime() - straddleStart) / 1_000L;
-        if (PortalTrace.dueAlways("longtrain" + car.subLevelId(), train.level().getGameTime(), 20)) {
-            LoconauticsConstants.LOGGER.info("[longtrain] tick car={} chain={} straddling={} straddleMicros={} {}",
+        if (LoconauticsConfig.DEBUG && PortalTrace.dueAlways("longtrain" + car.subLevelId(),
+                train.level().getGameTime(), 20)) {
+            LoconauticsConstants.TRACE.info("[longtrain] tick car={} chain={} straddling={} straddleMicros={} {}",
                     PortalTrace.id(car.subLevelId()), chain(train).size(), STRADDLING.size(), straddleMicros,
                     PortalTwins.debugCounts());
         }
-        traceJam(train, car, master, frame);
+        if (LoconauticsConfig.DEBUG) {
+            traceJam(train, car, master, frame);
+        }
         if (handOver(train, frame)) {
             return;
         }
@@ -124,19 +124,8 @@ public final class TrainPortalCrossing {
             points.append(rail.isFar(rail.leading()) ? 'F' : 'n').append(rail.isFar(rail.trailing()) ? 'F' : 'n')
                     .append(rail.reachedEnd() ? 'E' : '-').append(' ');
         }
-        long nanos = System.nanoTime();
-        long gcMs = 0L;
-        for (var bean : java.lang.management.ManagementFactory.getGarbageCollectorMXBeans()) {
-            gcMs += Math.max(0L, bean.getCollectionTime());
-        }
-        long wallMs = (nanos - JAM_LAST_NANOS) / 1_000_000L;
-        long gcDelta = gcMs - JAM_LAST_GC;
-        JAM_LAST_NANOS = nanos;
-        JAM_LAST_GC = gcMs;
-        Runtime runtime = Runtime.getRuntime();
-        LoconauticsConstants.LOGGER.info("[xjam] wallMs={} gcMs={} heapMb={} car={} tick={} depth={} trainV={} target={} "
-                        + "bodyV={} derailed={} settle={} rails={}", wallMs, gcDelta,
-                (runtime.totalMemory() - runtime.freeMemory()) / 1_048_576L, PortalTrace.id(car.subLevelId()), now,
+        LoconauticsConstants.TRACE.info("[xjam] car={} tick={} depth={} trainV={} target={} "
+                        + "bodyV={} derailed={} settle={} rails={}", PortalTrace.id(car.subLevelId()), now,
                 PortalTrace.f(frame.depth(master.logicalPose().position())), PortalTrace.f(train.speed()),
                 PortalTrace.f(train.targetSpeed()), PortalTrace.f(velocity.length()), train.isDerailed(),
                 train.isPoseSettling(), points);
@@ -190,9 +179,9 @@ public final class TrainPortalCrossing {
         }
     }
 
-    private static void issue286(SableTrain train, String why) {
-        if (PortalTrace.dueAlways("issue286" + train.car().subLevelId() + why, train.level().getGameTime(), 40)) {
-            LoconauticsConstants.LOGGER.info("[issue286] car={} dim={} speed={} physics={} {}",
+    private static void issue286(SableTrain train, String kind, String why) {
+        if (PortalTrace.dueAlways("issue286" + train.car().subLevelId() + kind, train.level().getGameTime(), 40)) {
+            LoconauticsConstants.TRACE.info("[issue286] car={} dim={} speed={} physics={} {}",
                     PortalTrace.id(train.car().subLevelId()), train.level().dimension().location(),
                     PortalTrace.f(train.speed()), train.isPhysics(), why);
         }
@@ -206,7 +195,7 @@ public final class TrainPortalCrossing {
             ServerSubLevel sub = member.level() == train.level()
                     ? SubLevelData.resolve(member.level(), member.car().subLevelId()) : null;
             if (sub == null) {
-                issue286(train, "no live body for car " + PortalTrace.id(member.car().subLevelId()) + " on this side");
+                issue286(train, "nobody", "no live body for car " + PortalTrace.id(member.car().subLevelId()) + " on this side");
                 return false;
             }
             riders.addAll(TrainAdvancements.riders(sub));
@@ -216,20 +205,20 @@ public final class TrainPortalCrossing {
         }
         long now = train.level().getGameTime();
         if (past.size() * 2 <= chain.size()) {
-            issue286(train, "waiting, only " + past.size() + " of " + chain.size() + " cars are past the plane");
+            issue286(train, "past", "waiting, only " + past.size() + " of " + chain.size() + " cars are past the plane");
             return false;
         }
         long retryAt = RETRY_AT.getOrDefault(train.car().subLevelId(), 0L);
         if (now < retryAt) {
-            issue286(train, "backing off after a failed handover for " + (retryAt - now) + " more ticks");
+            issue286(train, "backoff", "backing off after a failed handover for " + (retryAt - now) + " more ticks");
             return false;
         }
         String refusal = TrainTeleporter.handOverRefusal(train);
         if (refusal != null) {
-            issue286(train, "refused: " + refusal);
+            issue286(train, "refused", "refused: " + refusal);
             if (PortalTrace.dueAlways("teleportfix" + train.car().subLevelId(), now, 20)) {
                 ServerSubLevel own = SubLevelData.resolve(train.level(), train.car().subLevelId());
-                LoconauticsConstants.LOGGER.warn("[teleportfix] refused car={} why={} speed={} target={} depth={} "
+                LoconauticsConstants.TRACE.warn("[teleportfix] refused car={} why={} speed={} target={} depth={} "
                                 + "derailed={}", PortalTrace.id(train.car().subLevelId()), refusal,
                         PortalTrace.f(train.speed()), PortalTrace.f(train.targetSpeed()),
                         own == null ? "n/a" : PortalTrace.f(frame.depth(own.logicalPose().position())),
@@ -247,7 +236,7 @@ public final class TrainPortalCrossing {
             waiting |= PortalTwins.standbyPending(SubLevelData.resolve(member.level(), id), id);
         }
         if (waiting) {
-            issue286(train, "waiting on a twin standby body");
+            issue286(train, "standby", "waiting on a twin standby body");
             if (PortalTrace.due("waiting" + train.car().subLevelId(), now, 5)) {
                 PortalTrace.log("handover waiting on standby car={}", PortalTrace.id(train.car().subLevelId()));
             }
@@ -269,7 +258,7 @@ public final class TrainPortalCrossing {
         }
         PortalTrace.log("handover result car={} ok={} moved={}", PortalTrace.id(train.car().subLevelId()),
                 result.ok(), result.moved());
-        LoconauticsConstants.LOGGER.info("[longtrain] handover car={} chain={} past={} ok={} moved={} ms={} {}",
+        LoconauticsConstants.TRACE.info("[longtrain] handover car={} chain={} past={} ok={} moved={} ms={} {}",
                 PortalTrace.id(train.car().subLevelId()), chain.size(), past.size(), result.ok(), result.moved(),
                 handMs, PortalTwins.debugCounts());
         if (!result.ok()) {
@@ -289,7 +278,7 @@ public final class TrainPortalCrossing {
         }
         RETRY_AT.remove(train.car().subLevelId());
         TrainAdvancements.portal(riders);
-        LoconauticsConstants.LOGGER.info("[portal] handed {} car(s) from {} to {}", result.moved(),
+        LoconauticsConstants.TRACE.info("[portal] handed {} car(s) from {} to {}", result.moved(),
                 frame.nearDim().location(), frame.farDim().location());
         return true;
     }
@@ -305,7 +294,7 @@ public final class TrainPortalCrossing {
                     .append(" derailed=").append(member.isDerailed()).append(" speed=")
                     .append(PortalTrace.f(member.speed())).append(" | ");
         }
-        LoconauticsConstants.LOGGER.info("[issue278] handover chain={} past={} cars: {}", chain.size(), past.size(), out);
+        LoconauticsConstants.TRACE.info("[issue278] handover chain={} past={} cars: {}", chain.size(), past.size(), out);
     }
 
     private static void issue278After(SableTrain train, SableTrain.Car car) {
@@ -328,7 +317,7 @@ public final class TrainPortalCrossing {
             rails.append(rail.isFar(rail.leading()) ? 'F' : 'n').append(rail.isFar(rail.trailing()) ? 'F' : 'n')
                     .append(rail.reachedEnd() ? 'E' : '-').append(' ');
         }
-        LoconauticsConstants.LOGGER.info("[issue278] after car={} level={} body={} depthInOwnFrame={} frame={} rails={} "
+        LoconauticsConstants.TRACE.info("[issue278] after car={} level={} body={} depthInOwnFrame={} frame={} rails={} "
                         + "derailed={} physics={} settle={} speed={} partners={}", PortalTrace.id(car.subLevelId()),
                 train.level().dimension().location(), sub != null,
                 sub == null || own == null ? "n/a" : PortalTrace.f(own.depth(sub.logicalPose().position())),

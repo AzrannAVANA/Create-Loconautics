@@ -9,6 +9,7 @@ import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import com.lycoris.loconautics.trainphysics.sublevel.SubLevelContacts;
 import com.lycoris.loconautics.common.sable.SubLevelData;
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import dev.ryanhcode.sable.api.physics.PhysicsPipeline;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
@@ -574,19 +575,25 @@ public final class PortalTwins {
                 pipeline.getLinearVelocity(master, new Vector3d()).length() + REBOUND);
         Vector3d angular = clampLength(new Vector3d(fb.angular),
                 pipeline.getAngularVelocity(master, new Vector3d()).length() + ANGULAR_REBOUND);
-        Vector3d rawLinear = new Vector3d(fb.linear);
-        Vector3d masterVelocity = pipeline.getLinearVelocity(master, new Vector3d());
         keepOnRails(twin.carId(), linear, angular);
-        SableTrain jamTrain = SableTrainRegistry.bySubLevel(twin.carId());
-        Vec3 jamAlong = jamTrain == null || jamTrain.car().carriage() == null ? null : jamTrain.car().carriage().forward();
-        LoconauticsConstants.LOGGER.info("[xjam] feedback twin={} master={} raw={} sent={} masterV={} alongV={} railed={}",
-                PortalTrace.id(twin.twinId()), PortalTrace.id(twin.masterId()), PortalTrace.f(rawLinear.length()),
-                PortalTrace.f(linear.length()), PortalTrace.f(masterVelocity.length()),
-                jamAlong == null ? "n/a" : PortalTrace.f(masterVelocity.dot(jamAlong.x, jamAlong.y, jamAlong.z)),
-                jamTrain != null && !jamTrain.isDerailed());
+        if (LoconauticsConfig.DEBUG) {
+            traceFeedback(pipeline, twin, master, fb.linear, linear);
+        }
         pipeline.addLinearAndAngularVelocity(master, linear, angular);
         fb.linear.zero();
         fb.angular.zero();
+    }
+
+    private static void traceFeedback(PhysicsPipeline pipeline, Twin twin, ServerSubLevel master, Vector3d raw,
+                                      Vector3d sent) {
+        Vector3d masterVelocity = pipeline.getLinearVelocity(master, new Vector3d());
+        SableTrain jamTrain = SableTrainRegistry.bySubLevel(twin.carId());
+        Vec3 jamAlong = jamTrain == null || jamTrain.car().carriage() == null ? null : jamTrain.car().carriage().forward();
+        LoconauticsConstants.TRACE.info("[xjam] feedback twin={} master={} raw={} sent={} masterV={} alongV={} railed={}",
+                PortalTrace.id(twin.twinId()), PortalTrace.id(twin.masterId()), PortalTrace.f(raw.length()),
+                PortalTrace.f(sent.length()), PortalTrace.f(masterVelocity.length()),
+                jamAlong == null ? "n/a" : PortalTrace.f(masterVelocity.dot(jamAlong.x, jamAlong.y, jamAlong.z)),
+                jamTrain != null && !jamTrain.isDerailed());
     }
 
     // the twin has no rails, so a side push on it must not walk the railed car off its track
@@ -682,7 +689,7 @@ public final class PortalTwins {
                     + " at plot " + slot.x() + ", " + slot.z());
         }
         long afterLoad = System.nanoTime();
-        LoconauticsConstants.LOGGER.info("[twinload] clone master={} twin={} from={},{} slot={},{} shifted={} coldLanding={} "
+        LoconauticsConstants.TRACE.info("[twinload] clone master={} twin={} from={},{} slot={},{} shifted={} coldLanding={} "
                         + "pose={} rotationPoint={} worldBounds={}", PortalTrace.id(masterId), PortalTrace.id(twinId),
                 from.x(), from.z(), slot.x(), slot.z(), !from.equals(slot), coldLanding,
                 PortalTrace.f(twin.logicalPose().position().x()) + "," + PortalTrace.f(twin.logicalPose().position().z()),
