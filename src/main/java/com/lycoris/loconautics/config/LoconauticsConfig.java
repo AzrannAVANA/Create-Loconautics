@@ -59,6 +59,7 @@ public final class LoconauticsConfig {
 
     public static ModConfigSpec.IntValue BOILER_MAX_LENGTH;
     public static ModConfigSpec.IntValue BOILER_MAX_LEVEL;
+    public static ModConfigSpec.IntValue SMOKESTACK_MAX_HEIGHT;
     public static ModConfigSpec.IntValue FIRE_LEVELS_POOR;
     public static ModConfigSpec.IntValue FIRE_LEVELS_NORMAL;
     public static ModConfigSpec.IntValue FIRE_LEVELS_PREMIUM;
@@ -333,6 +334,10 @@ public final class LoconauticsConfig {
         BOILER_MAX_LEVEL = BUILDER
                 .comment("Highest level a boiler can reach. The level is the lowest of its size and its fire.")
                 .defineInRange("maxLevel", 12, 1, 64);
+
+        SMOKESTACK_MAX_HEIGHT = BUILDER
+                .comment("Most smokestack blocks in a column before it caps and before smoke stops climbing higher.")
+                .defineInRange("smokestackMaxHeight", 6, 1, 64);
 
         FIRE_LEVELS_POOR = BUILDER
                 .comment("Levels each firebox adds to the fire limit with poor fuel like wood.")

@@ -1,5 +1,6 @@
 package com.lycoris.loconautics.content.smokestack;
 
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.boiler.BoilerShapes;
 import com.lycoris.loconautics.content.boiler.BoilerAttach;
 import com.lycoris.loconautics.foundation.pick.OversizeShape;
@@ -36,7 +37,7 @@ import java.util.function.Consumer;
 
 public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, OversizeShape {
 
-    public static final int MAX_HEIGHT = 6;
+    private static final int DEFAULT_MAX_HEIGHT = 6;
 
     public static final BooleanProperty STACKED = BooleanProperty.create("stacked");
     public static final BooleanProperty RAISED = BooleanProperty.create("raised");
@@ -100,8 +101,12 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
         return state.getBlock() instanceof SmokestackBlock;
     }
 
+    public static int maxHeight() {
+        return LoconauticsConfig.SERVER_SPEC.isLoaded() ? LoconauticsConfig.SMOKESTACK_MAX_HEIGHT.get() : DEFAULT_MAX_HEIGHT;
+    }
+
     private static boolean joinsAbove(BlockGetter level, BlockPos pos) {
-        return isStack(level.getBlockState(pos.above())) && heightBelow(level, pos) % MAX_HEIGHT != MAX_HEIGHT - 1;
+        return isStack(level.getBlockState(pos.above())) && heightBelow(level, pos) % maxHeight() != maxHeight() - 1;
     }
 
     private static int heightBelow(BlockGetter level, BlockPos pos) {

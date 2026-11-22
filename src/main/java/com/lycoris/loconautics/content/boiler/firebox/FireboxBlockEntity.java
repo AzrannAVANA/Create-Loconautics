@@ -1196,7 +1196,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
         BlockPos base = structure == null ? null : structure.stackPos();
         if (base == null) return;
         BlockPos top = base;
-        while (top.getY() - base.getY() + 1 < SmokestackBlock.MAX_HEIGHT && top.getY() < level.getMaxBuildHeight() - 1
+        while (top.getY() - base.getY() + 1 < SmokestackBlock.maxHeight() && top.getY() < level.getMaxBuildHeight() - 1
                 && level.getBlockState(top.above()).is(BoilerTags.SMOKESTACK)) {
             top = top.above();
         }

@@ -909,6 +909,8 @@
   "loconautics.configuration.boiler.injectorTankCapacity": "Injector Tank Capacity",
   "loconautics.configuration.boiler.maxLength": "Max Length",
   "loconautics.configuration.boiler.maxLength.tooltip": "Most body blocks a boiler may span along its length before it stops working. Longer boilers burn more fuel and draw more water.",
+  "loconautics.configuration.boiler.smokestackMaxHeight": "Smokestack Max Height",
+  "loconautics.configuration.boiler.smokestackMaxHeight.tooltip": "Most smokestack blocks in a column before it caps and before smoke stops climbing higher.",
   "loconautics.configuration.boiler.maxLevel": "Max Level",
   "loconautics.configuration.boiler.maxLevel.tooltip": "Highest level a boiler can reach. The level is the lowest of its size and its fire.",
   "loconautics.configuration.boiler.fireLevelsNormal": "Fire Levels Normal Fuel",
