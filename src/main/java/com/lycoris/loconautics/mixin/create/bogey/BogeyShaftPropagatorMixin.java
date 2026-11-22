@@ -10,6 +10,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.gen.Invoker;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -63,7 +64,16 @@ public abstract class BogeyShaftPropagatorMixin {
         if (from.getBlockState().getBlock() instanceof IRotate a && to.getBlockState().getBlock() instanceof IRotate b
                 && a.hasShaftTowards(level, from.getBlockPos(), from.getBlockState(), dir)
                 && b.hasShaftTowards(level, to.getBlockPos(), to.getBlockState(), dir.getOpposite())) {
-            cir.setReturnValue(1.0f);
+            float toSide = loconautics$axisModifier(to, dir.getOpposite());
+            if (toSide != 0f) {
+                toSide = 1f / toSide;
+            }
+            cir.setReturnValue(loconautics$axisModifier(from, dir) * toSide);
         }
+    }
+
+    @Invoker("getAxisModifier")
+    static float loconautics$axisModifier(KineticBlockEntity be, Direction direction) {
+        throw new AssertionError();
     }
 }
