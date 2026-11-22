@@ -931,6 +931,7 @@ public final class SableTrainDriver {
                 StationChunkTickets.update(train);
                 com.lycoris.loconautics.compat.computercraft.CcControl.apply(train);
                 train.tickMotion();
+                com.lycoris.loconautics.trainphysics.spawn.BogeyEditTrace.tickSeatWatch(train);
                 TrainRunOver.tick(train);
                 com.lycoris.loconautics.common.advancement.TrainAdvancements.check(train);
                 train.poseTweak().advance();

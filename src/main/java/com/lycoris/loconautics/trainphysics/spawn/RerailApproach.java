@@ -352,6 +352,7 @@ public final class RerailApproach {
         if (ok) {
             RerailBalance.noteAutoRerail(train, level.getGameTime());
             BogeyEditTrace.seated(train);
+            BogeyEditTrace.watchSeat(train, "walk");
         }
         return ok;
     }
@@ -451,6 +452,7 @@ public final class RerailApproach {
         CartLifecycle.fire(train, CartEvent.REERAILED);
         RerailBalance.noteAutoRerail(train, level.getGameTime());
         BogeyEditTrace.seated(train);
+        BogeyEditTrace.watchSeat(train, trackless ? "ease from trackless" : "ease");
         return BogeyRerail.SEATED;
     }
 
