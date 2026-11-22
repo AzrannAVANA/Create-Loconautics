@@ -42,6 +42,7 @@ public final class Loconautics {
         modEventBus.addListener(this::registerCapabilities);
         modEventBus.addListener(com.lycoris.loconautics.content.controls.panel.target.RedstoneTargets::register);
         modEventBus.addListener(com.lycoris.loconautics.content.boiler.FuelGrades::register);
+        modEventBus.addListener(com.lycoris.loconautics.trainphysics.wheels.GhostWheelProfiles::register);
         modEventBus.addListener(this::onAddPackFinders);
         modEventBus.addListener(
                 com.lycoris.loconautics.trainphysics.state.StationChunkTickets::register);
