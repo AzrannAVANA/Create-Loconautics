@@ -1,7 +1,57 @@
 {
   "selector": "loconautics:ghost_wheel",
-
   "properties": {
-    "sable:mass": 0.3
+    "sable:mass": 0.05,
+    "sable:restitution": 0.0
+  },
+  "overrides": {
+    "weight=0": {
+      "sable:mass": 0.01
+    },
+    "weight=1": {
+      "sable:mass": 0.015
+    },
+    "weight=2": {
+      "sable:mass": 0.0225
+    },
+    "weight=3": {
+      "sable:mass": 0.03375
+    },
+    "weight=4": {
+      "sable:mass": 0.05063
+    },
+    "weight=5": {
+      "sable:mass": 0.07594
+    },
+    "weight=6": {
+      "sable:mass": 0.11391
+    },
+    "weight=7": {
+      "sable:mass": 0.17086
+    },
+    "weight=8": {
+      "sable:mass": 0.25629
+    },
+    "weight=9": {
+      "sable:mass": 0.38443
+    },
+    "weight=10": {
+      "sable:mass": 0.57665
+    },
+    "weight=11": {
+      "sable:mass": 0.86498
+    },
+    "weight=12": {
+      "sable:mass": 1.29746
+    },
+    "weight=13": {
+      "sable:mass": 1.9462
+    },
+    "weight=14": {
+      "sable:mass": 2.91929
+    },
+    "weight=15": {
+      "sable:mass": 4.37894
+    }
   }
 }

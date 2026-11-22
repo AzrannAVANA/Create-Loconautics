@@ -91,6 +91,8 @@ public final class GhostWheelBodies {
 
     private static final double ALIGN_STEP = 0.25;
 
+    private static final double PLATE_SHARE = 0.3;
+
     private static final double ALIGN_DONE_DEGREES = 4.0;
 
     private static final Map<Key, Double> ALIGNING = new HashMap<>();
@@ -906,7 +908,8 @@ public final class GhostWheelBodies {
             return;
         }
         GhostWheelProfile.Limits limits = limitsAt(level, bogeyPos);
-        List<BlockPos> pads = WheelColliders.placePads(level, bogeyPos, limits.along());
+        double carShare = carSub.getSelfMassTracker().getMass() / Math.max(1, train.car().bogeys().size());
+        List<BlockPos> pads = WheelColliders.placePads(level, bogeyPos, limits.along(), carShare * PLATE_SHARE);
         if (pads.isEmpty()) {
             return;
         }

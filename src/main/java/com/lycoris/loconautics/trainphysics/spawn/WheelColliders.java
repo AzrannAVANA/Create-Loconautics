@@ -87,7 +87,16 @@ public final class WheelColliders {
         return sub;
     }
 
-    public static java.util.List<BlockPos> placePads(ServerLevel level, BlockPos bogeyPos, int reach) {
+    static int weightFor(double plateMass, int cells) {
+        double cell = plateMass / Math.max(1, cells);
+        if (!(cell > 0.0)) {
+            return 4;
+        }
+        return (int) Math.max(0, Math.min(15, Math.round(Math.log(cell / 0.01) / Math.log(1.5))));
+    }
+
+    public static java.util.List<BlockPos> placePads(ServerLevel level, BlockPos bogeyPos, int reach,
+                                                     double plateMass) {
         BlockState bogeyState = level.getBlockState(bogeyPos);
         boolean upsideDown = isUpsideDown(bogeyState);
         boolean monorail = isMonorailBogey(bogeyState);
@@ -95,10 +104,12 @@ public final class WheelColliders {
                 ? bogeyState.getValue(AbstractBogeyBlock.AXIS) : Direction.Axis.Z;
         java.util.List<Vec3i> offsets = plateOffsets(upsideDown ? 1 : -1, axis, reach);
         java.util.List<BlockPos> placed = new java.util.ArrayList<>(offsets.size());
+        int weight = weightFor(plateMass, offsets.size());
         for (Vec3i offset : offsets) {
             BlockPos pos = bogeyPos.offset(offset).immutable();
             if (level.getBlockState(pos).isAir()) {
-                level.setBlockAndUpdate(pos, colliderBlock(offset, upsideDown, monorail, axis, reach));
+                level.setBlockAndUpdate(pos, colliderBlock(offset, upsideDown, monorail, axis, reach)
+                        .setValue(GhostWheelBlock.WEIGHT, weight));
             }
             if (level.getBlockState(pos).is(LoconauticsRegistries.GHOST_WHEEL.get())) {
                 placed.add(pos);

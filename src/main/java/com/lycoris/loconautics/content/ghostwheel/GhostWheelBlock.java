@@ -46,13 +46,16 @@ public class GhostWheelBlock extends Block implements BlockWithSubLevelCollision
 
     public static final IntegerProperty ALONG = IntegerProperty.create("along", 0, 2);
 
+    public static final IntegerProperty WEIGHT = IntegerProperty.create("weight", 0, 15);
+
     private static final double END_REACH = 0.75;
 
     public GhostWheelBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(CORNER, 0).setValue(MIDDLE, false)
                 .setValue(UPSIDE_DOWN, false).setValue(ON_MONORAIL, false).setValue(AXIS, Direction.Axis.Z)
-                .setValue(ALONG, 0));
+                .setValue(ALONG, 0)
+                .setValue(WEIGHT, 4));
     }
 
     @Override
@@ -67,7 +70,7 @@ public class GhostWheelBlock extends Block implements BlockWithSubLevelCollision
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(CORNER, MIDDLE, UPSIDE_DOWN, ON_MONORAIL, AXIS, ALONG);
+        builder.add(CORNER, MIDDLE, UPSIDE_DOWN, ON_MONORAIL, AXIS, ALONG, WEIGHT);
     }
 
     @Override
