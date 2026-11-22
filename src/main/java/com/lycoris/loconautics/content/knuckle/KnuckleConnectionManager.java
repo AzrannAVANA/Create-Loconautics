@@ -7,6 +7,7 @@ import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import com.lycoris.loconautics.trainphysics.sublevel.SubLevelContacts;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
+import com.lycoris.loconautics.trainphysics.portal.PortalTwins;
 import com.lycoris.loconautics.trainphysics.state.SableTrainRegistry;
 import dev.ryanhcode.sable.Sable;
 import dev.ryanhcode.sable.api.sublevel.ServerSubLevelContainer;
@@ -372,7 +373,7 @@ public final class KnuckleConnectionManager {
     private static Map<UUID, List<KnuckleBlockEntity>> collectKnuckles(ServerSubLevelContainer container) {
         Map<UUID, List<KnuckleBlockEntity>> cache = new HashMap<>();
         for (ServerSubLevel sub : container.getAllSubLevels()) {
-            if (sub.isRemoved()) {
+            if (sub.isRemoved() || PortalTwins.isTwin(sub)) {
                 continue;
             }
             List<KnuckleBlockEntity> list = SubLevelBlocks.findAll(sub, KnuckleBlockEntity.class);
