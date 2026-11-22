@@ -8,6 +8,7 @@ import com.lycoris.loconautics.trainphysics.state.CartEvent;
 import com.lycoris.loconautics.trainphysics.state.CartLifecycle;
 import com.lycoris.loconautics.trainphysics.state.CartStateStore;
 import com.lycoris.loconautics.common.sable.SubLevelData;
+import com.lycoris.loconautics.common.track.TrackProfile;
 import com.lycoris.loconautics.trainphysics.drive.ExternalForceDerail;
 import com.lycoris.loconautics.trainphysics.drive.SableTrainDriver;
 import com.lycoris.loconautics.trainphysics.drive.TrainPropulsion;
@@ -89,9 +90,6 @@ public final class RerailApproach {
             return event.moved() || event == CartEvent.REMOVED;
         }
     };
-
-    private static final double SETTLE_SINK =
-            LoconauticsConstants.RAIL_HEAD_HEIGHT - LoconauticsConstants.TRACK_COLLISION_HEIGHT;
 
     private static final double ACQUIRE_LATERAL = 0.75;
     private static final double ACQUIRE_VERTICAL = 0.5;
@@ -189,6 +187,19 @@ public final class RerailApproach {
         return abort(train);
     }
 
+    private static boolean monorail(ServerSubLevel sub, SableTrain train) {
+        if (TrainPropulsion.isMonorail(train)) {
+            return true;
+        }
+        for (SableTrain.Bogey bogey : train.car().bogeys()) {
+            if (TrackProfile.ofBogey(sub.getLevel().getBlockState(
+                    sub.getPlot().getCenterBlock().offset(bogey.localPos()))).isMonorail()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean heldFromOutside(ServerLevel level, ServerSubLevel sub) {
         if (ExternalForceDerail.staffHolds(sub)) {
             return true;
@@ -280,7 +291,7 @@ public final class RerailApproach {
                     LoconauticsConfig.AUTO_RERAIL_MAX_SPEED.get(), SubLevelData.isUpright(sub, 0.5)));
             return false;
         }
-        if (!walking && !TrainPropulsion.isMonorail(train) && !SubLevelData.isUpright(sub, 0.5)) {
+        if (!walking && !monorail(sub, train) && !SubLevelData.isUpright(sub, 0.5)) {
             BogeyEditTrace.refuse(train, "not upright");
             BogeyEditTrace.phase(train, "settle", String.format("at rest yes, upright no, up y %.2f",
                     SubLevelData.up(sub).y));
@@ -294,7 +305,8 @@ public final class RerailApproach {
         Vec3 fwd = plate != null ? plate : SableTrainSpawner.currentFacing(sub, train.car());
         Vector3d anchor = SableTrainSpawner.bogeyAnchorWorld(sub, train.car());
         TrackHit bodyHit = SableTrainSpawner.findRailBelow(level,
-                BlockPos.containing(anchor.x, anchor.y, anchor.z), fwd);
+                BlockPos.containing(anchor.x, anchor.y, anchor.z), fwd, false,
+                SableTrainSpawner.fitOf(sub, seats.get(0).bogey()));
         if (bodyHit == null) {
             bodyHit = seats.get(0).hit();
         } else if (!onSeatEdge(bodyHit, seats)) {
@@ -374,7 +386,7 @@ public final class RerailApproach {
         }
         boolean easing = EASING.containsKey(train.id());
         if (!easing && (!SubLevelData.atRest(sub, LoconauticsConfig.AUTO_RERAIL_MAX_SPEED.get())
-                || !TrainPropulsion.isMonorail(train) && !SubLevelData.isUpright(sub, BOGEY_RERAIL_UPRIGHT))) {
+                || !monorail(sub, train) && !SubLevelData.isUpright(sub, BOGEY_RERAIL_UPRIGHT))) {
             return BogeyRerail.NONE;
         }
         Vec3 plate = GhostWheelBodies.plateFacing(train);
@@ -703,7 +715,9 @@ public final class RerailApproach {
                                  Vec3 carFacing) {
         Vector3d target = seatedBogeyWorld(sub, landing, seat.bogey());
         Vector3d world = seat.world();
-        double vertical = Math.abs(world.y + SETTLE_SINK - target.y);
+        double sink = TrackProfile.ofBogey(level.getBlockState(
+                sub.getPlot().getCenterBlock().offset(seat.bogey().localPos()))).settleSink();
+        double vertical = Math.abs(world.y + sink - target.y);
         double lateral = Math.hypot(world.x - target.x, world.z - target.z);
         double yaw = SubLevelData.axisDiffDeg(
                 SubLevelData.of(SableTrainSpawner.bogeyFacing(level, sub, seat.bogey(), carFacing)),
