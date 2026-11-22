@@ -568,6 +568,8 @@
   "loconautics.gui.goggles.gauge_sub_level_speed_fps": "Speed (ft/s)",
   "loconautics.gui.goggles.gauge_sub_level_speed_kmh": "Speed (km/h)",
   "loconautics.gui.goggles.gauge_sub_level_speed_mph": "Speed (mph)",
+  "loconautics.gui.goggles.gauge_industrial_tank_fill": "Industrial Tank Fill (%)",
+  "loconautics.gui.goggles.gauge_industrial_tank_fluid": "Industrial Tank Contents",
   "loconautics.gui.goggles.gauge_tank_fill": "Tank Fill (%)",
   "loconautics.gui.goggles.gauge_tank_fluid": "Tank Contents",
   "loconautics.gui.goggles.gauge_temperature": "Steam Temperature",

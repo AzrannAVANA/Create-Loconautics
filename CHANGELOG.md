@@ -121,6 +121,7 @@
 - Datapacks can add engine fuels, with RPM and burn time per fluid.
 - Sneak placing a Firebox raises it, and parts on it rise too.
 - Smokestack column height is a server config, default 6 blocks.
+- Panel gauges can read industrial tank contents and fill.
 
 ### Changed
 - Steam takeoff power follows the boiler level, 16384 SU per level.

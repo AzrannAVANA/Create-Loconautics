@@ -6,6 +6,7 @@ import com.lycoris.loconautics.compat.gauge.PropulsionGauges;
 import com.lycoris.loconautics.content.boiler.firebox.FireboxBlockEntity;
 import com.lycoris.loconautics.content.combustion.SmallEngineBlockEntity;
 import com.lycoris.loconautics.content.combustion.SmallEngineTuning;
+import com.lycoris.loconautics.content.industrial.IndustrialTankBlockEntity;
 import com.mojang.serialization.Codec;
 import com.simibubi.create.content.fluids.pipes.valve.FluidValveBlock;
 import com.simibubi.create.content.fluids.pipes.valve.FluidValveBlockEntity;
@@ -200,7 +201,12 @@ public enum GaugeMetric implements StringRepresentable {
     SMALL_ENGINE_BURNS_FOR(SmallEngineBlockEntity.class,
             GaugeMetric::smallEngineBurnsFor,
             be -> be.getBurnsForSeconds() < 0 ? 0f : over(be.getBurnsForSeconds(), 600f),
-            ChatFormatting.WHITE, 32);
+            ChatFormatting.WHITE, 32),
+
+    INDUSTRIAL_TANK_FLUID(IndustrialTankBlockEntity.class,
+            GaugeMetric::industrialTankFluid, GaugeMetric::industrialTankFraction, ChatFormatting.BLUE, 2),
+    INDUSTRIAL_TANK_FILL(IndustrialTankBlockEntity.class,
+            be -> pct(industrialTankFraction(be)), GaugeMetric::industrialTankFraction, ChatFormatting.BLUE, 2);
 
     public enum Group {
         FIREBOX("loconautics", "Loconautics", "Firebox", FireboxBlockEntity.class),
@@ -213,6 +219,7 @@ public enum GaugeMetric implements StringRepresentable {
         FLUID_VALVE("create", "Create", "Fluid Valve", FluidValveBlockEntity.class),
         PORTABLE_ENGINE("simulated", "Create: Simulated", "Portable Engine", PortableEngineBlockEntity.class),
         FLUID_TANK("create", "Create", "Fluid Tank", FluidTankBlockEntity.class),
+        INDUSTRIAL_TANK("loconautics", "Loconautics", "Industrial Tank", IndustrialTankBlockEntity.class),
         DIESEL_ENGINE("createdieselgenerators", "Create: Diesel Generators", "Diesel Engines",
                 DieselGauges::sources),
         THRUSTER("createpropulsion", "Create: Propulsion", "Thrusters", PropulsionGauges::thrusterSources),
@@ -356,6 +363,18 @@ public enum GaugeMetric implements StringRepresentable {
         if (controller == null) return 0f;
         return over(controller.getTankInventory().getFluidAmount(),
                 controller.getTankInventory().getCapacity());
+    }
+
+    private static String industrialTankFluid(IndustrialTankBlockEntity be) {
+        IndustrialTankBlockEntity controller = be.getControllerBE();
+        if (controller == null) return null;
+        return String.format(Locale.US, "%,d / %,d mB",
+                controller.getFluid().getAmount(), controller.getFluidHandler().getTankCapacity(0));
+    }
+
+    private static float industrialTankFraction(IndustrialTankBlockEntity be) {
+        IndustrialTankBlockEntity controller = be.getControllerBE();
+        return controller == null ? 0f : controller.fillState();
     }
 
     private static String speed(VelocitySensorBlockEntity be, double factor, String unit) {
