@@ -16,6 +16,7 @@ import net.minecraft.util.Unit;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -25,6 +26,9 @@ public final class PortalHold {
 
     private static final SubLevelLoadingTicketType<Unit> HELD_AT_PORTAL =
             SubLevelLoadingTicketType.create(LoconauticsConstants.id("portal_entry"), Unit.CODEC);
+
+    private static final TicketType<ChunkPos> FAR_SIDE = TicketType.create("loconautics_portal_far",
+            Comparator.comparingLong(ChunkPos::toLong), 300);
 
     private static final int FAR_TICKET_RADIUS = 3;
 
@@ -52,7 +56,7 @@ public final class PortalHold {
     public static boolean holdFarChunks(ServerLevel farLevel, double x, double y, double z) {
         BlockPos pos = BlockPos.containing(x, y, z);
         ChunkPos chunk = new ChunkPos(pos);
-        farLevel.getChunkSource().addRegionTicket(TicketType.PORTAL, chunk, FAR_TICKET_RADIUS, pos);
+        farLevel.getChunkSource().addRegionTicket(FAR_SIDE, chunk, FAR_TICKET_RADIUS, chunk);
         for (int dx = -FAR_READY_RADIUS; dx <= FAR_READY_RADIUS; dx++) {
             for (int dz = -FAR_READY_RADIUS; dz <= FAR_READY_RADIUS; dz++) {
                 if (farLevel.getChunkSource().getChunkNow(chunk.x + dx, chunk.z + dz) == null) {
