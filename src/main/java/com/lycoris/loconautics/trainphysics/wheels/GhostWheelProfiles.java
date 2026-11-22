@@ -1,7 +1,6 @@
 package com.lycoris.loconautics.trainphysics.wheels;
 
 import com.lycoris.loconautics.LoconauticsConstants;
-import com.lycoris.loconautics.trainphysics.spawn.WheelColliders;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Block;
@@ -38,6 +37,6 @@ public final class GhostWheelProfiles {
     }
 
     public static double floorOf(BlockState bogeyState) {
-        return floor(WheelColliders.isMonorailBogey(bogeyState));
+        return com.lycoris.loconautics.common.track.TrackProfile.ofBogey(bogeyState).padFloor();
     }
 }

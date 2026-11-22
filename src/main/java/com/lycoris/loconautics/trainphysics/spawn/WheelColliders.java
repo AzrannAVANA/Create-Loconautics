@@ -14,7 +14,6 @@ import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.LevelAccessor;
@@ -42,8 +41,7 @@ public final class WheelColliders {
     }
 
     public static boolean isMonorailBogey(BlockState bogey) {
-        return bogey.getBlock() instanceof AbstractBogeyBlock
-                && BuiltInRegistries.BLOCK.getKey(bogey.getBlock()).getPath().contains("mono_bogey");
+        return com.lycoris.loconautics.common.track.TrackProfile.ofBogey(bogey).isMonorail();
     }
 
     public static boolean isUpsideDown(BlockState bogey) {
