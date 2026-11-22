@@ -46,6 +46,8 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
 
     private static final int MAX_POWER = 15;
 
+    public static final int LIMIT_NOTCHES = 18;
+
     private static final int HORN_HOLD_TICKS = 4;
 
     private static final int KEY_EXPIRE_TICKS = 30;
@@ -84,6 +86,8 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
     private int manualRampCounter;
 
     private int maxPower = MAX_POWER;
+
+    private int limitNotches = LIMIT_NOTCHES;
 
     private net.minecraft.world.item.ItemStack frequencyFirst =
             net.minecraft.world.item.ItemStack.EMPTY;
@@ -713,13 +717,15 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
     public boolean isLocked()           { return locked; }
     public boolean hasUser()            { return currentUser != null; }
     public int     getMaxPower()        { return maxPower; }
+    public int     getLimitNotches()    { return limitNotches; }
 
     @Nullable
     public UUID getCurrentUser() { return currentUser; }
 
     public void onScroll(UUID user, int delta) {
         if (!user.equals(currentUser)) return;
-        maxPower = Math.max(0, Math.min(MAX_POWER, maxPower + delta));
+        limitNotches = Math.max(0, Math.min(LIMIT_NOTCHES, limitNotches + delta));
+        maxPower = Math.round(limitNotches * (float) MAX_POWER / LIMIT_NOTCHES);
         if (driveInput != 0) driveToTarget();
         setChanged();
         sendData();
@@ -754,6 +760,7 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
         tag.putInt("Power",    currentPower);
         tag.putBoolean("Locked", locked);
         tag.putInt("MaxPower", maxPower);
+        tag.putInt("LimitNotches", limitNotches);
         if (currentUser != null) tag.putUUID("User", currentUser);
         if (clientPacket) {
             tag.putBoolean("HasUser", currentUser != null);
@@ -789,6 +796,8 @@ public class AnalogControllerBlockEntity extends SmartBlockEntity implements Men
         currentPower = tag.getInt("Power");
         locked       = tag.getBoolean("Locked");
         maxPower     = tag.contains("MaxPower") ? tag.getInt("MaxPower") : MAX_POWER;
+        limitNotches = tag.contains("LimitNotches") ? tag.getInt("LimitNotches")
+                : Math.round(maxPower * (float) LIMIT_NOTCHES / MAX_POWER);
         if (clientPacket && tag.contains("HasUser")) {
             currentUser = tag.getBoolean("HasUser") ? java.util.UUID.randomUUID() : null;
             steerInput = tag.getInt("Steer");

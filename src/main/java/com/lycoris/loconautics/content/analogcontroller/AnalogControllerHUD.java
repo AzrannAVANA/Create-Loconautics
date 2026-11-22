@@ -91,13 +91,13 @@ public class AnalogControllerHUD {
         if (ace == null) return;
 
         boolean locked   = ace.isLocked();
-        int maxPower = ace.getMaxPower();
+        int limitNotches = ace.getLimitNotches();
 
         float partialTicks = deltaTracker.getGameTimeDeltaPartialTick(true);
         double ratio = AnalogControllerClientHandler.speedBarRatio(ace);
         displayedSpeed.chase((int) (ratio * 18) / 18.0, 0.5, LerpedFloat.Chaser.EXP);
         displayedSpeed.tickChaser();
-        displayedThrottle.chase(maxPower / 15.0, 0.2, LerpedFloat.Chaser.EXP);
+        displayedThrottle.chase(limitNotches / (double) AnalogControllerBlockEntity.LIMIT_NOTCHES, 0.2, LerpedFloat.Chaser.EXP);
         displayedThrottle.tickChaser();
         float animSpeed    = displayedSpeed.getValue(partialTicks);
         float animThrottle = displayedThrottle.getValue(partialTicks);

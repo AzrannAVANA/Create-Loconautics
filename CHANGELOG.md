@@ -77,6 +77,7 @@
 - Loose bogeys follow their wheel plate smoothly instead of skipping some ticks.
 - Hose and steel cable length configs apply to winch ropes.
 - Rollers on Sable trains break blocks in tunnel mode without a paving block.
+- Analog controller speed limit moves one bar segment per scroll, like Create.
 
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
