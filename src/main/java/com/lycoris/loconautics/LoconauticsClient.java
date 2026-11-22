@@ -65,6 +65,8 @@ public final class LoconauticsClient {
         modBus.addListener(this::onRegisterClientExtensions);
         modBus.addListener(this::onRegisterBlockColors);
         modBus.addListener(this::onAddPackFinders);
+        modBus.addListener((net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent event) ->
+                event.registerReloadListener(com.lycoris.loconautics.client.hold.HoldGuiSkins.INSTANCE));
 
         NeoForge.EVENT_BUS.addListener(this::onRegisterClientCommands);
         NeoForge.EVENT_BUS.addListener(LoconauticsConfigScreen::onScreenInit);
@@ -193,7 +195,6 @@ public final class LoconauticsClient {
     }
 
     private void onClientSetup(FMLClientSetupEvent event) {
-        com.lycoris.loconautics.content.controls.panellever.LeverHoldInteraction.registered();
         LoconauticsConstants.LOGGER.info("Loconautics client setup");
         LoconauticsSpriteShifts.init();
 

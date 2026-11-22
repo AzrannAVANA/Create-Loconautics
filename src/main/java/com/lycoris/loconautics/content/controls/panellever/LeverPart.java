@@ -102,7 +102,7 @@ public record LeverPart(int power, @Nullable BlockPos link, int body, int knobCo
     public void clientUse(PanelBlockEntity panel, PanelSlot slot, Player player) {
         if (panel.getLevel() == null || !player.isLocalPlayer()) return;
         LeverHoldInteraction.grab(panel.getLevel(), player, panel.getBlockPos(), slot, power,
-                panel.isInverted(slot));
+                panel.isInverted(slot), body, knobColor);
     }
 
     @Override
