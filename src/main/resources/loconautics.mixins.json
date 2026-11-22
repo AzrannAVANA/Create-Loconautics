@@ -55,6 +55,7 @@
     "sable.train.HandleConsistPullMixin",
     "sable.SubLevelTrackingLevelMixin",
     "sable.HoldingReadyMixin",
+    "sable.SubLevelHoldingChunkMapAccessor",
     "sable.portal.PortalTwinForcesMixin",
     "sable.ChunkWaitTraceMixin",
     "ServerLevelCollisionParticleMixin",

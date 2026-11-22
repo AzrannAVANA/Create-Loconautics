@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.trainphysics.state;
 
 import com.lycoris.loconautics.LoconauticsConstants;
+import com.lycoris.loconautics.common.sable.SableHolding;
 import com.lycoris.loconautics.common.sable.SableTeleportation;
 import com.lycoris.loconautics.content.analogcontroller.AnalogControllerBlockEntity;
 import com.lycoris.loconautics.content.schedule.SableScheduleRuntime;
@@ -84,6 +85,18 @@ public final class TrainResidency {
         long ghostStepped = -1L;
         long embodiedAt = Long.MIN_VALUE / 2;
         long pullBlockedUntil = NONE;
+        long splitNoteAt = NONE;
+    }
+
+    private static void splitNote(SableTrain train, String reason) {
+        CarState state = state(train);
+        long now = train.level().getGameTime();
+        if (state.splitNoteAt != NONE && now - state.splitNoteAt < 200L) {
+            return;
+        }
+        state.splitNoteAt = now;
+        LoconauticsConstants.TRACE.warn("[ghostsplit] train={} not snatched: {} consist={} phase={}", shortId(train.id()),
+                reason, train.consistCache().size(), state.phase);
     }
 
     private static CarState state(SableTrain train) {
@@ -162,6 +175,10 @@ public final class TrainResidency {
             return;
         }
         if (train.isGhost()) {
+            if (state(train).phase == Phase.LOADING) {
+                LoconauticsConstants.TRACE.warn("[ghostsplit] train={} went back to disk while loading", shortId(train.id()),
+                        new Throwable("unload source"));
+            }
             if (subLevel instanceof ServerSubLevel parked) {
                 train.setBodyChunk(chunkOf(parked.logicalPose().position()));
             }
@@ -342,15 +359,18 @@ public final class TrainResidency {
         String notReady = matesNotReady(train);
         if (notReady != null) {
             GhostConsistTrace.noteSnatch(train, "a mate is not ready, " + notReady);
+            splitNote(train, "a mate is not ready, " + notReady);
             return;
         }
         if (!TrainSpacing.mayEmbody(train)) {
             GhostConsistTrace.noteSnatch(train, "embody gate closed");
+            splitNote(train, "embody gate closed");
             return;
         }
         if (resolve(train) != null) {
             if (!matesLoaded(train)) {
                 GhostConsistTrace.noteSnatch(train, "a mate body is not loaded yet");
+                splitNote(train, "a mate body is not loaded yet");
                 return;
             }
             state.reconcile = false;
@@ -373,26 +393,51 @@ public final class TrainResidency {
         if (holding != null && cursor != null && !targetLoaded(train.level(), holding.data().bounds(),
                 holding.data().pose().position(), cursor)) {
             GhostConsistTrace.noteSnatch(train, "the chunks where the body would land are not loaded yet");
+            splitNote(train, "the chunks where the body would land are not loaded yet");
             return;
         }
         GlobalSavedSubLevelPointer pointer = holding != null ? holding.pointer() : train.bodyPointer();
-        List<ChunkPos> candidates = candidateChunks(train, holding);
-        if (candidates.isEmpty()) {
-            GhostConsistTrace.noteSnatch(train, "no candidate chunks, a body with no pointer and no chunk can never be found");
-            return;
-        }
-        short storageIndex = pointer == null ? 0 : pointer.storageIndex();
-        short subLevelIndex = pointer == null ? 0 : pointer.subLevelIndex();
-        for (ChunkPos candidate : candidates) {
-            map.snatchAndLoad(new GlobalSavedSubLevelPointer(candidate, storageIndex, subLevelIndex), subId);
-            if (resolve(train) == null) {
-                continue;
+        List<ChunkPos> candidates = List.of();
+        if (holding != null) {
+            ChunkPos filed = SableHolding.filedUnder(map, subId);
+            if (filed == null) {
+                LoconauticsConstants.TRACE.warn("[ghostsplit] body {} of train {} is known to sable but no holding chunk has it",
+                        shortId(subId), shortId(train.id()));
+            } else if (matesLanding(train, map) && snatchFiled(train, map, filed)) {
+                if (pointer != null && filed.equals(pointer.chunkPos())) {
+                    train.setBodyPointer(pointer);
+                }
+                train.setBodyChunk(filed);
+                if (!matesLoaded(train)) {
+                    return;
+                }
+                state.reconcile = false;
+                embody(train);
+                embodyMates(train);
+                return;
             }
-            train.setBodyChunk(candidate);
-            state.reconcile = false;
-            embody(train);
-            embodyMates(train);
-            return;
+        } else {
+            candidates = candidateChunks(train, null);
+            if (candidates.isEmpty()) {
+                GhostConsistTrace.noteSnatch(train, "no candidate chunks, a body with no pointer and no chunk can never be found");
+                return;
+            }
+            short storageIndex = pointer == null ? 0 : pointer.storageIndex();
+            short subLevelIndex = pointer == null ? 0 : pointer.subLevelIndex();
+            for (ChunkPos candidate : candidates) {
+                map.snatchAndLoad(new GlobalSavedSubLevelPointer(candidate, storageIndex, subLevelIndex), subId);
+                if (resolve(train) == null) {
+                    continue;
+                }
+                train.setBodyChunk(candidate);
+                if (!matesLoaded(train)) {
+                    return;
+                }
+                state.reconcile = false;
+                embody(train);
+                embodyMates(train);
+                return;
+            }
         }
         state.snatchCooldown = SNATCH_RETRY_TICKS;
         int misses = ++state.snatchMisses;
@@ -413,6 +458,39 @@ public final class TrainResidency {
             LoconauticsConstants.LOGGER.warn("[residency] body {} of train {} is still missing after {} misses, {}",
                     shortId(subId), shortId(train.id()), misses, lostReport(train, container, subId, pointer));
         }
+    }
+
+    private static boolean matesLanding(SableTrain train, SubLevelHoldingChunkMap map) {
+        for (SableTrain mate : GhostConsist.ghosts(train, true)) {
+            if (mate == train || bodyLost(mate) || mate.car() == null) {
+                continue;
+            }
+            HoldingSubLevel held = map.getHoldingSubLevel(mate.car().subLevelId());
+            Vector3d cursor = railCursor(mate.car());
+            if (held != null && cursor != null && !targetLoaded(train.level(), held.data().bounds(),
+                    held.data().pose().position(), cursor)) {
+                splitNote(train, "the landing chunks of mate " + shortId(mate.id()) + " are not loaded yet");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean snatchFiled(SableTrain train, SubLevelHoldingChunkMap map, ChunkPos filed) {
+        for (SableTrain mate : GhostConsist.ghosts(train, true)) {
+            if (mate == train || bodyLost(mate) || mate.car() == null || resolve(mate) != null) {
+                continue;
+            }
+            UUID mateId = mate.car().subLevelId();
+            ChunkPos mateFiled = SableHolding.filedUnder(map, mateId);
+            if (mateFiled != null) {
+                map.snatchAndLoad(new GlobalSavedSubLevelPointer(mateFiled, (short) 0, (short) 0), mateId);
+            }
+        }
+        if (resolve(train) == null) {
+            map.snatchAndLoad(new GlobalSavedSubLevelPointer(filed, (short) 0, (short) 0), train.car().subLevelId());
+        }
+        return resolve(train) != null;
     }
 
     private static void markLost(SableTrain train) {
