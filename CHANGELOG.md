@@ -79,6 +79,7 @@
 - Rollers on Sable trains break blocks in tunnel mode without a paving block.
 - Analog controller speed limit moves one bar segment per scroll, like Create.
 
+- Deployers lay track along the car on a turned train.
 ### Added
 - Boilers show a level in the goggles, set by their size and fire.
 - Fuel quality sets the boiler fire limit, wood is weakest and coal blocks strongest.
