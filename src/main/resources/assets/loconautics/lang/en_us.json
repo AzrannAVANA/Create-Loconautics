@@ -429,6 +429,7 @@
   "loconautics.boiler.stopped.no_fuel": "the boiler is out of fuel and has no steam",
   "loconautics.boiler.stopped.no_water": "the boiler is out of water and has no steam",
   "loconautics.boiler.stopped.not_lit": "the boiler is not lit and has no steam",
+  "loconautics.boiler.stopped.overdrawn": "the bogeys ask for more steam than the boiler can give",
   "loconautics.boiler.cause.crown_sheet": "the crown sheet ran dry",
   "loconautics.boiler.cause.overpressure": "steam pressure ran past the limit",
   "loconautics.boiler.failed": "The boiler let go: %s",
