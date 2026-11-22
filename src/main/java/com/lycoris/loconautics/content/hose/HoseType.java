@@ -1,6 +1,7 @@
 package com.lycoris.loconautics.content.hose;
 
 import com.lycoris.loconautics.LoconauticsConstants;
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
@@ -28,6 +29,14 @@ public record HoseType(
             1.0f,
             25.0f,
             50.0f));
+
+    @Override
+    public int maxLength() {
+        if (this == DEFAULT && LoconauticsConfig.SERVER_SPEC.isLoaded()) {
+            return LoconauticsConfig.HOSE_MAX_LENGTH.get();
+        }
+        return maxLength;
+    }
 
     public static HoseType register(HoseType type) {
         REGISTRY.put(type.id(), type);

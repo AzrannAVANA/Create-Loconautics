@@ -2,6 +2,7 @@ package com.lycoris.loconautics.content.steelcable;
 
 import com.lycoris.loconautics.LoconauticsConstants;
 import com.lycoris.loconautics.common.strand.StrandKind;
+import com.lycoris.loconautics.config.LoconauticsConfig;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Map;
@@ -33,6 +34,20 @@ public record SteelCableType(
             50.0f,
             StrandKind.HOSE_LINK,
             true));
+
+    @Override
+    public int maxSpan() {
+        if (!LoconauticsConfig.SERVER_SPEC.isLoaded()) {
+            return maxSpan;
+        }
+        if (this == DEFAULT) {
+            return (int) Math.round(LoconauticsConfig.STEEL_CABLE_MAX_RANGE.get());
+        }
+        if (this == HOSE_LINK) {
+            return LoconauticsConfig.HOSE_MAX_LENGTH.get();
+        }
+        return maxSpan;
+    }
 
     public static SteelCableType register(SteelCableType type) {
         REGISTRY.put(type.id(), type);
