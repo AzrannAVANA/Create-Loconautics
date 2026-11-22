@@ -48,6 +48,8 @@ import net.neoforged.neoforge.common.NeoForge;
 public final class LoconauticsClient {
 
     public LoconauticsClient(ModContainer container, IEventBus modBus) {
+        LoconauticsPartialModels.init();
+        com.lycoris.loconautics.client.BoilerBogeyPartials.init();
         container.registerConfig(net.neoforged.fml.config.ModConfig.Type.CLIENT, LoconauticsConfig.CLIENT_SPEC);
         container.registerExtensionPoint(IConfigScreenFactory.class, LoconauticsConfigScreen::create);
 
@@ -193,8 +195,6 @@ public final class LoconauticsClient {
     private void onClientSetup(FMLClientSetupEvent event) {
         com.lycoris.loconautics.content.controls.panellever.LeverHoldInteraction.registered();
         LoconauticsConstants.LOGGER.info("Loconautics client setup");
-        LoconauticsPartialModels.init();
-        com.lycoris.loconautics.client.BoilerBogeyPartials.init();
         LoconauticsSpriteShifts.init();
 
         com.simibubi.create.foundation.item.render.CustomRenderedItems.register(
