@@ -284,7 +284,7 @@ public final class ExternalForceDerail {
     }
 
     public static boolean holdsLift(ServerSubLevel sub, SableTrain train) {
-        return PEAK.containsKey(sub.getUniqueId()) || LIFTED.containsKey(train.id());
+        return PEAK.containsKey(sub.getUniqueId()) || LIFTED.containsKey(train.id()) || staffDrags(sub);
     }
 
     // a rolling car leaves its height free, so while the staff drags it the guide holds it down and the lift guard has a force to read.
