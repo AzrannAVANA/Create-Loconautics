@@ -14,8 +14,11 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.capabilities.Capabilities;
+import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
+import net.neoforged.neoforge.items.IItemHandler;
 
 @EventBusSubscriber(modid = LoconauticsConstants.MOD_ID)
 public final class PortalTwinInteraction {
@@ -56,7 +59,7 @@ public final class PortalTwinInteraction {
 
     @SubscribeEvent
     public static void onBreak(BlockEvent.BreakEvent event) {
-        if (!(event.getLevel() instanceof ServerLevel level)) {
+        if (forwarding || !(event.getLevel() instanceof ServerLevel level)) {
             return;
         }
         PortalTwins.MasterBlock target = PortalTwins.masterBlock(level, event.getPos());
@@ -70,7 +73,7 @@ public final class PortalTwinInteraction {
         ServerLevel masterLevel = target.level();
         BlockPos masterPos = target.pos();
         BlockState state = masterLevel.getBlockState(masterPos);
-        if (state.isAir()) {
+        if (state.isAir() || !breakAllowed(masterLevel, masterPos, state, player)) {
             return;
         }
         if (player.isCreative()) {
@@ -79,10 +82,41 @@ public final class PortalTwinInteraction {
         }
         ItemStack tool = player.getMainHandItem();
         BlockEntity be = masterLevel.getBlockEntity(masterPos);
-        for (ItemStack drop : Block.getDrops(state, masterLevel, masterPos, be, player, tool)) {
-            Block.popResource(level, event.getPos(), drop);
+        popContentsAtPlayerSide(masterLevel, masterPos, level, event.getPos());
+        if (state.canHarvestBlock(masterLevel, masterPos, player)) {
+            for (ItemStack drop : Block.getDrops(state, masterLevel, masterPos, be, player, tool)) {
+                Block.popResource(level, event.getPos(), drop);
+            }
         }
         tool.mineBlock(masterLevel, state, masterPos, player);
         masterLevel.destroyBlock(masterPos, false, player);
+    }
+
+    private static boolean breakAllowed(ServerLevel masterLevel, BlockPos masterPos, BlockState state,
+                                        ServerPlayer player) {
+        forwarding = true;
+        try {
+            return !NeoForge.EVENT_BUS.post(new BlockEvent.BreakEvent(masterLevel, masterPos, state, player))
+                    .isCanceled();
+        } finally {
+            forwarding = false;
+        }
+    }
+
+    private static void popContentsAtPlayerSide(ServerLevel masterLevel, BlockPos masterPos, ServerLevel level, BlockPos at) {
+        IItemHandler handler = masterLevel.getCapability(Capabilities.ItemHandler.BLOCK, masterPos, null);
+        if (handler == null) {
+            return;
+        }
+        for (int slot = 0; slot < handler.getSlots(); slot++) {
+            ItemStack held = handler.getStackInSlot(slot);
+            if (held.isEmpty()) {
+                continue;
+            }
+            ItemStack taken = handler.extractItem(slot, held.getCount(), false);
+            if (!taken.isEmpty()) {
+                Block.popResource(level, at, taken);
+            }
+        }
     }
 }
