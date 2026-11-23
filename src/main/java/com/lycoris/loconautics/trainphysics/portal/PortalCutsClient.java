@@ -3,6 +3,7 @@ package com.lycoris.loconautics.trainphysics.portal;
 import com.lycoris.loconautics.common.sable.SubLevelBlocks;
 import dev.engine_room.flywheel.api.visualization.VisualizationManager;
 import dev.ryanhcode.sable.api.sublevel.SubLevelContainer;
+import dev.ryanhcode.sable.companion.math.BoundingBox3i;
 import dev.ryanhcode.sable.companion.math.BoundingBox3ic;
 import dev.ryanhcode.sable.sublevel.ClientSubLevel;
 import net.minecraft.client.Minecraft;
@@ -15,8 +16,10 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -40,12 +43,36 @@ public final class PortalCutsClient {
 
     private static final List<Entry> ACTIVE = new CopyOnWriteArrayList<>();
 
+    private static final Map<UUID, PortalCut> PENDING = new HashMap<>();
+
     private static final AtomicInteger AIR = new AtomicInteger();
     private static final AtomicInteger GLASS = new AtomicInteger();
     private static final AtomicInteger UNTOUCHED = new AtomicInteger();
     private static long clientTicks;
 
-    public static void tickReport() {
+    public static void tick() {
+        if (!PENDING.isEmpty()) {
+            for (PortalCut cut : List.copyOf(PENDING.values())) {
+                put(cut);
+            }
+        }
+        ClientLevel level = Minecraft.getInstance().level;
+        for (Entry entry : ACTIVE) {
+            if (entry.level != level) {
+                continue;
+            }
+            ClientSubLevel sub = resolve(level, entry.cut.subLevelId());
+            BoundingBox3ic bounds = sub == null ? null : sub.getPlot().getBoundingBox();
+            if (bounds != null && !bounds.equals(entry.bounds)) {
+                entry.bounds = new BoundingBox3i(bounds);
+                syncVisuals(sub, entry);
+                remesh(sub);
+            }
+        }
+        tickReport();
+    }
+
+    private static void tickReport() {
         clientTicks++;
         if (!PortalTrace.on() || clientTicks % 20 != 0) {
             return;
@@ -75,10 +102,12 @@ public final class PortalCutsClient {
             restoreVisuals(entry);
         }
         ACTIVE.clear();
+        PENDING.clear();
     }
 
     // a different body in a different dimension and leave the real ones visuals removed for the rest of the session
     public static void onLevelUnload(ClientLevel level) {
+        PENDING.clear();
         for (Entry entry : new ArrayList<>(ACTIVE)) {
             if (entry.level == level) {
                 restoreVisuals(entry);
@@ -91,12 +120,14 @@ public final class PortalCutsClient {
         ClientSubLevel sub = resolve(Minecraft.getInstance().level, cut.subLevelId());
         BoundingBox3ic bounds = sub == null ? null : sub.getPlot().getBoundingBox();
         if (bounds == null) {
+            PENDING.put(cut.subLevelId(), cut);
             if (PortalTrace.due("clientput" + cut.subLevelId(), clientTicks, 20)) {
                 PortalTrace.log("client cut dropped body={} resolves={} bounds={}", PortalTrace.id(cut.subLevelId()),
                         sub != null, bounds);
             }
             return;
         }
+        PENDING.remove(cut.subLevelId());
         for (Entry stale : new ArrayList<>(ACTIVE)) {
             if (stale.level != Minecraft.getInstance().level) {
                 restoreVisuals(stale);
@@ -108,11 +139,11 @@ public final class PortalCutsClient {
             return;
         }
         if (existing == null) {
-            existing = new Entry(cut, bounds, Minecraft.getInstance().level);
+            existing = new Entry(cut, new BoundingBox3i(bounds), Minecraft.getInstance().level);
             ACTIVE.add(existing);
         } else {
             existing.cut = cut;
-            existing.bounds = bounds;
+            existing.bounds = new BoundingBox3i(bounds);
         }
         PortalTrace.log("client cut applied body={} axis={} cutoff={} positive={}", PortalTrace.id(cut.subLevelId()),
                 cut.axis(), cut.cutoff(), cut.positive());
@@ -121,6 +152,7 @@ public final class PortalCutsClient {
     }
 
     public static void remove(UUID subLevelId) {
+        PENDING.remove(subLevelId);
         Entry existing = find(subLevelId);
         if (existing == null) {
             return;

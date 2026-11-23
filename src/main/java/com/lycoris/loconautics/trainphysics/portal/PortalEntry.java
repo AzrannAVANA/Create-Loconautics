@@ -4,7 +4,10 @@ import com.lycoris.loconautics.network.packets.train.PortalCutPacket;
 import com.lycoris.loconautics.common.sable.SubLevelData;
 import dev.ryanhcode.sable.companion.math.Pose3dc;
 import dev.ryanhcode.sable.sublevel.ServerSubLevel;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3d;
 
@@ -18,7 +21,10 @@ import java.util.UUID;
 
 public final class PortalEntry {
 
-    private static final Map<UUID, PortalCut> SENT = new HashMap<>();
+    private record Sent(ResourceKey<Level> dim, PortalCut cut) {
+    }
+
+    private static final Map<UUID, Sent> SENT = new HashMap<>();
 
     private static final Map<UUID, Set<UUID>> SENT_FOR_CAR = new HashMap<>();
 
@@ -65,15 +71,23 @@ public final class PortalEntry {
             return;
         }
         live.add(id);
-        PortalCut previous = SENT.put(id, cut);
+        Sent previous = SENT.put(id, new Sent(level.dimension(), cut));
+        PortalCut was = previous == null ? null : previous.cut();
         int hiddenColliders = PortalColliders.apply(level, id, solid ? cut : PortalCut.everything(id));
-        if (!cut.equals(previous)) {
+        if (!cut.equals(was)) {
             PortalTrace.log("cut body={} dim={} axis={} cutoff={} positive={} solid={} hiddenColliders={}",
                     PortalTrace.id(id), level.dimension().location(), cut.axis(), cut.cutoff(), cut.positive(), solid,
                     hiddenColliders);
+            PortalCutPacket.broadcast(level, cut);
         }
-        // sent every tick, a client that joined or changed dimension mid straddle otherwise drew the car whole
-        PortalCutPacket.broadcast(cut);
+    }
+
+    public static void sendAll(ServerPlayer player) {
+        for (Sent sent : SENT.values()) {
+            if (sent.dim().equals(player.level().dimension())) {
+                PortalCutPacket.sendTo(player, sent.cut());
+            }
+        }
     }
 
     // an entry can end where trainportalcrossing never looks again, and every one of those left the cut standing

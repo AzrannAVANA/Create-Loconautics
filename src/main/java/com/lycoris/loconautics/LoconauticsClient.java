@@ -453,7 +453,7 @@ public final class LoconauticsClient {
             com.lycoris.loconautics.trainphysics.rail.RailSeams.trackClientLevel(
                     net.minecraft.client.Minecraft.getInstance().level);
         }
-        com.lycoris.loconautics.trainphysics.portal.PortalCutsClient.tickReport();
+        com.lycoris.loconautics.trainphysics.portal.PortalCutsClient.tick();
         AnalogControllerClientHandler.tick();
         AnalogControllerHUD.tick();
         SableTrainRelocator.clientTick();

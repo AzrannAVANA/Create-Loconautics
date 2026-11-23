@@ -6,6 +6,8 @@ import com.lycoris.loconautics.trainphysics.portal.PortalCutsClient;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 
@@ -46,9 +48,16 @@ public record PortalCutPacket(UUID subLevelId, boolean active, int axis, int cut
         });
     }
 
-    public static void broadcast(PortalCut cut) {
-        PacketDistributor.sendToAllPlayers(new PortalCutPacket(cut.subLevelId(), true, cut.axis(), cut.cutoff(),
-                cut.positive()));
+    public static void broadcast(ServerLevel level, PortalCut cut) {
+        PacketDistributor.sendToPlayersInDimension(level, active(cut));
+    }
+
+    public static void sendTo(ServerPlayer player, PortalCut cut) {
+        PacketDistributor.sendToPlayer(player, active(cut));
+    }
+
+    private static PortalCutPacket active(PortalCut cut) {
+        return new PortalCutPacket(cut.subLevelId(), true, cut.axis(), cut.cutoff(), cut.positive());
     }
 
     public static void broadcastClear(UUID subLevelId) {
