@@ -22,7 +22,6 @@ import org.joml.Vector3d;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -138,15 +137,11 @@ public final class TrainPortalCrossing {
         if (farLevel != null && !PortalHold.holdFarChunks(farLevel, farCenter.x, farCenter.y, farCenter.z)) {
             return;
         }
-        Set<UUID> group = new HashSet<>();
-        for (SableTrain member : chain(train)) {
-            group.add(member.car().subLevelId());
-        }
         List<UUID> homeBodies = new ArrayList<>();
         List<UUID> twinBodies = new ArrayList<>();
         List<UUID> standbyBodies = new ArrayList<>();
         homeBodies.add(car.subLevelId());
-        ServerSubLevel twin = PortalTwins.ensure(master, frame, car.subLevelId(), group);
+        ServerSubLevel twin = PortalTwins.ensure(master, frame, car.subLevelId());
         if (twin != null) {
             twinBodies.add(twin.getUniqueId());
         }
@@ -156,16 +151,17 @@ public final class TrainPortalCrossing {
                 continue;
             }
             homeBodies.add(plateId);
-            ServerSubLevel plateTwin = PortalTwins.ensure(plate, frame, car.subLevelId(), group);
+            ServerSubLevel plateTwin = PortalTwins.ensure(plate, frame, car.subLevelId());
             if (plateTwin != null) {
                 twinBodies.add(plateTwin.getUniqueId());
             }
         }
         PortalTwins.retain(server, car.subLevelId(), homeBodies);
-        UUID standby = PortalTwins.standbyBody(car.subLevelId());
+        UUID standby = PortalTwins.ensureStandby(master, car.subLevelId());
         if (standby != null) {
             standbyBodies.add(standby);
         }
+        PortalTwins.syncContacts(server, chainIds(train));
         PortalEntry.sync(train.level(), car.subLevelId(), frame, homeBodies, standbyBodies,
                 server.getLevel(frame.farDim()), twinBodies);
         if (PortalTrace.due(car.subLevelId(), train.level().getGameTime(), 20)) {
@@ -233,7 +229,7 @@ public final class TrainPortalCrossing {
         boolean waiting = false;
         for (SableTrain member : chain) {
             UUID id = member.car().subLevelId();
-            waiting |= PortalTwins.standbyPending(SubLevelData.resolve(member.level(), id), id);
+            waiting |= PortalTwins.standbyPending(id);
         }
         if (waiting) {
             issue286(train, "standby", "waiting on a twin standby body");
@@ -394,6 +390,14 @@ public final class TrainPortalCrossing {
             }
         }
         return rails;
+    }
+
+    private static List<UUID> chainIds(SableTrain train) {
+        List<UUID> ids = new ArrayList<>();
+        for (SableTrain member : chain(train)) {
+            ids.add(member.car().subLevelId());
+        }
+        return ids;
     }
 
     private static List<SableTrain> chain(SableTrain train) {

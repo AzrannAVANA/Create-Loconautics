@@ -79,6 +79,7 @@
 - Rollers on Sable trains break blocks in tunnel mode without a paving block.
 - Analog controller speed limit moves one bar segment per scroll, like Create.
 - Breaking a train block through a portal needs the right tool and drops its items at you.
+- Coupled cars no longer shove each other apart while crossing a portal, untested.
 
 - Deployers lay track along the car on a turned train.
 ### Added
