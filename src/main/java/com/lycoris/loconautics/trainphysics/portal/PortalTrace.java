@@ -59,6 +59,10 @@ public final class PortalTrace {
         return true;
     }
 
+    public static void clearAll() {
+        LAST.clear();
+    }
+
     public static void addBranch(LiteralArgumentBuilder<CommandSourceStack> debug) {
         debug.then(Commands.literal("portal").then(Commands.literal("trace")
                 .executes(ctx -> set(ctx.getSource(), !on))

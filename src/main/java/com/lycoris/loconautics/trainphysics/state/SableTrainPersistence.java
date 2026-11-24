@@ -144,8 +144,7 @@ public final class SableTrainPersistence {
         MinecraftServer server = event.getServer();
         anchorCursorsToBodies();
         snapshotAll(server);
-        com.lycoris.loconautics.trainphysics.portal.PortalTwins.dropAll(server);
-        com.lycoris.loconautics.trainphysics.portal.PortalHold.releaseAll(server);
+        com.lycoris.loconautics.trainphysics.portal.TrainPortalCrossing.clearAll(server);
         StationChunkTickets.releaseAll();
         SableTrainRegistry.clear();
         com.lycoris.loconautics.trainphysics.actors.TrainActorControls.clearServer();

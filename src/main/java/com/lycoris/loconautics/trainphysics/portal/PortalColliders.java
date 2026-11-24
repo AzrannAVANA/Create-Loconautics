@@ -90,6 +90,11 @@ public final class PortalColliders {
         }
     }
 
+    public static void clearAll() {
+        APPLIED.clear();
+        DIRTY.clear();
+    }
+
     public static void clear(UUID subLevelId) {
         DIRTY.remove(subLevelId);
         Applied applied = APPLIED.remove(subLevelId);

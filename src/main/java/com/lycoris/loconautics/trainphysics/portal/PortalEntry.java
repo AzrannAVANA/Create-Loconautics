@@ -120,6 +120,18 @@ public final class PortalEntry {
         }
     }
 
+    public static void renew(UUID carSubId) {
+        if (RENEWED.containsKey(carSubId)) {
+            RENEWED.put(carSubId, tick);
+        }
+    }
+
+    public static void clearAll() {
+        SENT.clear();
+        SENT_FOR_CAR.clear();
+        RENEWED.clear();
+    }
+
     public static void release(UUID subLevelId) {
         clearBody(subLevelId);
     }

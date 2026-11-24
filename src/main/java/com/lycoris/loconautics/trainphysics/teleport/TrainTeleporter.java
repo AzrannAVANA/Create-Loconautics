@@ -119,24 +119,24 @@ public final class TrainTeleporter {
     }
 
     @Nullable
-    public static String handOverRefusal(SableTrain train) {
-        return refuse(chain(train));
+    public static String handOverRefusal(List<SableTrain> cars) {
+        return refuse(cars);
     }
 
-    public static Result handOver(SableTrain train, PortalFrame frame, Consumer<String> trace) {
-        List<SableTrain> cars = chain(train);
+    public static Result handOver(List<SableTrain> cars, PortalFrame frame, Consumer<String> trace) {
+        SableTrain lead = cars.get(0);
         String refusal = refuse(cars);
         if (refusal != null) {
             return new Result(refusal, 0, cars);
         }
-        ServerLevel destLevel = train.level().getServer().getLevel(frame.farDim());
+        ServerLevel destLevel = lead.level().getServer().getLevel(frame.farDim());
         if (destLevel == null) {
             return new Result("no level loaded for " + frame.farDim().location(), 0, cars);
         }
         List<Landing> plan = new ArrayList<>();
         for (SableTrain car : cars) {
             ServerSubLevel sub = SubLevelData.resolve(car.level(), car.car().subLevelId());
-            if (sub == null || car.level() != train.level()) {
+            if (sub == null || car.level() != lead.level()) {
                 return new Result("car " + shortId(car) + " has no live body on this side", 0, cars);
             }
             plan.add(new Landing(car, sub, frame.toFar(sub.logicalPose().position()),

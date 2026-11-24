@@ -141,7 +141,8 @@ public final class Loconautics {
                 new com.lycoris.loconautics.trainphysics.state.TravelSignSeed(),
                 com.lycoris.loconautics.trainphysics.state.GhostCreateStep.STORE,
                 com.lycoris.loconautics.trainphysics.state.TrainResidency.STORE,
-                com.lycoris.loconautics.content.schedule.SableScheduleRuntime.REPLAN_ON_RESEAT);
+                com.lycoris.loconautics.content.schedule.SableScheduleRuntime.REPLAN_ON_RESEAT,
+                com.lycoris.loconautics.trainphysics.portal.TrainPortalCrossing.STORE);
         com.lycoris.loconautics.common.strand.StrandRemap.register(
                 com.lycoris.loconautics.content.steelcable.SteelCableStrandRemap.INSTANCE);
         com.lycoris.loconautics.common.strand.StrandRemap.register(

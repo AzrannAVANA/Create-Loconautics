@@ -766,6 +766,7 @@ public final class SableTrainDriver {
         RerailBalance.retain(live);
         TrainResidency.forget(live);
         StationChunkTickets.retain(live);
+        com.lycoris.loconautics.trainphysics.portal.TrainPortalCrossing.STORE.retain(live, liveSubs);
     }
 
     static void capTrainSpeed(ServerSubLevel sub, Car car, SableTrain train) {
