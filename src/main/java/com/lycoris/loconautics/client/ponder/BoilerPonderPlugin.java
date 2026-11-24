@@ -42,6 +42,11 @@ public class BoilerPonderPlugin implements PonderPlugin {
                 .addStoryBoard("boiler/barrel", BoilerScenes::pressure)
                 .addStoryBoard("boiler/barrel", BoilerScenes::failure);
 
+        helper.forComponents(BoilerBlocks.BOILER_BOGEY.getId())
+                .addStoryBoard("boiler/bogey_wheels", BoilerBogeyScenes::wheels)
+                .addStoryBoard("boiler/bogey_control", BoilerBogeyScenes::control)
+                .addStoryBoard("boiler/bogey_boiler", BoilerBogeyScenes::boiler);
+
         helper.forComponents(BoilerBlocks.LOCOMOTIVE_GAUGE.getId())
                 .addStoryBoard("boiler/barrel", BoilerScenes::gauge)
                 .addStoryBoard("panel/panel", PanelScenes::parts);
