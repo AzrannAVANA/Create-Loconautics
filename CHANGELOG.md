@@ -82,6 +82,7 @@
 - Coupled cars no longer shove each other apart while crossing a portal, untested.
 - Trains wait at a portal until the far side has loaded, untested.
 - Trackless cars coupled into a train cross portals with it, untested.
+- Bogeys still behind a portal keep turning after the train crosses, untested.
 
 - Deployers lay track along the car on a turned train.
 ### Added

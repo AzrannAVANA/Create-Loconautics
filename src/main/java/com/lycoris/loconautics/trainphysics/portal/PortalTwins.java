@@ -399,6 +399,10 @@ public final class PortalTwins {
             FRAMES.put(masterId, turned);
             RENEWED.put(masterId, tick);
             kept.add(standby.bodyId());
+            SableTrain car = SableTrainRegistry.bySubLevel(masterId);
+            if (car != null) {
+                SableTrainSyncPacket.announceTwin(car);
+            }
         }
         return kept;
     }
@@ -419,6 +423,7 @@ public final class PortalTwins {
         if (copy.role() == Role.TWIN) {
             TWIN_OF.remove(copy.masterId(), copy.bodyId());
         }
+        SableTrainSyncPacket.broadcastRemoval(copy.bodyId());
         releaseContacts(copy.bodyId());
         PortalEntry.release(copy.bodyId());
         clear(server.getLevel(copy.dim()), copy.bodyId(), copy.slot(), copy.box());
