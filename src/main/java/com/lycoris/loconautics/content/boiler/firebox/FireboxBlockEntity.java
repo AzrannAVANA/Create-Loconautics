@@ -1424,12 +1424,31 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
 
     public void dropFuel() {
         if (level == null) return;
-        // extractitem never hands back more than one vanilla stack, and a wide firebox holds several
+        List<ItemStack> merged = new ArrayList<>();
         for (int slot = 0; slot < inventory.getSlots(); slot++) {
             ItemStack held = inventory.getStackInSlot(slot).copy();
             inventory.setStackInSlot(slot, ItemStack.EMPTY);
-            spill(held);
+            if (held.isEmpty()) continue;
+            ItemStack same = merged.stream()
+                    .filter(stack -> ItemStack.isSameItemSameComponents(stack, held))
+                    .findFirst().orElse(null);
+            if (same == null) {
+                merged.add(held);
+            } else {
+                same.grow(held.getCount());
+            }
         }
+        for (ItemStack stack : merged) {
+            while (!stack.isEmpty()) {
+                spill(stack.split(stack.getMaxStackSize()));
+            }
+        }
+    }
+
+    public void dropOneFuel() {
+        int slot = firstFuelSlot();
+        if (level == null || slot < 0) return;
+        spill(inventory.extractItem(slot, 1, false));
     }
 
     public void parkWaterInBarrels() {

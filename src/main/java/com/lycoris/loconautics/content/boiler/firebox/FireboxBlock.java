@@ -248,7 +248,7 @@ public class FireboxBlock extends BaseEntityBlock
         }
         if (stack.getItem() instanceof net.minecraft.world.item.ShovelItem) {
             if (level.isClientSide) return ItemInteractionResult.SUCCESS;
-            if (!controller.extinguish()) controller.dropFuel();
+            if (!controller.extinguish()) controller.dropOneFuel();
             return ItemInteractionResult.SUCCESS;
         }
         if (Igniters.is(stack)) {
