@@ -21,8 +21,6 @@ public record BoilerStructure(
 ) {
     public static final float OPTIMAL_BODY_PER_FIREBOX = 3f;
 
-    public static final int MIN_BODY_BLOCKS = 1;
-
     public static final int MAX_COUNTED_FIREBOXES = 3;
 
     public static final int MAX_COUNTED_BODY_BLOCKS = 9;

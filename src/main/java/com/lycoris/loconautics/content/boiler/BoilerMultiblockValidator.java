@@ -95,7 +95,6 @@ public final class BoilerMultiblockValidator {
         if (!frontier.isEmpty() || spanAlong(bodies, bodyAxis) > LoconauticsConfig.BOILER_MAX_LENGTH.get()) {
             return new Scan(null, "too_large");
         }
-        if (bodies.size() < BoilerStructure.MIN_BODY_BLOCKS) return new Scan(null, "add_boiler_body");
 
         return new Scan(new BoilerStructure(
                 controllerPos,

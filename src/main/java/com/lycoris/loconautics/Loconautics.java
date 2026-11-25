@@ -3,6 +3,7 @@ package com.lycoris.loconautics;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
+import com.lycoris.loconautics.content.boiler.BoilerTags;
 import com.lycoris.loconautics.content.hose.rope.HoseRopeManager;
 import com.lycoris.loconautics.content.hose.spray.HoseSprayLoader;
 import com.lycoris.loconautics.content.hose.spray.entity.HoseSprayEntities;
@@ -73,7 +74,8 @@ public final class Loconautics {
         for (net.minecraft.world.level.block.Block block : net.minecraft.core.registries.BuiltInRegistries.BLOCK) {
             event.registerBlock(
                     net.neoforged.neoforge.capabilities.Capabilities.FluidHandler.BLOCK,
-                    (level, pos, state, be, side) -> state.is(com.lycoris.loconautics.content.boiler.BoilerTags.BOILER_BODY)
+                    (level, pos, state, be, side) -> state.is(BoilerTags.BOILER_BODY)
+                            || state.is(BoilerTags.BOILER_FIREBOX)
                             ? new com.lycoris.loconautics.content.boiler.BoilerBodyInlet(level, pos) : null,
                     block);
         }

@@ -479,6 +479,7 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     @Nullable
     private String computeNextStep() {
         if (structure == null) return missingKey == null ? "add_boiler_body" : missingKey;
+        if (structure.boilerPositions().isEmpty()) return "add_boiler_body";
         if (!structure.hasWaterInlet()) return "add_water_inlet";
         if (!structure.hasTakeoff() && bogeyDemands.isEmpty()) return "add_output";
         if (!structure.hasStack()) return "add_smokestack";
