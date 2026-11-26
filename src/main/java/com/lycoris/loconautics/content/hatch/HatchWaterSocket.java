@@ -1,5 +1,9 @@
 package com.lycoris.loconautics.content.hatch;
 
+import com.lycoris.loconautics.content.boiler.slant.SlantFrame;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
+import java.util.function.DoubleSupplier;
+import net.minecraft.core.BlockPos;
 import com.lycoris.loconautics.common.dock.HorizontalDockPoint;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.Level;
@@ -12,26 +16,34 @@ import net.neoforged.neoforge.fluids.capability.IFluidHandler;
 import net.neoforged.neoforge.fluids.capability.templates.FluidTank;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaterniond;
+import org.joml.Quaternionf;
 
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 public final class HatchWaterSocket {
-
     private final BlockEntity physical;
     private final Supplier<Direction> facing;
     private final BooleanSupplier raised;
-    private final java.util.function.DoubleSupplier dockSeatOffset;
+    private final DoubleSupplier dockSeatOffset;
     private final FluidTank tank;
+    private final Supplier<SlantSide> slant;
     private boolean resolving;
 
     public HatchWaterSocket(BlockEntity physical, Supplier<Direction> facing, BooleanSupplier raised,
-                            java.util.function.DoubleSupplier dockSeatOffset, FluidTank tank) {
+                            DoubleSupplier dockSeatOffset, FluidTank tank) {
+        this(physical, facing, raised, dockSeatOffset, tank, () -> SlantSide.NONE);
+    }
+
+    public HatchWaterSocket(BlockEntity physical, Supplier<Direction> facing, BooleanSupplier raised,
+                            DoubleSupplier dockSeatOffset, FluidTank tank,
+                            Supplier<SlantSide> slant) {
         this.physical = physical;
         this.facing = facing;
         this.raised = raised;
         this.dockSeatOffset = dockSeatOffset;
         this.tank = tank;
+        this.slant = slant;
     }
 
     private Direction dockFace() {
@@ -40,7 +52,13 @@ public final class HatchWaterSocket {
 
     public Vec3 dockAnchorLocal() {
         double out = dockSeatOffset.getAsDouble() + (raised.getAsBoolean() ? 0.5 : 0.0);
-        return HorizontalDockPoint.anchorLocal(physical, dockFace(), out);
+        Vec3 flat = HorizontalDockPoint.anchorLocal(physical, dockFace(), out);
+        SlantSide side = slant.get();
+        if (!side.isSlanted()) {
+            return flat;
+        }
+        Vec3 corner = Vec3.atLowerCornerOf(physical.getBlockPos());
+        return corner.add(SlantFrame.of(side).toMount(flat.subtract(corner)));
     }
 
     public Vec3 getDockPoint() {
@@ -48,7 +66,13 @@ public final class HatchWaterSocket {
     }
 
     public Quaterniond getDockOrientation() {
-        return HorizontalDockPoint.orientation(dockFace());
+        Quaterniond flat = HorizontalDockPoint.orientation(dockFace());
+        SlantSide side = slant.get();
+        if (!side.isSlanted()) {
+            return flat;
+        }
+        Quaternionf turn = SlantFrame.of(side).partToMount().getNormalizedRotation(new Quaternionf());
+        return new Quaterniond(turn.x, turn.y, turn.z, turn.w).mul(flat);
     }
 
     @Nullable
@@ -64,11 +88,17 @@ public final class HatchWaterSocket {
         resolving = true;
         try {
             IFluidHandler downstream = level.getCapability(Capabilities.FluidHandler.BLOCK,
-                    physical.getBlockPos().relative(into), into.getOpposite());
+                    downstreamPos(into), into.getOpposite());
             return downstream != null ? downstream : tank;
         } finally {
             resolving = false;
         }
+    }
+
+    private BlockPos downstreamPos(Direction into) {
+        SlantSide side = slant.get();
+        BlockPos at = physical.getBlockPos();
+        return side.isSlanted() ? at.relative(side.lean().getOpposite()).below() : at.relative(into);
     }
 
     private IFluidHandler waterTarget() {

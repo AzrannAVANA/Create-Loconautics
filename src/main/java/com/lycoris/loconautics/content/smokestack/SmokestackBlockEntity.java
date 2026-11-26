@@ -18,6 +18,9 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import com.lycoris.loconautics.content.boiler.BoilerAttach;
 import net.minecraft.world.phys.Vec3;
+import com.lycoris.loconautics.content.boiler.slant.SlantFrame;
+import com.lycoris.loconautics.content.boiler.slant.SlantShapes;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
 
 public class SmokestackBlockEntity extends BlockEntity {
 
@@ -87,6 +90,16 @@ public class SmokestackBlockEntity extends BlockEntity {
         return boilerDriven;
     }
 
+    private Vec3 smokeStart(double standOff) {
+        SlantSide side = getBlockState().getValue(SlantSide.SLANT);
+        if (side.isSlanted()) {
+            double top = getBlockState().getValue(SmokestackBlock.RAISED)
+                    ? SlantShapes.FIRST_BASE + 1.0 : SlantShapes.NEXT_BASE + 1.0;
+            return SlantFrame.of(side).toMount(new Vec3(0.5, top, 0.5)).add(Vec3.atLowerCornerOf(worldPosition));
+        }
+        return new Vec3(worldPosition.getX() + 0.5, worldPosition.getY() + 1.0 + standOff, worldPosition.getZ() + 0.5);
+    }
+
     public void clientTick() {
         if (power <= 0) {
             chuffTimer = 0;
@@ -96,7 +109,7 @@ public class SmokestackBlockEntity extends BlockEntity {
         }
         double standOff = (getBlockState().getValue(SmokestackBlock.RAISED) ? BoilerAttach.BULGE : 0.0)
                 + BoilerAttach.lift(getBlockState());
-        smoke.track(new Vec3(worldPosition.getX() + 0.5, worldPosition.getY() + 1.0 + standOff, worldPosition.getZ() + 0.5));
+        smoke.track(smokeStart(standOff));
         float strength = power / 15.0F;
 
         float lift = boilerDriven ? 1.0F : Mth.lerp(strength, LIFT_MIN, LIFT_MAX);

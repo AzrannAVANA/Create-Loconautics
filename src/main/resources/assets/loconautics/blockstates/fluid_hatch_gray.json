@@ -1,6 +1,18 @@
 {
   "variants": {
-    "": {
+    "slant=none": {
+      "model": "loconautics:block/hatch/fluid_hatch_gray"
+    },
+    "slant=east": {
+      "model": "loconautics:block/hatch/fluid_hatch_gray"
+    },
+    "slant=south": {
+      "model": "loconautics:block/hatch/fluid_hatch_gray"
+    },
+    "slant=west": {
+      "model": "loconautics:block/hatch/fluid_hatch_gray"
+    },
+    "slant=north": {
       "model": "loconautics:block/hatch/fluid_hatch_gray"
     }
   }

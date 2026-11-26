@@ -4,6 +4,7 @@ import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
 import com.lycoris.loconautics.content.boiler.BoilerContributions;
 import com.lycoris.loconautics.content.boiler.BoilerTags;
+import com.lycoris.loconautics.content.boiler.slant.SlantPlacement;
 import com.lycoris.loconautics.content.hose.rope.HoseRopeManager;
 import com.lycoris.loconautics.content.hose.spray.HoseSprayLoader;
 import com.lycoris.loconautics.content.hose.spray.entity.HoseSprayEntities;
@@ -54,6 +55,7 @@ public final class Loconautics {
         NeoForge.EVENT_BUS.addListener(this::onServerStopped);
         NeoForge.EVENT_BUS.addListener(this::onAddReloadListeners);
         NeoForge.EVENT_BUS.addListener(this::onDatapackSync);
+        NeoForge.EVENT_BUS.addListener(SlantPlacement::onUse);
         NeoForge.EVENT_BUS.register(new com.lycoris.loconautics.content.schedule.map.ChunkColorSamplerHandler());
     }
 

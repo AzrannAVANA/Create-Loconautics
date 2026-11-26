@@ -1,107 +1,137 @@
 {
   "variants": {
-    "brass=false,facing=up,raised=false": {
+    "brass=false,facing=up,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart"
     },
-    "brass=true,facing=up,raised=false": {
+    "brass=true,facing=up,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass"
     },
-    "brass=false,facing=up,raised=true": {
+    "brass=false,facing=up,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_raised"
     },
-    "brass=true,facing=up,raised=true": {
+    "brass=true,facing=up,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass_raised"
     },
-    "brass=false,facing=down,raised=false": {
+    "brass=false,facing=down,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart",
       "x": 180
     },
-    "brass=true,facing=down,raised=false": {
+    "brass=true,facing=down,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass",
       "x": 180
     },
-    "brass=false,facing=down,raised=true": {
+    "brass=false,facing=down,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_raised",
       "x": 180
     },
-    "brass=true,facing=down,raised=true": {
+    "brass=true,facing=down,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass_raised",
       "x": 180
     },
-    "brass=false,facing=north,raised=false": {
+    "brass=false,facing=north,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart",
       "x": 90
     },
-    "brass=true,facing=north,raised=false": {
+    "brass=true,facing=north,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass",
       "x": 90
     },
-    "brass=false,facing=north,raised=true": {
+    "brass=false,facing=north,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_raised",
       "x": 90
     },
-    "brass=true,facing=north,raised=true": {
+    "brass=true,facing=north,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass_raised",
       "x": 90
     },
-    "brass=false,facing=south,raised=false": {
+    "brass=false,facing=south,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart",
       "x": 90,
       "y": 180
     },
-    "brass=true,facing=south,raised=false": {
+    "brass=true,facing=south,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass",
       "x": 90,
       "y": 180
     },
-    "brass=false,facing=south,raised=true": {
+    "brass=false,facing=south,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_raised",
       "x": 90,
       "y": 180
     },
-    "brass=true,facing=south,raised=true": {
+    "brass=true,facing=south,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass_raised",
       "x": 90,
       "y": 180
     },
-    "brass=false,facing=east,raised=false": {
+    "brass=false,facing=east,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart",
       "x": 90,
       "y": 90
     },
-    "brass=true,facing=east,raised=false": {
+    "brass=true,facing=east,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass",
       "x": 90,
       "y": 90
     },
-    "brass=false,facing=east,raised=true": {
+    "brass=false,facing=east,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_raised",
       "x": 90,
       "y": 90
     },
-    "brass=true,facing=east,raised=true": {
+    "brass=true,facing=east,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass_raised",
       "x": 90,
       "y": 90
     },
-    "brass=false,facing=west,raised=false": {
+    "brass=false,facing=west,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart",
       "x": 90,
       "y": 270
     },
-    "brass=true,facing=west,raised=false": {
+    "brass=true,facing=west,raised=false,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass",
       "x": 90,
       "y": 270
     },
-    "brass=false,facing=west,raised=true": {
+    "brass=false,facing=west,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_raised",
       "x": 90,
       "y": 270
     },
-    "brass=true,facing=west,raised=true": {
+    "brass=true,facing=west,raised=true,slant=none": {
       "model": "loconautics:block/boiler/safetyvalve/smart_brass_raised",
       "x": 90,
+      "y": 270
+    },
+    "brass=false,slant=east": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_slanted"
+    },
+    "brass=false,slant=south": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_slanted",
+      "y": 90
+    },
+    "brass=false,slant=west": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_slanted",
+      "y": 180
+    },
+    "brass=false,slant=north": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_slanted",
+      "y": 270
+    },
+    "brass=true,slant=east": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_brass_slanted"
+    },
+    "brass=true,slant=south": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_brass_slanted",
+      "y": 90
+    },
+    "brass=true,slant=west": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_brass_slanted",
+      "y": 180
+    },
+    "brass=true,slant=north": {
+      "model": "loconautics:block/boiler/safetyvalve/smart_brass_slanted",
       "y": 270
     }
   }

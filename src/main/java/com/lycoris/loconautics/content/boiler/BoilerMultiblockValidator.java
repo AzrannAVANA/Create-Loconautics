@@ -4,6 +4,8 @@ import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.boiler.barrel.BarrelPipeConnector;
 import com.lycoris.loconautics.content.boiler.firebox.FireboxGroups;
 import com.lycoris.loconautics.content.boiler.safetyvalve.SafetyValveBlock;
+import com.lycoris.loconautics.content.boiler.slant.SlantPlacement;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
 import com.lycoris.loconautics.content.boiler.steamtakeoff.SteamTakeoffBlock;
 import com.lycoris.loconautics.content.hose.link.HoseConnectorBlock;
 import net.minecraft.core.BlockPos;
@@ -60,6 +62,7 @@ public final class BoilerMultiblockValidator {
             for (Direction dir : Direction.values()) {
                 claim(attached, level.getBlockState(firebox.relative(dir)), firebox.relative(dir), dir);
             }
+            claimSlanted(level, firebox, attached);
         }
         float boilerCapacity = sharingFireboxes * BoilerStructure.FIREBOX_BODY_SHARE;
         int waterCapacity = Math.round(sharingFireboxes * BoilerStructure.FIREBOX_BODY_SHARE
@@ -78,6 +81,7 @@ public final class BoilerMultiblockValidator {
                 waterCapacity += BoilerContributions.waterCapacityOf(currentState);
             }
             bodies.add(current);
+            claimSlanted(level, current, attached);
 
             for (Direction dir : Direction.values()) {
                 BlockPos neighbor = current.relative(dir);
@@ -126,6 +130,20 @@ public final class BoilerMultiblockValidator {
             attached[TAKEOFF] = pos;
         } else if (attached[VALVE] == null && state.getBlock() instanceof SafetyValveBlock) {
             attached[VALVE] = pos;
+        }
+    }
+
+    private static void claimSlanted(Level level, BlockPos host, BlockPos[] attached) {
+        Direction.Axis length = SlantPlacement.hostAxis(level.getBlockState(host));
+        if (length == null) return;
+        Direction.Axis across = length == Direction.Axis.X ? Direction.Axis.Z : Direction.Axis.X;
+        for (Direction lean : new Direction[]{Direction.get(Direction.AxisDirection.POSITIVE, across),
+                Direction.get(Direction.AxisDirection.NEGATIVE, across)}) {
+            BlockPos at = host.relative(lean).above();
+            BlockState state = level.getBlockState(at);
+            if (state.hasProperty(SlantSide.SLANT) && state.getValue(SlantSide.SLANT) == SlantSide.of(lean)) {
+                claim(attached, state, at, Direction.UP);
+            }
         }
     }
 

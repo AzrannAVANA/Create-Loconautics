@@ -3,6 +3,8 @@ package com.lycoris.loconautics.content.boiler.safetyvalve;
 import com.lycoris.loconautics.content.boiler.BoilerShapes;
 import com.lycoris.loconautics.content.boiler.BoilerBlocks;
 import com.lycoris.loconautics.content.boiler.BoilerAttach;
+import com.lycoris.loconautics.content.boiler.slant.SlantShapes;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
 import com.lycoris.loconautics.foundation.pick.OversizeShape;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -58,7 +60,7 @@ public class SmartSafetyValveBlock extends SafetyValveBlock implements OversizeS
     public SmartSafetyValveBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.UP).setValue(RAISED, false).setValue(BRASS, false)
-                .setValue(BoilerAttach.LIFTED, false));
+                .setValue(BoilerAttach.LIFTED, false).setValue(SlantSide.SLANT, SlantSide.NONE));
     }
 
     private static VoxelShape buildShape(Direction facing, double lift) {
@@ -94,7 +96,7 @@ public class SmartSafetyValveBlock extends SafetyValveBlock implements OversizeS
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, RAISED, BRASS, BoilerAttach.LIFTED);
+        builder.add(FACING, RAISED, BRASS, BoilerAttach.LIFTED, SlantSide.SLANT);
     }
 
     @Override
@@ -125,8 +127,8 @@ public class SmartSafetyValveBlock extends SafetyValveBlock implements OversizeS
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         int face = state.getValue(FACING).get3DDataValue();
-        return BoilerShapes.raisedIf(state.getValue(RAISED) ? SHAPES_RAISED[face] : SHAPES[face],
-                state.getValue(BoilerAttach.LIFTED));
+        return SlantShapes.tilt(BoilerShapes.raisedIf(state.getValue(RAISED) ? SHAPES_RAISED[face] : SHAPES[face],
+                state.getValue(BoilerAttach.LIFTED)), state.getValue(SlantSide.SLANT));
     }
 
     @Override

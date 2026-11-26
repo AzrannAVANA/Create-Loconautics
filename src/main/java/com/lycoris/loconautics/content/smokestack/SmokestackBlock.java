@@ -3,6 +3,8 @@ package com.lycoris.loconautics.content.smokestack;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.boiler.BoilerShapes;
 import com.lycoris.loconautics.content.boiler.BoilerAttach;
+import com.lycoris.loconautics.content.boiler.slant.SlantShapes;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
 import com.lycoris.loconautics.foundation.pick.OversizeShape;
 import com.simibubi.create.content.equipment.wrench.IWrenchable;
 import net.minecraft.core.BlockPos;
@@ -33,6 +35,8 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, OversizeShape {
@@ -53,12 +57,12 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
     public SmokestackBlock(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(STACKED, false).setValue(RAISED, false)
-                .setValue(SUNK, false).setValue(BoilerAttach.LIFTED, false));
+                .setValue(SlantSide.SLANT, SlantSide.NONE).setValue(SUNK, false).setValue(BoilerAttach.LIFTED, false));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(STACKED, RAISED, SUNK, BoilerAttach.LIFTED);
+        builder.add(STACKED, RAISED, SUNK, BoilerAttach.LIFTED, SlantSide.SLANT);
     }
 
     @Override
@@ -67,6 +71,13 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
         VoxelShape shape = state.getValue(RAISED)
                 ? (column ? COLUMN_RAISED : CAPPED_RAISED)
                 : (column ? COLUMN_SHAPE : CAPPED_SHAPE);
+        SlantSide side = state.getValue(SlantSide.SLANT);
+        if (side.isSlanted()) {
+            boolean first = state.getValue(RAISED);
+            VoxelShape raised = column ? COLUMN_RAISED : CAPPED_RAISED;
+            return SlantShapes.tilt(raised, side, first ? SlantShapes.FIRST_BASE : SlantShapes.NEXT_BASE,
+                    column ? (first ? SlantShapes.FIRST_REACH : SlantShapes.NEXT_REACH) : 1.0);
+        }
         return BoilerShapes.raisedIf(shape, state.getValue(BoilerAttach.LIFTED));
     }
 
@@ -86,6 +97,13 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
     }
 
     private static BlockState fitted(BlockState state, BlockGetter level, BlockPos pos) {
+        SlantSide side = state.getValue(SlantSide.SLANT);
+        if (side.isSlanted()) {
+            BlockState above = level.getBlockState(stepUp(pos, side.lean()));
+            boolean joins = isStack(above) && above.getValue(SlantSide.SLANT) == side;
+            return state.setValue(STACKED, joins)
+                    .setValue(RAISED, BoilerAttach.isHostAt(level, stepDown(pos, side.lean())));
+        }
         BlockPos bottom = columnBottom(level, pos);
         return state.setValue(STACKED, joinsAbove(level, pos))
                 .setValue(RAISED, raisedAt(level, pos) && !state.getValue(SUNK))
@@ -99,6 +117,23 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
 
     private static boolean isStack(BlockState state) {
         return state.getBlock() instanceof SmokestackBlock;
+    }
+
+    private static boolean inColumn(BlockState state, SlantSide side) {
+        return isStack(state) && state.getValue(SlantSide.SLANT) == side;
+    }
+
+    private static SlantSide sideAt(BlockGetter level, BlockPos pos) {
+        BlockState state = level.getBlockState(pos);
+        return isStack(state) ? state.getValue(SlantSide.SLANT) : SlantSide.NONE;
+    }
+
+    public static BlockPos stepUp(BlockPos pos, @Nullable Direction lean) {
+        return lean == null ? pos.above() : pos.relative(lean).above();
+    }
+
+    public static BlockPos stepDown(BlockPos pos, @Nullable Direction lean) {
+        return lean == null ? pos.below() : pos.relative(lean.getOpposite()).below();
     }
 
     public static int maxHeight() {
@@ -117,19 +152,30 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
         return below;
     }
 
-    private static void refreshAbove(Level level, BlockPos pos) {
+    private static void refreshAbove(Level level, BlockPos pos, SlantSide side) {
         if (level.isClientSide) {
             return;
         }
-        BlockPos at = pos.above();
+        BlockPos at = stepUp(pos, side.lean());
         BlockState state = level.getBlockState(at);
-        while (isStack(state)) {
+        while (inColumn(state, side)) {
             BlockState next = fitted(state, level, at);
             if (next != state) {
                 level.setBlock(at, next, Block.UPDATE_CLIENTS);
             }
-            at = at.above();
+            at = stepUp(at, side.lean());
             state = level.getBlockState(at);
+        }
+    }
+
+    private static void refreshBelow(Level level, BlockPos pos, SlantSide side) {
+        if (level.isClientSide || !side.isSlanted()) {
+            return;
+        }
+        BlockPos at = stepDown(pos, side.lean());
+        BlockState state = level.getBlockState(at);
+        if (inColumn(state, side)) {
+            level.setBlock(at, fitted(state, level, at), Block.UPDATE_CLIENTS);
         }
     }
 
@@ -137,9 +183,11 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
     protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         super.onRemove(state, level, pos, newState, movedByPiston);
         if (!isStack(newState)) {
-            refreshAbove(level, pos);
-            refreshColumn(level, pos.below());
-            refreshColumn(level, pos.above());
+            SlantSide side = state.getValue(SlantSide.SLANT);
+            refreshAbove(level, pos, side);
+            refreshBelow(level, pos, side);
+            refreshColumn(level, stepDown(pos, side.lean()));
+            refreshColumn(level, stepUp(pos, side.lean()));
         }
     }
 
@@ -169,7 +217,8 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
     @Override
     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean isMoving) {
         super.onPlace(state, level, pos, oldState, isMoving);
-        refreshAbove(level, pos);
+        refreshAbove(level, pos, state.getValue(SlantSide.SLANT));
+        refreshBelow(level, pos, state.getValue(SlantSide.SLANT));
         adoptColumnColor(level, pos);
         refreshColumn(level, pos);
     }
@@ -182,9 +231,10 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
     }
 
     private static BlockPos columnBottom(BlockGetter level, BlockPos pos) {
+        SlantSide side = sideAt(level, pos);
         BlockPos at = pos;
-        while (isStack(level.getBlockState(at.below()))) {
-            at = at.below();
+        while (inColumn(level.getBlockState(stepDown(at, side.lean())), side)) {
+            at = stepDown(at, side.lean());
         }
         return at;
     }
@@ -193,7 +243,9 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
         if (!isStack(level.getBlockState(pos))) {
             return;
         }
-        for (BlockPos at = columnBottom(level, pos); isStack(level.getBlockState(at)); at = at.above()) {
+        SlantSide side = sideAt(level, pos);
+        for (BlockPos at = columnBottom(level, pos); inColumn(level.getBlockState(at), side);
+             at = stepUp(at, side.lean())) {
             if (level.getBlockEntity(at) instanceof SmokestackBlockEntity be) {
                 action.accept(be);
             }
@@ -204,8 +256,10 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
         if (level.isClientSide || !(level.getBlockEntity(pos) instanceof SmokestackBlockEntity self)) {
             return;
         }
-        for (BlockPos near : new BlockPos[] {pos.below(), pos.above()}) {
-            if (isStack(level.getBlockState(near)) && level.getBlockEntity(near) instanceof SmokestackBlockEntity be) {
+        SlantSide side = sideAt(level, pos);
+        for (BlockPos near : new BlockPos[] {stepDown(pos, side.lean()), stepUp(pos, side.lean())}) {
+            if (inColumn(level.getBlockState(near), side)
+                    && level.getBlockEntity(near) instanceof SmokestackBlockEntity be) {
                 self.setColor(be.getColor());
                 return;
             }
@@ -216,10 +270,12 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
         if (level.isClientSide || !isStack(level.getBlockState(pos))) {
             return;
         }
+        SlantSide side = sideAt(level, pos);
         BlockPos bottom = columnBottom(level, pos);
         int signal = 0;
         BlockPos top = bottom;
-        for (BlockPos at = bottom; isStack(level.getBlockState(at)); at = at.above()) {
+        List<BlockPos> column = new ArrayList<>();
+        for (BlockPos at = bottom; inColumn(level.getBlockState(at), side); at = stepUp(at, side.lean())) {
             if (!(level.getBlockEntity(at) instanceof SmokestackBlockEntity be)) {
                 continue;
             }
@@ -228,8 +284,9 @@ public class SmokestackBlock extends Block implements IWrenchable, EntityBlock, 
             }
             signal = Math.max(signal, level.getBestNeighborSignal(at));
             top = at;
+            column.add(at);
         }
-        for (BlockPos at = bottom; at.getY() <= top.getY(); at = at.above()) {
+        for (BlockPos at : column) {
             if (level.getBlockEntity(at) instanceof SmokestackBlockEntity be) {
                 be.setPower(at.equals(top) ? signal : 0);
             }

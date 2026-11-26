@@ -25,6 +25,7 @@ import com.lycoris.loconautics.content.boiler.BoilerState;
 import com.lycoris.loconautics.content.boiler.BoilerStructure;
 import com.lycoris.loconautics.content.boiler.BoilerTags;
 import com.lycoris.loconautics.content.boiler.BoilerWaterSource;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
 import com.lycoris.loconautics.content.boiler.barrel.BarrelConnectorBlockEntity;
 import com.lycoris.loconautics.content.boiler.barrel.BoilerBarrelBlockEntity;
 import com.lycoris.loconautics.content.boiler.safetyvalve.SafetyValveBlockEntity;
@@ -1196,14 +1197,19 @@ public class FireboxBlockEntity extends BlockEntity implements IHaveGoggleInform
     private void pushSmokestack() {
         BlockPos base = structure == null ? null : structure.stackPos();
         if (base == null) return;
+        BlockState baseState = level.getBlockState(base);
+        Direction lean = baseState.hasProperty(SlantSide.SLANT) ? baseState.getValue(SlantSide.SLANT).lean() : null;
+        List<BlockPos> column = new ArrayList<>();
+        column.add(base);
         BlockPos top = base;
-        while (top.getY() - base.getY() + 1 < SmokestackBlock.maxHeight() && top.getY() < level.getMaxBuildHeight() - 1
-                && level.getBlockState(top.above()).is(BoilerTags.SMOKESTACK)) {
-            top = top.above();
+        while (column.size() < SmokestackBlock.maxHeight() && top.getY() < level.getMaxBuildHeight() - 1
+                && level.getBlockState(SmokestackBlock.stepUp(top, lean)).is(BoilerTags.SMOKESTACK)) {
+            top = SmokestackBlock.stepUp(top, lean);
+            column.add(top);
         }
         int warm = Math.round(temperatureFraction() * 15f);
         int power = lastBurning ? Math.max(1, warm) : steamPressure > 0f ? warm : 0;
-        for (BlockPos at = base; at.getY() <= top.getY(); at = at.above()) {
+        for (BlockPos at : column) {
             if (level.getBlockEntity(at) instanceof SmokestackBlockEntity stack) {
                 stack.setBoilerDriven(true);
                 stack.setPower(at.equals(top) ? power : 0);

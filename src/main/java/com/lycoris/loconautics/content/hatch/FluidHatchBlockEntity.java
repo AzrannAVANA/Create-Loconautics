@@ -2,6 +2,7 @@ package com.lycoris.loconautics.content.hatch;
 
 import com.lycoris.loconautics.common.dock.DockPolling;
 import com.lycoris.loconautics.common.dock.IDockable;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
 import com.lycoris.loconautics.config.LoconauticsConfig;
 import com.lycoris.loconautics.content.boiler.BoilerWaterSource;
 import com.lycoris.loconautics.content.hose.nozzle.HoseNozzleBlockEntity;
@@ -49,7 +50,7 @@ public class FluidHatchBlockEntity extends SmartBlockEntity implements IDockable
         this.socket = new HatchWaterSocket(this,
                 () -> getBlockState().getValue(FluidHatchBlock.FACING),
                 () -> getBlockState().getValue(FluidHatchBlock.RAISED),
-                this::dockSeatOffset, tank);
+                this::dockSeatOffset, tank, () -> getBlockState().getValue(SlantSide.SLANT));
     }
 
     @Override

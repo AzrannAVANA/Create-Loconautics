@@ -2,6 +2,8 @@ package com.lycoris.loconautics.content.hatch;
 
 import com.lycoris.loconautics.content.boiler.BoilerShapes;
 import com.lycoris.loconautics.content.boiler.BoilerAttach;
+import com.lycoris.loconautics.content.boiler.slant.SlantShapes;
+import com.lycoris.loconautics.content.boiler.slant.SlantSide;
 import com.lycoris.loconautics.foundation.pick.OversizeShape;
 import com.lycoris.loconautics.registry.LoconauticsRegistries;
 import com.simibubi.create.AllItems;
@@ -80,12 +82,13 @@ public class FluidHatchBlock extends Block implements IBE<FluidHatchBlockEntity>
         super(properties);
         registerDefaultState(stateDefinition.any()
                 .setValue(FACING, Direction.DOWN).setValue(OPEN, false).setValue(LID_HINGE, 0)
-                .setValue(RAISED, false).setValue(WATERLOGGED, false).setValue(BoilerAttach.LIFTED, false));
+                .setValue(RAISED, false).setValue(WATERLOGGED, false).setValue(BoilerAttach.LIFTED, false)
+                .setValue(SlantSide.SLANT, SlantSide.NONE));
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
-        builder.add(FACING, OPEN, LID_HINGE, RAISED, WATERLOGGED, BoilerAttach.LIFTED);
+        builder.add(FACING, OPEN, LID_HINGE, RAISED, WATERLOGGED, BoilerAttach.LIFTED, SlantSide.SLANT);
     }
 
     private static boolean onBarrel(BlockGetter level, BlockPos pos, Direction face) {
@@ -111,7 +114,7 @@ public class FluidHatchBlock extends Block implements IBE<FluidHatchBlockEntity>
 
     @Override
     public BlockState updateAfterWrenched(BlockState newState, UseOnContext context) {
-        BlockState state = newState.setValue(RAISED,
+        BlockState state = newState.getValue(SlantSide.SLANT).isSlanted() ? newState : newState.setValue(RAISED,
                 onBarrel(context.getLevel(), context.getClickedPos(), newState.getValue(FACING)));
         return IWrenchable.super.updateAfterWrenched(state, context);
     }
@@ -214,8 +217,8 @@ public class FluidHatchBlock extends Block implements IBE<FluidHatchBlockEntity>
     @Override
     public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         int face = state.getValue(FACING).get3DDataValue();
-        return BoilerShapes.raisedIf(state.getValue(RAISED) ? SHAPES_RAISED[face] : SHAPES[face],
-                state.getValue(BoilerAttach.LIFTED));
+        return SlantShapes.tilt(BoilerShapes.raisedIf(state.getValue(RAISED) ? SHAPES_RAISED[face] : SHAPES[face],
+                state.getValue(BoilerAttach.LIFTED)), state.getValue(SlantSide.SLANT));
     }
 
     @Override

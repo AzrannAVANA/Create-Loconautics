@@ -1,8 +1,76 @@
 {
   "variants": {
-    "raised=false,stacked=false": { "model": "loconautics:block/smokestack/top" },
-    "raised=false,stacked=true": { "model": "loconautics:block/smokestack/bottom" },
-    "raised=true,stacked=false": { "model": "loconautics:block/smokestack/top_raised" },
-    "raised=true,stacked=true": { "model": "loconautics:block/smokestack/bottom_raised" }
+    "raised=false,stacked=false,slant=none": {
+      "model": "loconautics:block/smokestack/top"
+    },
+    "raised=false,stacked=true,slant=none": {
+      "model": "loconautics:block/smokestack/bottom"
+    },
+    "raised=true,stacked=false,slant=none": {
+      "model": "loconautics:block/smokestack/top_raised"
+    },
+    "raised=true,stacked=true,slant=none": {
+      "model": "loconautics:block/smokestack/bottom_raised"
+    },
+    "raised=true,stacked=false,slant=east": {
+      "model": "loconautics:block/smokestack/top_slanted"
+    },
+    "raised=true,stacked=false,slant=south": {
+      "model": "loconautics:block/smokestack/top_slanted",
+      "y": 90
+    },
+    "raised=true,stacked=false,slant=west": {
+      "model": "loconautics:block/smokestack/top_slanted",
+      "y": 180
+    },
+    "raised=true,stacked=false,slant=north": {
+      "model": "loconautics:block/smokestack/top_slanted",
+      "y": 270
+    },
+    "raised=true,stacked=true,slant=east": {
+      "model": "loconautics:block/smokestack/bottom_slanted"
+    },
+    "raised=true,stacked=true,slant=south": {
+      "model": "loconautics:block/smokestack/bottom_slanted",
+      "y": 90
+    },
+    "raised=true,stacked=true,slant=west": {
+      "model": "loconautics:block/smokestack/bottom_slanted",
+      "y": 180
+    },
+    "raised=true,stacked=true,slant=north": {
+      "model": "loconautics:block/smokestack/bottom_slanted",
+      "y": 270
+    },
+    "raised=false,stacked=false,slant=east": {
+      "model": "loconautics:block/smokestack/top_slanted_next"
+    },
+    "raised=false,stacked=false,slant=south": {
+      "model": "loconautics:block/smokestack/top_slanted_next",
+      "y": 90
+    },
+    "raised=false,stacked=false,slant=west": {
+      "model": "loconautics:block/smokestack/top_slanted_next",
+      "y": 180
+    },
+    "raised=false,stacked=false,slant=north": {
+      "model": "loconautics:block/smokestack/top_slanted_next",
+      "y": 270
+    },
+    "raised=false,stacked=true,slant=east": {
+      "model": "loconautics:block/smokestack/bottom_slanted_next"
+    },
+    "raised=false,stacked=true,slant=south": {
+      "model": "loconautics:block/smokestack/bottom_slanted_next",
+      "y": 90
+    },
+    "raised=false,stacked=true,slant=west": {
+      "model": "loconautics:block/smokestack/bottom_slanted_next",
+      "y": 180
+    },
+    "raised=false,stacked=true,slant=north": {
+      "model": "loconautics:block/smokestack/bottom_slanted_next",
+      "y": 270
+    }
   }
 }
