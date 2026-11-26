@@ -1,9 +1,15 @@
 package com.lycoris.loconautics.trainphysics.station;
 
 import com.lycoris.loconautics.LoconauticsConstants;
+import com.lycoris.loconautics.common.sable.SubLevelBlocks;
+import com.lycoris.loconautics.common.sable.SubLevelData;
 import com.lycoris.loconautics.content.analogcontroller.AnalogControllerBlockEntity;
+import com.lycoris.loconautics.content.bearingaxle.BearingAxleBlockEntity;
+import com.lycoris.loconautics.content.bearingaxle.BearingAxleValidity;
+import com.lycoris.loconautics.content.schedule.LocomotiveHardware;
 import com.lycoris.loconautics.content.schedule.SableScheduleRuntime;
 import com.lycoris.loconautics.content.trainmail.TrainMailTransfer;
+import com.lycoris.loconautics.content.transmission.TransmissionBlockEntity;
 import com.lycoris.loconautics.network.LoconauticsNetwork;
 import com.lycoris.loconautics.trainphysics.SableTrain;
 import com.lycoris.loconautics.trainphysics.SableTrain.Car;
@@ -129,8 +135,9 @@ public final class TrainStations {
                 || Math.abs(ConsistPower.targetFor(train)) > 1.0e-6;
 
         ConsistPower.Result consistPower = ConsistPower.resultFor(train);
-        // powered is true for any driven consist, the approach needs an axle that is actually turning
-        boolean engineTurning = consistPower != null && consistPower.engineTurning();
+        // powered is true for any driven consist, the approach needs an engine that is actually turning
+        boolean engineTurning = consistPower != null && consistPower.engineTurning()
+                || controller != null && transmissionTurning(train);
         boolean spaceHeld = controller != null && controller.isSpaceHeld();
         // the snap moves the car up to stationparkradius blocks, an idling or shoved loco never asked for that
         boolean wantsStop = spaceHeld && engineTurning || train.scheduleHold() || train.isScheduleDriven();
@@ -331,6 +338,26 @@ public final class TrainStations {
     static StationTarget scanStation(SableTrain train, double maxDistance, GlobalStation target,
                                              double frontOvershoot) {
         return scoutBothWays(noseRail(train), nosePoint(train), maxDistance, target, frontOvershoot);
+    }
+
+    private static boolean transmissionTurning(SableTrain train) {
+        if (train.car() == null || train.car().subLevelId() == null) {
+            return false;
+        }
+        for (UUID id : TrainConsist.connectedThisTick(train.level(), train.car().subLevelId())) {
+            ServerSubLevel sub = SubLevelData.resolve(train.level(), id);
+            if (sub == null) {
+                continue;
+            }
+            List<BearingAxleBlockEntity> axles = BearingAxleValidity.valid(sub);
+            for (TransmissionBlockEntity transmission : SubLevelBlocks.findAll(sub, TransmissionBlockEntity.class)) {
+                if (transmission.getSpeed() != 0f && axles.stream()
+                        .anyMatch(axle -> LocomotiveHardware.link(transmission, axle) == LocomotiveHardware.Link.OK)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // a rolling train only ever stops for what is ahead of its nose, a station it just passed is not a stop

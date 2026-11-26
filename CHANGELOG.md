@@ -83,6 +83,7 @@
 - Trains wait at a portal until the far side has loaded, untested.
 - Trackless cars coupled into a train cross portals with it, untested.
 - Bogeys still behind a portal keep turning after the train crosses, untested.
+- Holding Space while standing still approaches the station again.
 
 - Deployers lay track along the car on a turned train.
 ### Added
